@@ -25,6 +25,7 @@ export default function ArtCameraRubric({
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
+  const streamRef = useRef(null);
 
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
@@ -177,38 +178,86 @@ export default function ArtCameraRubric({
     setCameraError('');
   };
 
-  // Start Camera - Tương thích tối đa với webcam Windows/Laptop (không ép facingMode)
+  // Đồng bộ Stream vào thẻ Video khi Camera được kích hoạt
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(err => {
+        console.warn('Video autoPlay error:', err);
+      });
+    }
+  }, [isCameraActive]);
+
+  // Start Camera - Tương thích tối đa với Webcam Windows/Laptop & Camera thiết bị di động
   const startCamera = async () => {
     setCameraError('');
     try {
-      let stream = null;
-      // 1. Thử độ phân giải chuẩn
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
-      } catch (e1) {
-        // 2. Thử chế độ cơ bản nhất nếu webcam không hỗ trợ constraint
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Dừng stream cũ nếu còn đang chạy
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       }
 
-      if (videoRef.current && stream) {
-        videoRef.current.srcObject = stream;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Trình duyệt không hỗ trợ mediaDevices.getUserMedia. Vui lòng sử dụng Chrome, Edge hoặc Cốc Cốc.');
+      }
+
+      let stream = null;
+      // 1. Thử camera sau (thích hợp chụp bài vẽ trên bàn) hoặc độ phân giải HD
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'environment'
+          }
+        });
+      } catch (e1) {
+        // 2. Thử độ phân giải chuẩn không giới hạn facingMode
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
+        } catch (e2) {
+          // 3. Chế độ cơ bản nhất nếu webcam hạn chế constraint
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+      }
+
+      if (stream) {
+        streamRef.current = stream;
         setIsCameraActive(true);
+
+        // Gán ngay nếu videoRef đã sẵn sàng trong DOM
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
       }
     } catch (err) {
       console.warn('Lỗi mở camera:', err);
-      setCameraError('Chưa nhận được tín hiệu Webcam hoặc trình duyệt chưa được cấp quyền Camera. Thầy/Cô vui lòng bấm "Chọn Ảnh" hoặc kéo thả ảnh chụp bài vẽ vào khung bên dưới nhé!');
+      let errMsg = 'Không thể mở Camera.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errMsg = 'Trình duyệt chưa được cấp quyền truy cập Camera. Thầy/Cô vui lòng nhấp vào biểu tượng Ổ Khóa hoặc Camera trên thanh địa chỉ trình duyệt và chọn "Cho phép (Allow)" nhé!';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errMsg = 'Không tìm thấy Webcam trên máy tính này. Thầy/Cô có thể kết nối webcam rời hoặc bấm "Chọn Ảnh" để tải ảnh bài vẽ từ máy tính lên!';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errMsg = 'Webcam đang bị một ứng dụng khác (như Zoom, Zalo, Teams, Google Meet) sử dụng. Thầy/Cô vui lòng tắt các ứng dụng đó rồi thử mở lại nhé!';
+      } else {
+        errMsg = `Chưa mở được Camera (${err.message}). Thầy/Cô có thể bấm "Chọn Ảnh" hoặc kéo thả ảnh bài vẽ vào đây!`;
+      }
+      setCameraError(errMsg);
       setIsCameraActive(false);
     }
   };
 
   // Stop Camera
   const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
     if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
     setIsCameraActive(false);
@@ -221,16 +270,19 @@ export default function ArtCameraRubric({
   }, []);
 
   // Capture frame from video
-  const capturePhoto = () => {
+  const capturePhoto = (e) => {
+    if (e) e.stopPropagation();
     if (!videoRef.current) return;
+    const v = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 640;
-    canvas.height = videoRef.current.videoHeight || 480;
+    canvas.width = v.videoWidth || 1280;
+    canvas.height = v.videoHeight || 720;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
     setCapturedImage(dataUrl);
     stopCamera();
+    setCameraError('');
   };
 
   // Helper xử lý tệp ảnh bài vẽ (từ nút chọn hoặc kéo thả)
@@ -416,18 +468,75 @@ export default function ArtCameraRubric({
             }`}
           >
             {isCameraActive ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
+              <div className="relative w-full h-full flex items-center justify-center bg-black">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                  onLoadedMetadata={() => {
+                    videoRef.current?.play().catch(() => {});
+                  }}
+                />
+
+                {/* Khung canh nét bài vẽ trực quan */}
+                <div className="absolute inset-6 md:inset-8 border-2 border-white/50 rounded-xl pointer-events-none flex flex-col justify-between p-2">
+                  <div className="flex justify-between">
+                    <span className="w-5 h-5 border-t-4 border-l-4 border-rose-500"></span>
+                    <span className="w-5 h-5 border-t-4 border-r-4 border-rose-500"></span>
+                  </div>
+                  <div className="text-center">
+                    <span className="bg-black/60 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1 rounded-full border border-white/20">
+                      Đưa bài vẽ vào giữa khung hình
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="w-5 h-5 border-b-4 border-l-4 border-rose-500"></span>
+                    <span className="w-5 h-5 border-b-4 border-r-4 border-rose-500"></span>
+                  </div>
+                </div>
+
+                {/* Nút Chụp Ảnh Nổi Bật Trên Camera */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={capturePhoto}
+                    className="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs md:text-sm rounded-full shadow-2xl flex items-center gap-2 transform active:scale-95 transition-all border-2 border-white cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4 fill-white" />
+                    <span>📸 CHỤP BÀI VẼ NÀY</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); stopCamera(); }}
+                    className="px-3.5 py-2.5 bg-black/70 hover:bg-black/90 text-white text-xs font-bold rounded-full border border-white/20 transition cursor-pointer"
+                  >
+                    Đóng Cam
+                  </button>
+                </div>
+              </div>
             ) : capturedImage ? (
-              <img
-                src={capturedImage}
-                alt="Bài vẽ của học sinh"
-                className="w-full h-full object-contain"
-              />
+              <div className="relative w-full h-full flex items-center justify-center bg-black/5">
+                <img
+                  src={capturedImage}
+                  alt="Bài vẽ của học sinh"
+                  className="w-full h-full object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCapturedImage(null);
+                    startCamera();
+                  }}
+                  className="absolute top-3 right-3 px-3 py-1.5 bg-black/75 hover:bg-black/90 text-white text-xs font-bold rounded-lg backdrop-blur flex items-center gap-1.5 shadow transition"
+                  title="Chụp lại ảnh khác từ Camera"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Chụp lại</span>
+                </button>
+              </div>
             ) : (
               <div className="text-center p-6 text-slate-400 group-hover:text-slate-200 transition-colors">
                 <Camera className="w-12 h-12 mx-auto mb-2 opacity-50 group-hover:scale-110 transition-transform text-amber-400" />
@@ -437,19 +546,6 @@ export default function ArtCameraRubric({
                 <p className="text-[11px] text-slate-400">
                   (Hoặc bấm nút <strong>"Mở Camera"</strong> ở trên để chụp trực tiếp từ webcam)
                 </p>
-              </div>
-            )}
-
-            {/* Snap button overlay if camera active */}
-            {isCameraActive && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                <button
-                  onClick={capturePhoto}
-                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-full shadow-lg flex items-center gap-2 transform active:scale-95 transition-all"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>Chụp Bài Vẽ Này</span>
-                </button>
               </div>
             )}
           </div>

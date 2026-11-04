@@ -48,6 +48,8 @@ export default function IdeaWorkshop({
 
   const [ideaResult, setIdeaResult] = useState(null);
   const [generatedArtworkUrl, setGeneratedArtworkUrl] = useState('');
+  const [artworkGallery, setArtworkGallery] = useState([]);
+  const [activeArtworkIndex, setActiveArtworkIndex] = useState(0);
   const [artworkSeed, setArtworkSeed] = useState(100);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -92,13 +94,25 @@ export default function IdeaWorkshop({
     return vnText || 'creative art lesson';
   };
 
-  // Helper tạo URL tranh minh họa AI theo ý tưởng bằng Pollinations 100% Free
-  const createArtUrl = (topicText, seed) => {
+  // Helper tạo URL tranh minh họa AI theo ý tưởng bằng Pollinations siêu tốc (model=turbo, 800x450 chỉ 2-3 giây)
+  const createArtUrl = (topicText, seed, styleKey = 'crayon') => {
     const cleanTopic = (topicText || '').replace(/^Chủ đề \d+:\s*/i, '').trim();
     const mappedSubject = translateVietnameseArtTopic(cleanTopic);
-    // Prompt tối ưu hóa cho tranh vẽ mĩ thuật học sinh tiểu học Việt Nam
-    const prompt = `adorable elementary art lesson demonstration, primary school student artwork, colorful wax crayon and vibrant gouache watercolor, ${mappedSubject}, expressive cheerful brushstrokes, bright sunny colors, joyful wholesome classroom style, clear outline, masterpiece 4k`;
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=576&seed=${seed}&nologo=true`;
+    
+    let styleDetail = 'colorful wax crayon and vibrant gouache watercolor, cheerful primary school art';
+    if (styleKey === 'watercolor') {
+      styleDetail = 'soft transparent watercolor wash on textured paper, light pastel colors, gentle primary art';
+    } else if (styleKey === 'paper-cut') {
+      styleDetail = 'paper collage cut-out art, layered colorful paper shapes, wholesome handicraft art';
+    } else if (styleKey === 'colored-pencil') {
+      styleDetail = 'vibrant colored pencil sketch, clean contours, innocent elementary school doodle';
+    } else if (styleKey === 'clay') {
+      styleDetail = 'cute colorful modeling clay sculpture, plasticine art craft, bright 3D look';
+    }
+
+    const prompt = `adorable elementary art lesson demonstration, primary school student artwork, ${styleDetail}, ${mappedSubject}, expressive cheerful brushstrokes, bright sunny colors, joyful wholesome classroom style, clear outline, masterpiece, highly detailed`;
+    // Thêm model=turbo để sinh ảnh siêu tốc 2-3s, không bao giờ bị nghẽn 45 giây
+    return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=450&seed=${seed}&nologo=true&model=turbo`;
   };
 
   const handleUploadIdeaImage = (e) => {
@@ -124,12 +138,31 @@ export default function IdeaWorkshop({
       : currentTheme.title.replace(/^Chủ đề \d+:\s*/, '');
     const lessonTitle = `${baseTitle} cùng ${materialObj.name}`;
 
-    const newSeed = Math.floor(Math.random() * 10000);
-    setArtworkSeed(newSeed);
     setIsImageLoading(true);
 
-    const artUrl = createArtUrl(baseTitle, newSeed);
-    setGeneratedArtworkUrl(artUrl);
+    // Tự động sinh ngay bộ 4 phong cách tranh khác nhau siêu tốc
+    const STYLES = [
+      { key: 'crayon', name: 'Sáp Màu Rực Rỡ' },
+      { key: 'watercolor', name: 'Màu Nước Trong Trẻo' },
+      { key: 'paper-cut', name: 'Xé Dán Giấy Màu' },
+      { key: 'colored-pencil', name: 'Chì Màu Tươi Sáng' }
+    ];
+
+    const initialGallery = STYLES.map((st, i) => {
+      const s = Math.floor(Math.random() * 900000) + (i + 1) * 333;
+      return {
+        id: `art-${Date.now()}-${i}`,
+        url: createArtUrl(baseTitle, s, st.key),
+        seed: s,
+        styleName: st.name,
+        styleKey: st.key,
+        title: baseTitle
+      };
+    });
+
+    setArtworkGallery(initialGallery);
+    setActiveArtworkIndex(0);
+    setGeneratedArtworkUrl(initialGallery[0].url);
 
     const newIdea = {
       id: 'idea-' + Date.now(),
@@ -138,7 +171,7 @@ export default function IdeaWorkshop({
       material: materialObj.name,
       duration: durationObj.name,
       lessonTitle,
-      artworkUrl: uploadedIdeaImage || artUrl,
+      artworkUrl: uploadedIdeaImage || initialGallery[0].url,
       objectives: currentTheme ? currentTheme.objectives : {
         knowledge: `Nhận biết đặc điểm, hình dáng và màu sắc của ${baseTitle}.`,
         skills: `Biết vẽ phác hình, sử dụng ${materialObj.name} tạo hình sinh động.`,
@@ -193,14 +226,60 @@ export default function IdeaWorkshop({
     setIdeaResult(newIdea);
   };
 
-  const handleRegenerateArtworkOnly = () => {
-    if (!ideaResult) return;
-    const nextSeed = Math.floor(Math.random() * 10000);
-    setArtworkSeed(nextSeed);
+  // Tạo thêm ảnh mới liên tục, siêu nhanh 2-3s, không giới hạn số lượng ảnh
+  const handleGenerateMoreArtwork = (count = 1) => {
+    const baseTitle = ideaResult 
+      ? ideaResult.themeTitle 
+      : (customIdeaInput.trim() || (currentTheme ? currentTheme.title.replace(/^Chủ đề \d+:\s*/, '') : ''));
+    if (!baseTitle) return;
+
     setIsImageLoading(true);
-    const newUrl = createArtUrl(ideaResult.themeTitle, nextSeed);
-    setGeneratedArtworkUrl(newUrl);
-    setIdeaResult(prev => ({ ...prev, artworkUrl: newUrl }));
+    const STYLES = [
+      { key: 'crayon', name: 'Sáp Màu Rực Rỡ' },
+      { key: 'watercolor', name: 'Màu Nước Trong Trẻo' },
+      { key: 'paper-cut', name: 'Xé Dán Giấy Màu' },
+      { key: 'colored-pencil', name: 'Chì Màu Tươi Sáng' },
+      { key: 'clay', name: 'Đất Nặn Tạo Hình' }
+    ];
+
+    const newItems = [];
+    const currentTotal = artworkGallery.length;
+
+    for (let i = 0; i < count; i++) {
+      const st = STYLES[(currentTotal + i) % STYLES.length];
+      const s = Math.floor(Math.random() * 999999);
+      newItems.push({
+        id: `art-${Date.now()}-${i}-${s}`,
+        url: createArtUrl(baseTitle, s, st.key),
+        seed: s,
+        styleName: st.name,
+        styleKey: st.key,
+        title: baseTitle
+      });
+    }
+
+    setArtworkGallery(prev => [...prev, ...newItems]);
+    setActiveArtworkIndex(currentTotal);
+    setGeneratedArtworkUrl(newItems[0].url);
+    if (ideaResult) {
+      setIdeaResult(prev => ({ ...prev, artworkUrl: newItems[0].url }));
+    }
+  };
+
+  // Chọn tranh trong thư viện tranh đã sinh
+  const handleSelectArtwork = (idx) => {
+    if (idx >= 0 && idx < artworkGallery.length) {
+      setActiveArtworkIndex(idx);
+      const chosen = artworkGallery[idx];
+      setGeneratedArtworkUrl(chosen.url);
+      if (ideaResult) {
+        setIdeaResult(prev => ({ ...prev, artworkUrl: chosen.url }));
+      }
+    }
+  };
+
+  const handleRegenerateArtworkOnly = () => {
+    handleGenerateMoreArtwork(1);
   };
 
   const handleInsertArtworkToCurrentSlide = (imageUrlToInsert) => {
@@ -509,50 +588,64 @@ export default function IdeaWorkshop({
               </div>
             )}
 
-            {/* KHU VỰC TRANH MẪU MINH HỌA SINH THEO Ý TƯỞNG NGƯỜI DÙNG */}
-            {generatedArtworkUrl && (
-              <div className="bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/50 border border-amber-200 rounded-2xl p-4 shadow-2xs">
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            {/* KHU VỰC THƯ VIỆN TRANH MẪU MINH HỌA SINH THEO Ý TƯỞNG (NHIỀU TRANH, LIÊN TỤC) */}
+            {(generatedArtworkUrl || artworkGallery.length > 0) && (
+              <div className="bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/50 border border-amber-200 rounded-2xl p-4 shadow-2xs space-y-3">
+                {/* Header thanh công cụ tranh */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <span className="p-1.5 bg-amber-500 text-white rounded-lg text-xs shadow-xs">🎨</span>
                     <div>
-                      <h3 className="font-extrabold text-xs md:text-sm text-amber-950 flex items-center gap-1.5">
-                        <span>Tranh Minh Họa AI Sinh Theo Ý Tưởng</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">100% Miễn Phí</span>
+                      <h3 className="font-extrabold text-xs md:text-sm text-amber-950 flex items-center gap-2">
+                        <span>Bộ Sưu Tập Tranh Minh Họa AI ({artworkGallery.length} bức)</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Siêu Tốc 2-3s • Tạo Không Giới Hạn</span>
                       </h3>
                       <p className="text-[11px] text-amber-800">
-                        Bản vẽ phong cách sáp màu / màu nước cho học sinh tiểu học quan sát thị phạm
+                        {artworkGallery[activeArtworkIndex]?.styleName || 'Phong cách sáp màu / màu nước'} • Bấm vào các tranh nhỏ bên dưới để chọn tranh muốn dùng
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
+                    {/* Nút Tạo thêm 1 tranh mới siêu tốc */}
                     <button
-                      onClick={handleRegenerateArtworkOnly}
-                      disabled={isImageLoading}
-                      className="px-2.5 py-1 text-xs font-bold text-amber-900 bg-white hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1 transition-all shadow-2xs"
-                      title="Tạo một bức tranh minh họa mẫu khác với cùng ý tưởng"
+                      type="button"
+                      onClick={() => handleGenerateMoreArtwork(1)}
+                      className="px-3 py-1 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-400 rounded-lg flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                      title="Vẽ thêm 1 tranh minh họa mới tức thì (chỉ 2-3 giây, không giới hạn)"
                     >
-                      <RotateCcw className={`w-3.5 h-3.5 ${isImageLoading ? 'animate-spin' : ''}`} />
-                      <span>Vẽ bức khác</span>
+                      <Sparkles className="w-3.5 h-3.5 text-amber-800" />
+                      <span>+ Vẽ Thêm 1 Bức (2s)</span>
+                    </button>
+
+                    {/* Nút Tạo bộ 4 tranh mới cùng lúc */}
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateMoreArtwork(4)}
+                      className="px-3 py-1 text-xs font-bold text-indigo-950 bg-indigo-100 hover:bg-indigo-200 border border-indigo-300 rounded-lg flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                      title="Tạo thêm 4 biến thể phong cách khác nhau cùng một lúc"
+                    >
+                      <span>🎨</span>
+                      <span>+ Tạo Bộ 4 Bức Mới</span>
                     </button>
 
                     <a
                       href={generatedArtworkUrl}
                       target="_blank"
                       rel="noreferrer"
-                      download={`Tranh_Mau_${ideaResult.themeTitle}.jpg`}
+                      download={`Tranh_Mau_${ideaResult ? ideaResult.themeTitle : 'Y_Tuong'}.jpg`}
                       className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1 transition-all shadow-2xs"
-                      title="Mở toàn màn hình hoặc tải ảnh tranh mẫu về máy tính"
+                      title="Tải ảnh tranh mẫu đang chọn về máy tính"
                     >
                       <Download className="w-3.5 h-3.5 text-slate-600" />
                       <span>Tải về</span>
                     </a>
 
                     <button
+                      type="button"
                       onClick={() => handleInsertArtworkToCurrentSlide(generatedArtworkUrl)}
-                      className="px-3.5 py-1 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm flex items-center gap-1.5 transition-all"
-                      title="Chèn bức tranh minh họa này trực tiếp vào trang slide bài giảng đang soạn"
+                      className="px-3.5 py-1 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                      title="Chèn bức tranh minh họa đang chọn này trực tiếp vào trang slide bài giảng"
                     >
                       <ImageIcon className="w-3.5 h-3.5" />
                       <span>{insertSuccessNotice ? '✓ Đã chèn vào slide!' : 'Chèn tranh này vào slide'}</span>
@@ -560,12 +653,12 @@ export default function IdeaWorkshop({
                   </div>
                 </div>
 
-                {/* Khung Tranh Minh Họa 16:9 */}
-                <div className="relative aspect-video w-full bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-amber-200/60">
+                {/* Khung Tranh Minh Họa 16:9 Chính */}
+                <div className="relative aspect-video w-full bg-slate-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center border border-amber-200/60 group">
                   {isImageLoading && (
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-2 z-10">
                       <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
-                      <span className="text-xs font-bold">Đang vẽ tranh mẫu theo ý tưởng của Thầy/Cô...</span>
+                      <span className="text-xs font-bold">Đang vẽ tranh mẫu mới siêu tốc theo ý tưởng của Thầy/Cô...</span>
                     </div>
                   )}
                   <img
@@ -575,7 +668,72 @@ export default function IdeaWorkshop({
                     onError={() => setIsImageLoading(false)}
                     className="w-full h-full object-contain"
                   />
+                  {/* Badge phong cách tranh đang xem */}
+                  {artworkGallery[activeArtworkIndex] && (
+                    <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-xs px-2.5 py-1 rounded-md text-[11px] font-bold text-amber-300 border border-white/20">
+                      Biến thể #{activeArtworkIndex + 1}: {artworkGallery[activeArtworkIndex].styleName}
+                    </div>
+                  )}
                 </div>
+
+                {/* THƯ VIỆN CÁC TRANH MẪU ĐÃ TẠO (CLICK ĐỂ CHỌN HOẶC CHÈN NGAY) */}
+                {artworkGallery.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5 text-xs">
+                      <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                        <span>🖼️</span> Thư viện các phương án tranh đã sinh ({artworkGallery.length} bức):
+                      </span>
+                      <span className="text-[11px] text-slate-500">Bấm ảnh để xem lớn • Bấm dấu (+) để chèn vào slide</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2.5 overflow-x-auto pb-2 pt-1 scrollbar-thin">
+                      {artworkGallery.map((art, idx) => (
+                        <div
+                          key={art.id}
+                          onClick={() => handleSelectArtwork(idx)}
+                          className={`relative shrink-0 w-36 aspect-video rounded-lg overflow-hidden border-2 cursor-pointer transition-all transform hover:scale-102 ${
+                            idx === activeArtworkIndex 
+                              ? 'border-amber-500 shadow-md ring-2 ring-amber-300' 
+                              : 'border-slate-200 hover:border-amber-300 opacity-80 hover:opacity-100'
+                          }`}
+                        >
+                          <img
+                            src={art.url}
+                            alt={art.styleName}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute bottom-0 inset-x-0 bg-black/75 px-1 py-0.5 text-[9px] font-bold text-white text-center truncate">
+                            #{idx + 1} {art.styleName}
+                          </div>
+                          {/* Nút chèn nhanh 1 chạm */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleInsertArtworkToCurrentSlide(art.url);
+                            }}
+                            className="absolute top-1 right-1 w-5 h-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded flex items-center justify-center text-[10px] shadow"
+                            title="Chèn ảnh này vào slide"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Ô Bấm nhanh để tạo thêm tranh */}
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateMoreArtwork(1)}
+                        className="shrink-0 w-28 aspect-video rounded-lg border-2 border-dashed border-amber-300 bg-amber-50/70 hover:bg-amber-100/70 flex flex-col items-center justify-center text-amber-800 transition cursor-pointer"
+                        title="Vẽ thêm một bức tranh mới"
+                      >
+                        <Sparkles className="w-4 h-4 mb-0.5 text-amber-600" />
+                        <span className="text-[10px] font-extrabold">+ Vẽ Thêm</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
