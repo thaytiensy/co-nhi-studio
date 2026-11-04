@@ -699,11 +699,11 @@ export default function IdeaWorkshop({
                 {/* THƯ VIỆN CÁC TRANH MẪU ĐÃ TẠO (CLICK ĐỂ CHỌN HOẶC CHÈN NGAY) */}
                 {artworkGallery.length > 0 && (
                   <div>
-                    <div className="flex items-center justify-between mb-1.5 text-xs">
-                      <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                        <span>🖼️</span> Thư viện các phương án tranh đã sinh ({artworkGallery.length} bức):
+                    <div className="flex items-center justify-between flex-wrap gap-1 mb-1.5 text-xs">
+                      <span className="font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+                        <span>🖼️</span> Thư viện tranh đã sinh ({artworkGallery.length} bức):
                       </span>
-                      <span className="text-[11px] text-slate-500">Bấm ảnh để xem lớn • Bấm dấu (+) để chèn vào slide</span>
+                      <span className="text-[11px] text-slate-500">Bấm ảnh để xem lớn • Bấm (+) để chèn vào slide</span>
                     </div>
                     
                     <div className="flex items-center gap-2.5 overflow-x-auto pb-2 pt-1 scrollbar-thin">

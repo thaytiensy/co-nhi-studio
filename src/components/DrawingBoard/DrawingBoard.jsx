@@ -276,14 +276,27 @@ export default function DrawingBoard({
       } else if (tool === 'cylinder') {
         const rx = Math.max(1, w / 2);
         const ry = Math.max(1, h * 0.15);
-        ctx.ellipse(cx, minY + ry, rx, ry, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+
+        // 1. Thân hình trụ (Body)
         ctx.beginPath();
         ctx.moveTo(minX, minY + ry);
         ctx.lineTo(minX, maxY - ry);
-        ctx.ellipse(cx, maxY - ry, rx, ry, 0, 0, Math.PI);
+        // Cung đáy dưới: đi từ góc PI (trái) tới góc 0 (phải) qua đáy (anticlockwise = true)
+        ctx.ellipse(cx, maxY - ry, rx, ry, 0, Math.PI, 0, true);
         ctx.lineTo(maxX, minY + ry);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 2. Mặt đáy trên elip (Top Face)
+        ctx.beginPath();
+        ctx.ellipse(cx, minY + ry, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 3. Đường viền cung đáy dưới (Bottom Rim)
+        ctx.beginPath();
+        ctx.ellipse(cx, maxY - ry, rx, ry, 0, Math.PI, 0, true);
         ctx.stroke();
       } else if (tool === 'cube') {
         const depth = Math.min(w, h) * 0.3;
