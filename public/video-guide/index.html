@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Giới Thiệu & Hướng Dẫn – Cọ Nhí Studio (7 Phút)</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    canvas {
+      image-rendering: -webkit-optimize-contrast;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+  <!-- Top Navigation -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 px-6 py-3.5 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-4">
+      <a href="/" class="flex items-center gap-2.5 hover:opacity-85 transition">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-white text-lg font-black shadow-md shadow-amber-500/20">
+          🎨
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base tracking-tight text-white">Cọ Nhí Studio</span>
+            <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              Video Hướng Dẫn
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">7 Phút Giới Thiệu Toàn Diện Bài Soạn & Giảng Dạy Mĩ Thuật Tiểu Học</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Record / Export Video Button -->
+      <button id="btnExportVideo" class="flex items-center gap-2 bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-lg shadow-rose-900/30 transition transform hover:-translate-y-0.5">
+        <span>🎥</span>
+        <span id="btnExportText">Xuất Video (.webm)</span>
+      </button>
+
+      <a href="/" class="flex items-center gap-1.5 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white px-3.5 py-2 rounded-lg border border-slate-700 transition">
+        <span>← Quay lại Ứng Dụng</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Player Stage -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-5">
+    <!-- Video Player Frame (16:9 Aspect Ratio) -->
+    <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-slate-800/80 group">
+      <!-- Main Canvas 1920x1080 -->
+      <canvas id="videoCanvas" width="1920" height="1080" class="w-full h-full object-contain"></canvas>
+
+      <!-- Subtitles Overlay Teleprompter (Bottom of Video) -->
+      <div class="absolute bottom-16 left-0 right-0 px-8 flex justify-center pointer-events-none">
+        <div id="subtitlesBox" class="bg-black/85 backdrop-blur-md border border-white/10 px-6 py-3 rounded-xl max-w-4xl text-center shadow-2xl transition-all duration-300">
+          <p id="subtitlesText" class="text-amber-300 font-bold text-lg md:text-xl leading-relaxed tracking-wide drop-shadow">
+            Đang tải dữ liệu thuyết minh video...
+          </p>
+        </div>
+      </div>
+
+      <!-- Live Scene Overlay Badge (Top Left) -->
+      <div class="absolute top-4 left-4 flex items-center gap-2 pointer-events-none">
+        <span id="overlayPartBadge" class="bg-rose-600/90 backdrop-blur text-white text-xs font-extrabold uppercase px-3 py-1 rounded-md tracking-wider shadow">
+          PHẦN 1 / 7
+        </span>
+        <span id="overlayTimeBadge" class="bg-black/60 backdrop-blur text-slate-300 text-xs font-mono font-medium px-2.5 py-1 rounded-md">
+          0:00 - 0:45
+        </span>
+      </div>
+
+      <!-- Watermark Badge (Top Right) -->
+      <div class="absolute top-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur border border-white/10 px-3 py-1 rounded-lg pointer-events-none">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-xs font-bold text-slate-200">co-nhi-studio.vercel.app</span>
+      </div>
+
+      <!-- Play/Pause Big Center Overlay (When paused) -->
+      <button id="btnCenterPlay" class="absolute inset-0 m-auto w-20 h-20 rounded-full bg-amber-500/90 hover:bg-amber-400 text-slate-950 flex items-center justify-center text-3xl shadow-2xl transition transform hover:scale-110 active:scale-95 cursor-pointer hidden">
+        ▶
+      </button>
+
+      <!-- Recording Progress Banner (When recording video) -->
+      <div id="recordingBanner" class="absolute top-0 inset-x-0 bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 text-white py-2 px-4 text-center font-bold text-sm shadow-lg flex items-center justify-center gap-3 hidden">
+        <span class="w-3 h-3 rounded-full bg-white animate-ping"></span>
+        <span id="recordingStatusText">Đang ghi hình video 1080p... Vui lòng không đóng tab.</span>
+      </div>
+    </div>
+
+    <!-- Video Controls Bar -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-xl">
+      <!-- Progress Bar (Scrubber) -->
+      <div class="relative w-full h-3 bg-slate-800 rounded-full overflow-hidden cursor-pointer group" id="progressBarContainer">
+        <!-- Buffered / markers -->
+        <div class="absolute inset-0 flex divide-x divide-slate-700/50 pointer-events-none">
+          <div style="width: 10.7%"></div>
+          <div style="width: 14.3%"></div>
+          <div style="width: 14.3%"></div>
+          <div style="width: 14.3%"></div>
+          <div style="width: 14.3%"></div>
+          <div style="width: 14.3%"></div>
+          <div style="width: 17.8%"></div>
+        </div>
+        <!-- Filled Track -->
+        <div id="progressTrack" class="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full transition-all duration-100" style="width: 0%"></div>
+      </div>
+
+      <!-- Button Controls -->
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <div class="flex items-center gap-3">
+          <!-- Play / Pause -->
+          <button id="btnPlayPause" class="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center text-lg font-bold shadow-md shadow-amber-500/20 transition active:scale-95">
+            ▶
+          </button>
+
+          <!-- Prev Scene -->
+          <button id="btnPrevScene" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold transition">
+            ⏮
+          </button>
+
+          <!-- Next Scene -->
+          <button id="btnNextScene" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm font-bold transition">
+            ⏭
+          </button>
+
+          <!-- Time Display -->
+          <div class="text-xs font-mono font-semibold text-slate-300 ml-2">
+            <span id="currentTimeDisplay" class="text-amber-400">00:00</span>
+            <span class="text-slate-500">/</span>
+            <span id="totalTimeDisplay">06:45</span>
+          </div>
+        </div>
+
+        <!-- Active Scene Title in Controller -->
+        <div class="hidden lg:block text-xs text-center">
+          <span class="text-slate-400 font-medium">Đang phát:</span>
+          <span id="activeSceneTitle" class="font-bold text-slate-200 ml-1">Phần 1: Giới thiệu tổng quan & Khởi đầu</span>
+        </div>
+
+        <!-- Right: Speed, Volume, Fullscreen -->
+        <div class="flex items-center gap-3">
+          <!-- Speed -->
+          <select id="speedSelect" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-700 cursor-pointer">
+            <option value="1">1.0x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+          </select>
+
+          <!-- Fullscreen -->
+          <button id="btnFullscreen" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+            <span>⛶</span>
+            <span>Toàn Màn Hình</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7 Chapters Timeline Selector -->
+    <div class="flex flex-col gap-2.5">
+      <h3 class="text-xs uppercase font-extrabold tracking-wider text-slate-400 flex items-center gap-2">
+        <span>📑</span> Danh Sách 7 Chương Mục Trọng Tâm (Kịch Bản 7 Phút)
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" id="scenesGrid">
+        <!-- Rendered via JavaScript -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Audio Element Hidden -->
+  <audio id="audioPlayer" preload="auto"></audio>
+
+  <!-- Logic Script -->
+  <script type="module">
+    import { VIDEO_SCENES } from './scenes.js';
+
+    let currentSceneIdx = 0;
+    let isPlaying = false;
+    let isRecording = false;
+    let animFrameId = null;
+    let startTime = 0;
+    let audioDuration = 45; // default seconds per scene
+    let audioCurrentTime = 0;
+
+    const canvas = document.getElementById('videoCanvas');
+    const ctx = canvas.getContext('2d');
+    const audio = document.getElementById('audioPlayer');
+
+    // UI elements
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const btnCenterPlay = document.getElementById('btnCenterPlay');
+    const btnPrevScene = document.getElementById('btnPrevScene');
+    const btnNextScene = document.getElementById('btnNextScene');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const btnExportVideo = document.getElementById('btnExportVideo');
+    const btnExportText = document.getElementById('btnExportText');
+    const speedSelect = document.getElementById('speedSelect');
+    const subtitlesText = document.getElementById('subtitlesText');
+    const overlayPartBadge = document.getElementById('overlayPartBadge');
+    const overlayTimeBadge = document.getElementById('overlayTimeBadge');
+    const activeSceneTitle = document.getElementById('activeSceneTitle');
+    const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+    const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+    const progressTrack = document.getElementById('progressTrack');
+    const progressBarContainer = document.getElementById('progressBarContainer');
+    const scenesGrid = document.getElementById('scenesGrid');
+    const recordingBanner = document.getElementById('recordingBanner');
+    const recordingStatusText = document.getElementById('recordingStatusText');
+
+    // Load Scene Cards in Timeline
+    function renderTimelineCards() {
+      scenesGrid.innerHTML = VIDEO_SCENES.map((scene, idx) => `
+        <div data-idx="${idx}" class="timeline-card bg-slate-900 border ${idx === currentSceneIdx ? 'border-amber-500 bg-slate-800/70 shadow-lg shadow-amber-500/10' : 'border-slate-800 hover:border-slate-700'} rounded-xl p-3.5 cursor-pointer transition flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${idx === currentSceneIdx ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'}">
+              ${scene.partNumber}
+            </span>
+            <span class="text-[11px] font-mono text-slate-400">${scene.time}</span>
+          </div>
+          <h4 class="text-xs font-bold text-slate-200 line-clamp-1 leading-snug">${scene.title}</h4>
+          <p class="text-[11px] text-slate-400 line-clamp-2">${scene.subtitle}</p>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.timeline-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const idx = parseInt(card.dataset.idx, 10);
+          switchScene(idx, true);
+        });
+      });
+    }
+
+    // Switch to target scene
+    function switchScene(idx, autoplay = false) {
+      if (idx < 0) idx = 0;
+      if (idx >= VIDEO_SCENES.length) idx = VIDEO_SCENES.length - 1;
+      currentSceneIdx = idx;
+
+      const sc = VIDEO_SCENES[currentSceneIdx];
+      audio.src = sc.audioSrc;
+      audio.playbackRate = parseFloat(speedSelect.value);
+
+      overlayPartBadge.textContent = sc.partNumber;
+      overlayTimeBadge.textContent = sc.time;
+      activeSceneTitle.textContent = `${sc.partNumber}: ${sc.title}`;
+
+      renderTimelineCards();
+
+      if (autoplay) {
+        audio.play().then(() => {
+          isPlaying = true;
+          btnPlayPause.textContent = '⏸';
+          btnCenterPlay.classList.add('hidden');
+        }).catch(e => {
+          console.warn('Autoplay prevented:', e);
+        });
+      }
+    }
+
+    // Canvas Background & Chrome Layout
+    function drawVideoFrame(t) {
+      const sc = VIDEO_SCENES[currentSceneIdx];
+
+      // Dark Studio Background
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, 1920, 1080);
+
+      // Top Simulated App Header
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1920, 110);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 110);
+      ctx.lineTo(1920, 110);
+      ctx.stroke();
+
+      // App Logo & Brand
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillStyle = '#0f172a';
+      ctx.textAlign = 'left';
+      ctx.fillText('🎨 Cọ Nhí Studio', 50, 70);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText('MĨ THUẬT TIỂU HỌC GDPT 2018', 350, 68);
+
+      // 6 Simulated App Tabs in Top Bar
+      const tabs = [
+        { id: 'editor', name: 'Soạn Slide' },
+        { id: 'ideas', name: 'Xưởng Ý Tưởng' },
+        { id: 'drawing', name: 'Bảng Vẽ Thị Phạm' },
+        { id: 'games', name: 'Trò Chơi Mĩ Thuật' },
+        { id: 'camera', name: 'Cam Chấm Tranh' },
+        { id: 'evaluation', name: 'Nhận Xét TT27' }
+      ];
+
+      tabs.forEach((tab, i) => {
+        const tx = 680 + i * 195;
+        const isActive = tab.id === sc.activeTab;
+
+        if (isActive) {
+          ctx.fillStyle = '#fef3c7';
+          ctx.fillRect(tx - 15, 25, 175, 60);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(tx - 15, 25, 175, 60);
+          ctx.fillStyle = '#92400e';
+          ctx.font = 'bold 18px sans-serif';
+        } else {
+          ctx.fillStyle = '#64748b';
+          ctx.font = '17px sans-serif';
+        }
+        ctx.textAlign = 'center';
+        ctx.fillText(tab.name, tx + 72, 60);
+      });
+
+      // User pill on right
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(1840, 55, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#047857';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('100% Cục Bộ Offline', 1820, 60);
+
+      // Call the Scene's custom draw function
+      if (sc.drawPreview) {
+        sc.drawPreview(ctx, t);
+      }
+
+      // Feature Highlight Badges (Floating on bottom left)
+      if (sc.highlights) {
+        sc.highlights.forEach((hl, idx) => {
+          const hx = 280 + idx * 370;
+          const hy = 960;
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+          ctx.fillRect(hx, hy, 350, 50);
+          ctx.strokeStyle = hl.color;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(hx, hy, 350, 50);
+
+          ctx.fillStyle = hl.color;
+          ctx.font = 'bold 15px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(`✓ ${hl.text}`, hx + 18, hy + 31);
+        });
+      }
+    }
+
+    // Animation Loop
+    function loop(timestamp) {
+      const t = timestamp / 1000;
+      drawVideoFrame(t);
+
+      // Update Subtitles based on audio time
+      updateSubtitles();
+
+      animFrameId = requestAnimationFrame(loop);
+    }
+
+    // Subtitle synchronization
+    function updateSubtitles() {
+      const sc = VIDEO_SCENES[currentSceneIdx];
+      // Estimate subtitle sentence based on audio progress
+      if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+        const progress = audio.currentTime / audio.duration;
+        const totalSentences = 5; // approximate sentences per section
+        const currentSentenceIdx = Math.min(
+          totalSentences - 1,
+          Math.floor(progress * totalSentences)
+        );
+        // Show current scene subtitle or title
+        subtitlesText.textContent = `[${sc.partNumber}] ${sc.title} — ${sc.subtitle}`;
+        
+        // Progress track update
+        const overallProgress = ((currentSceneIdx + progress) / VIDEO_SCENES.length) * 100;
+        progressTrack.style.width = `${Math.min(100, Math.max(0, overallProgress))}%`;
+
+        // Time display update
+        const curMin = Math.floor(audio.currentTime / 60);
+        const curSec = Math.floor(audio.currentTime % 60);
+        currentTimeDisplay.textContent = `${String(curMin).padStart(2, '0')}:${String(curSec).padStart(2, '0')}`;
+      }
+    }
+
+    // Audio Event Listeners
+    audio.addEventListener('ended', () => {
+      // Auto advance to next scene
+      if (currentSceneIdx < VIDEO_SCENES.length - 1) {
+        switchScene(currentSceneIdx + 1, true);
+      } else {
+        isPlaying = false;
+        btnPlayPause.textContent = '▶';
+        btnCenterPlay.classList.remove('hidden');
+      }
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      // Handled in loop
+    });
+
+    // Control Handlers
+    btnPlayPause.addEventListener('click', () => {
+      if (isPlaying) {
+        audio.pause();
+        isPlaying = false;
+        btnPlayPause.textContent = '▶';
+        btnCenterPlay.classList.remove('hidden');
+      } else {
+        audio.play().then(() => {
+          isPlaying = true;
+          btnPlayPause.textContent = '⏸';
+          btnCenterPlay.classList.add('hidden');
+        });
+      }
+    });
+
+    btnCenterPlay.addEventListener('click', () => {
+      audio.play().then(() => {
+        isPlaying = true;
+        btnPlayPause.textContent = '⏸';
+        btnCenterPlay.classList.add('hidden');
+      });
+    });
+
+    btnPrevScene.addEventListener('click', () => {
+      switchScene(currentSceneIdx - 1, isPlaying);
+    });
+
+    btnNextScene.addEventListener('click', () => {
+      switchScene(currentSceneIdx + 1, isPlaying);
+    });
+
+    speedSelect.addEventListener('change', () => {
+      audio.playbackRate = parseFloat(speedSelect.value);
+    });
+
+    btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        canvas.requestFullscreen?.() || canvas.parentElement.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    });
+
+    // Scrubber click
+    progressBarContainer.addEventListener('click', (e) => {
+      const rect = progressBarContainer.getBoundingClientRect();
+      const clickRatio = (e.clientX - rect.left) / rect.width;
+      const targetScene = Math.min(VIDEO_SCENES.length - 1, Math.floor(clickRatio * VIDEO_SCENES.length));
+      switchScene(targetScene, isPlaying);
+    });
+
+    // One-Click Video Exporter (Canvas CaptureStream + MediaRecorder)
+    btnExportVideo.addEventListener('click', async () => {
+      if (isRecording) return;
+      isRecording = true;
+      btnExportText.textContent = 'Đang Ghi Video...';
+      btnExportVideo.classList.add('opacity-75');
+      recordingBanner.classList.remove('hidden');
+
+      try {
+        const stream = canvas.captureStream(30);
+        
+        // Setup Web Audio Context to mix speech audio into stream
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const dest = audioCtx.createMediaStreamDestination();
+        const source = audioCtx.createMediaElementSource(audio);
+        source.connect(dest);
+        source.connect(audioCtx.destination);
+
+        // Add audio track to stream
+        dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') 
+            ? 'video/webm;codecs=vp9,opus' 
+            : 'video/webm',
+          videoBitsPerSecond: 3000000 // 3 Mbps
+        });
+
+        const recordedChunks = [];
+        recorder.ondataavailable = e => {
+          if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'Co_Nhi_Studio_Video_Huong_Dan_7_Phut.webm';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 2000);
+
+          recordingBanner.classList.add('hidden');
+          btnExportText.textContent = 'Xuất Video (.webm)';
+          btnExportVideo.classList.remove('opacity-75');
+          isRecording = false;
+          alert('✓ Đã xuất video thành công! Tệp Co_Nhi_Studio_Video_Huong_Dan_7_Phut.webm đã được tải về máy.');
+        };
+
+        // Start recording from current position or restart
+        recorder.start(1000);
+        recordingStatusText.textContent = '🎥 Đang ghi hình video HD 1080p có thuyết minh âm thanh... Bấm dừng bất cứ lúc nào!';
+
+        // Allow stopping early by clicking again
+        const stopHandler = () => {
+          if (recorder.state === 'recording') {
+            recorder.stop();
+            btnExportVideo.removeEventListener('click', stopHandler);
+          }
+        };
+        setTimeout(() => {
+          btnExportVideo.addEventListener('click', stopHandler, { once: true });
+        }, 1000);
+
+      } catch (err) {
+        console.error('Export error:', err);
+        alert('Lỗi ghi video: ' + err.message);
+        recordingBanner.classList.add('hidden');
+        btnExportText.textContent = 'Xuất Video (.webm)';
+        btnExportVideo.classList.remove('opacity-75');
+        isRecording = false;
+      }
+    });
+
+    // Initialize
+    renderTimelineCards();
+    switchScene(0, false);
+    animFrameId = requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

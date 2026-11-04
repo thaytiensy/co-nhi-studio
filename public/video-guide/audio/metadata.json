@@ -1,0 +1,101 @@
+[
+  {
+    "id": 1,
+    "title": "Phần 1: Giới thiệu tổng quan & Khởi đầu với trang trắng",
+    "time": "0:00 - 0:45",
+    "audioFile": "/video-guide/audio/part1.mp3",
+    "sizeBytes": 312576,
+    "sentences": [
+      "Kính chào quý Thầy Cô giáo dạy Mĩ thuật Tiểu học trên mọi miền Tổ quốc!",
+      "Một tiết học vẽ thành công luôn bắt đầu từ niềm cảm hứng và sự chuẩn bị chu đáo của Thầy Cô.",
+      "Nhưng làm sao để vừa có những trang slide bài giảng sinh động, vừa thị phạm nét vẽ dễ hiểu, lại vừa chấm bài và nhận xét học sinh theo Thông tư 27 thật nhanh chóng mà hoàn toàn miễn phí?",
+      "Chào mừng quý Thầy Cô đến với Cọ Nhí Studio, phần mềm soạn giảng và trình chiếu mĩ thuật chuyên biệt đầu tiên dành cho Thầy Cô tiểu học theo bộ sách Kết nối tri thức với cuộc sống.",
+      "Ngay khi mở ứng dụng, Thầy Cô sẽ có ngay một không gian làm việc trắng tinh, sạch sẽ, không quảng cáo, sẵn sàng cho những ý tưởng sáng tạo tuyệt vời!"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Phần 2: Soạn slide 16:9, Tải lên & Xuất PowerPoint",
+    "time": "0:45 - 1:45",
+    "audioFile": "/video-guide/audio/part2.mp3",
+    "sizeBytes": 370416,
+    "sentences": [
+      "Thao tác trên Cọ Nhí Studio vô cùng quen thuộc và trực quan giống như PowerPoint.",
+      "Màn hình trung tâm luôn giữ đúng tỉ lệ vàng 16 chia 9, đảm bảo khi trình chiếu trên tivi hay máy chiếu ở lớp học sẽ vừa khít, không bao giờ bị méo hình hay tràn viền.",
+      "Thầy Cô có thể dễ dàng thêm chữ, đổi màu sắc tươi sáng, chèn hình khối và hình ảnh minh họa.",
+      "Khi cần xóa ảnh hay đối tượng, chỉ cần rê chuột và nhấp vào biểu tượng thùng rác màu đỏ ngay trên ảnh, hoặc ấn phím Delete trên bàn phím.",
+      "Đặc biệt, nếu Thầy Cô đã có sẵn các bài giảng PowerPoint cũ, chỉ cần bấm Tải giáo án PowerPoint lên, hệ thống sẽ phân tích và mở toàn bộ slide ngay trong trình duyệt.",
+      "Soạn xong, Thầy Cô có thể bấm Xuất PowerPoint để mang đi giảng dạy ở bất cứ đâu!"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Phần 3: Trợ lý Sư phạm AI & Giọng đọc Thầy Nam / Cô Nữ Neural",
+    "time": "1:45 - 2:45",
+    "audioFile": "/video-guide/audio/part3.mp3",
+    "sizeBytes": 321504,
+    "sentences": [
+      "Điểm khác biệt lớn nhất của Cọ Nhí Studio chính là người bạn Trợ Giảng Sư Phạm luôn túc trực ở góc màn hình.",
+      "Thầy Cô chỉ cần chọn khối lớp và bài học, Trợ giảng sẽ gợi ý ngay mục tiêu cần đạt theo Thông tư 32, thiết kế trò chơi đố vui khởi động và hướng dẫn 4 bước tạo hình.",
+      "Thầy Cô có thể dùng trợ giảng Cục bộ ngoại tuyến không cần mạng, hoặc dùng AI Pollinations miễn phí 100%.",
+      "Hơn thế nữa, hệ thống trang bị công nghệ giọng đọc tiếng Việt chuẩn Neural: Thầy Cô có thể chọn giọng Thầy giáo Nam Minh trầm ấm, hào sảng; hoặc giọng Cô giáo Hoài My nhẹ nhàng, truyền cảm để đọc nội dung slide và lời dặn dò cho các em học sinh nghe ngay trong tiết dạy!"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Phần 4: Xưởng Ý Tưởng – Sinh bài dạy & Tranh mẫu theo ý tưởng",
+    "time": "2:45 - 3:45",
+    "audioFile": "/video-guide/audio/part4.mp3",
+    "sizeBytes": 334656,
+    "sentences": [
+      "Mỗi khi Thầy Cô cần một ý tưởng bài dạy mới lạ hay muốn thiết kế bài theo chủ đề địa phương, hãy ghé thăm Xưởng Ý Tưởng.",
+      "Chỉ cần gõ một dòng ý tưởng đơn giản, ví dụ: Vẽ con thuyền buồm ra khơi trong ánh bình minh, hệ thống sẽ tự động xây dựng một kế hoạch dạy học chi tiết từ kiến thức, kỹ năng đến câu hỏi gợi mở.",
+      "Đặc biệt, Cọ Nhí Studio sẽ tự động vẽ một bức tranh mẫu minh họa theo phong cách sáp màu và màu nước trong trẻo của học sinh tiểu học.",
+      "Thầy Cô cũng có thể tải ảnh ý tưởng từ máy lên, bấm Chèn vào slide để có ngay một bài giảng hoàn chỉnh chỉ sau vài giây!"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Phần 5: Bảng vẽ thị phạm 11 khối 3D & Mini-Game mĩ thuật",
+    "time": "3:45 - 4:45",
+    "audioFile": "/video-guide/audio/part5.mp3",
+    "sizeBytes": 334368,
+    "sentences": [
+      "Để giúp học sinh nắm vững cách phác hình và dựng khối, tab Bảng Vẽ Thị Phạm được trang bị đầy đủ 11 hình học phẳng và khối không gian 3D như hình hộp, hình trụ, hình nón.",
+      "Nét vẽ được tối ưu bằng thuật toán đường cong Bézier bậc 2, giúp Thầy Cô vẽ bằng chuột vẫn mềm mại, tròn trịa.",
+      "Vẽ xong, chỉ cần bấm Chèn Tranh Vào Slide là tác phẩm đã nằm ngay trên bài giảng!",
+      "Bên cạnh đó, hệ thống còn có 3 Mini-game mĩ thuật tương tác theo chuẩn phân phối chương trình: Ghép màu nóng lạnh, nhận biết hình học và tìm chi tiết tranh.",
+      "Thầy Cô có thể chiếu cho học sinh thi đua giữa các tổ ngay trong lớp, tạo nên không khí học tập vô cùng sôi nổi, hào hứng!"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Phần 6: Cam Chấm Tranh Rubric TT27 & Xuất SMAS",
+    "time": "4:45 - 5:45",
+    "audioFile": "/video-guide/audio/part6.mp3",
+    "sizeBytes": 365616,
+    "sentences": [
+      "Đến khâu đánh giá sản phẩm, chức năng Cam Chấm Tranh sẽ là trợ thủ đắc lực cho Thầy Cô.",
+      "Thầy Cô có thể dùng webcam máy tính hoặc tải ảnh chụp bài vẽ của học sinh lên.",
+      "Ứng dụng phân tích hòa sắc và bố cục trực tiếp trên máy tính mà không gửi ảnh lên mạng, tuyệt đối bảo vệ quyền riêng tư của các em.",
+      "Dựa trên Thang Rubric 4 tiêu chí chuẩn GDPT 2018, app sẽ gợi ý 3 bước cải thiện cụ thể và soạn sẵn câu nhận xét ấm áp, khích lệ.",
+      "Thầy Cô luôn là người quyết định cuối cùng.",
+      "Đặc biệt, tại tab Đánh giá Thông tư 27, Thầy Cô chỉ cần tải danh sách lớp từ Excel lên, hệ thống sẽ gợi ý nhận xét phong phú cho từng em và xuất file Excel hoàn chỉnh để đồng bộ ngay sang hệ thống SMAS hoặc vnEdu!"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Phần 7: Trình chiếu F5 lớp học & Hướng dẫn truy cập",
+    "time": "5:45 - 7:00",
+    "audioFile": "/video-guide/audio/part7.mp3",
+    "sizeBytes": 373920,
+    "sentences": [
+      "Khi bước vào giờ dạy, Thầy Cô chỉ cần bấm F5 hoặc nút Trình Chiếu.",
+      "Giao diện toàn màn hình sắc nét, điều khiển mượt mà bằng phím bấm hoặc chuột, tích hợp đồng hồ bấm giờ và lời giảng sinh động sẽ giúp tiết mĩ thuật trở thành một hành trình khám phá nghệ thuật đầy ắp tiếng cười!",
+      "Cọ Nhí Studio được xuất bản trực tuyến tại địa chỉ ngắn gọn, dễ nhớ: co-nhi-studio.vercel.app.",
+      "Ứng dụng chạy mượt trên mọi máy tính, máy tính bảng mà không cần cài đặt phức tạp, và luôn được tự động cập nhật những tính năng mới nhất hoàn toàn miễn phí.",
+      "Kính chúc quý Thầy Cô có những tiết dạy mĩ thuật tràn đầy niềm vui và chắp cánh cho những ước mơ hội họa của các thế hệ học trò thân yêu!",
+      "Xin chân thành cảm ơn quý Thầy Cô!"
+    ]
+  }
+]

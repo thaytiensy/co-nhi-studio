@@ -8,6 +8,7 @@ import ArtCameraRubric from './components/ArtCamera/ArtCameraRubric';
 import StudentEvaluationSMAS from './components/Evaluation/StudentEvaluationSMAS';
 import OfflinePedagogyAssistant from './components/Assistant/OfflinePedagogyAssistant';
 import PPTXPreviewModal from './components/SlideEditor/PPTXPreviewModal';
+import VideoGuideModal from './components/VideoGuide/VideoGuideModal';
 import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 import { exportToPPTX } from './utils/pptxExportService';
@@ -32,6 +33,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'ideas', 'drawing', 'games', 'camera', 'evaluation'
   const [isSaved, setIsSaved] = useState(true);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
+  const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
 
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -387,6 +389,7 @@ export default function App() {
         onExportPPTX={handleExportPPTX}
         onUploadPPTX={handleTriggerPPTXUpload}
         onNewProject={handleNewProject}
+        onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
       />
 
       {/* 2. Main Tab Body */}
@@ -488,6 +491,12 @@ export default function App() {
           onClose={() => setPptxPreviewData(null)}
         />
       )}
+
+      {/* 5. Video Guide (7-Minute Presentation) Modal */}
+      <VideoGuideModal
+        isOpen={isVideoGuideOpen}
+        onClose={() => setIsVideoGuideOpen(false)}
+      />
     </div>
   );
 }
