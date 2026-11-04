@@ -36,6 +36,274 @@ const DURATIONS = [
   { id: 70, name: '2 tiết (70 phút)', desc: 'Thực hành nâng cao, trưng bày và đánh giá chi tiết' },
 ];
 
+// Kho gợi ý ý tưởng thông minh chuẩn mĩ thuật tiểu học theo từng khối lớp (Bấm 1 chạm để tạo)
+const SMART_GRADE_SUGGESTIONS = {
+  1: [
+    { title: 'Con heo hồng đáng yêu', icon: '🐷', material: 'crayon' },
+    { title: 'Chú mèo con chơi cuộn len', icon: '🐱', material: 'crayon' },
+    { title: 'Ngôi nhà mái đỏ của em', icon: '🏠', material: 'crayon' },
+    { title: 'Vườn hoa rực rỡ sắc màu', icon: '🌸', material: 'watercolor' },
+    { title: 'Con thuyền trên biển xanh', icon: '⛵', material: 'watercolor' },
+    { title: 'Đĩa hoa quả bốn mùa', icon: '🍉', material: 'paper' }
+  ],
+  2: [
+    { title: 'Đàn cá bơi dưới đại dương', icon: '🐠', material: 'watercolor' },
+    { title: 'Chú cún tinh nghịch trong vườn', icon: '🐶', material: 'crayon' },
+    { title: 'Rừng cây xanh mát', icon: '🌳', material: 'crayon' },
+    { title: 'Đàn gà con theo mẹ', icon: '🐔', material: 'crayon' },
+    { title: 'Cầu vồng rực rỡ sau mưa', icon: '🌈', material: 'watercolor' },
+    { title: 'Bé vui chơi sân trường', icon: '🎈', material: 'paper' }
+  ],
+  3: [
+    { title: 'Phong cảnh làng quê thanh bình', icon: '🏞️', material: 'watercolor' },
+    { title: 'Đèn lồng Tết Trung Thu', icon: '🏮', material: 'paper' },
+    { title: 'Phương tiện giao thông trên phố', icon: '🚗', material: 'crayon' },
+    { title: 'Bình hoa ngày Tết', icon: '💐', material: 'watercolor' },
+    { title: 'Chú voi hiền lành trong rừng', icon: '🐘', material: 'clay' }
+  ],
+  4: [
+    { title: 'Vẻ đẹp di sản quê hương', icon: '🏛️', material: 'watercolor' },
+    { title: 'Lễ hội chèo thuyền rồng', icon: '🚣', material: 'crayon' },
+    { title: 'Bức tranh phong cảnh mùa thu', icon: '🍂', material: 'watercolor' },
+    { title: 'Tạo hình đồ chơi từ vật liệu tái chế', icon: '📦', material: 'recycled' }
+  ],
+  5: [
+    { title: 'Chân dung bạn bè / thầy cô', icon: '🎨', material: 'watercolor' },
+    { title: 'Thế giới tương lai trong mắt em', icon: '🚀', material: 'crayon' },
+    { title: 'Bảo vệ môi trường biển đảo', icon: '🌊', material: 'watercolor' },
+    { title: 'Gia đình sum vầy bên mâm cơm', icon: '👨‍👩‍👧‍👦', material: 'paper' }
+  ]
+};
+
+// Động cơ sư phạm thông minh: Hiểu sâu sắc ngữ cảnh ý tưởng và chất liệu tạo hình
+function generateSmartPedagogy({ topic, material, duration, grade, isCustom, currentTheme }) {
+  if (!isCustom && currentTheme) {
+    return {
+      objectives: currentTheme.objectives,
+      materialsNeeded: {
+        teacher: `Tranh mẫu minh họa ${topic}, ${material.name}, giấy vẽ khổ A3, bài giảng trình chiếu.`,
+        student: `${material.name}, giấy vẽ A4, bút chì, tẩy gôm, khăn lau tay.`
+      },
+      teachingProcess: [
+        {
+          step: 1,
+          name: '1. Khởi Động & Khám Phá (5-7 phút)',
+          activity: currentTheme.warmup,
+          teacherNote: currentTheme.teacherScript
+        },
+        {
+          step: 2,
+          name: '2. Kiến Tạo Kiến Thức Mới & Thị Phạm (8-10 phút)',
+          activity: `Thầy/Cô hướng dẫn học sinh quan sát mẫu tranh và thị phạm thao tác cơ bản với ${material.name}.`,
+          fourSteps: currentTheme.fourSteps
+        },
+        {
+          step: 3,
+          name: `3. Luyện Tập & Sáng Tạo (${duration.id === 35 ? '15' : '35'} phút)`,
+          activity: `Học sinh tự do thực hành sáng tạo tác phẩm cá nhân hoặc theo nhóm với ${material.name}. Giáo viên quan sát, khích lệ và trợ giúp các em còn lúng túng.`,
+          guidingQuestions: currentTheme.questions
+        },
+        {
+          step: 4,
+          name: '4. Trưng Bày, Nhận Xét & Đánh Giá (7-10 phút)',
+          activity: 'Trưng bày tác phẩm lên góc mĩ thuật. Học sinh tự nhận xét bài của mình và chia sẻ cảm nhận về bài của bạn.',
+          rubricNote: 'Đánh giá theo 4 tiêu chí: Đề tài, Kĩ năng tạo hình, Sáng tạo riêng và Khả năng diễn đạt.'
+        }
+      ],
+      rubricCriteria: [
+        'Tiêu chí 1: Thực hiện đúng chủ đề bài học và hoàn thành sản phẩm.',
+        `Tiêu chí 2: Sử dụng thành thạo ${material.name}, nét vẽ/hình khối rõ ràng.`,
+        'Tiêu chí 3: Có ý tưởng sáng tạo, thể hiện cảm xúc hồn nhiên.',
+        'Tiêu chí 4: Tự tin giới thiệu và chia sẻ cảm xúc về bài vẽ trước lớp.'
+      ]
+    };
+  }
+
+  const lower = (topic || '').toLowerCase();
+  const isPig = lower.includes('heo') || lower.includes('lợn') || lower.includes('ủn') || lower.includes('pig');
+  const isCat = lower.includes('mèo') || lower.includes('cat');
+  const isDog = lower.includes('chó') || lower.includes('cún') || lower.includes('dog');
+  const isChicken = lower.includes('gà') || lower.includes('chicken');
+  const isFish = lower.includes('cá') || lower.includes('thủy cung') || lower.includes('ocean');
+  const isBoat = lower.includes('thuyền') || lower.includes('biển') || lower.includes('buồm');
+  const isHouse = lower.includes('nhà') || lower.includes('phố') || lower.includes('làng');
+  const isFlower = lower.includes('hoa') || lower.includes('sen') || lower.includes('hướng dương');
+  const isTree = lower.includes('cây') || lower.includes('rừng');
+  const isFruit = lower.includes('quả') || lower.includes('trái cây') || lower.includes('hoa quả');
+  const isVehicle = lower.includes('xe') || lower.includes('ô tô') || lower.includes('bus');
+
+  let objectives = {
+    knowledge: `Nhận biết được đặc điểm hình thể, đường nét và màu sắc đặc trưng của ${topic}; hiểu cách phối hợp các khối hình học cơ bản để dựng hình.`,
+    skills: `Biết phác khung hình cân đối ở trọng tâm trang giấy; vận dụng thành thạo kĩ thuật ${material.name} để tạo hình, vẽ nét và lên màu tươi sáng, sinh động.`,
+    qualities: `Nuôi dưỡng tình cảm yêu thương thiên nhiên, gia đình và cuộc sống; rèn luyện đức tính kiên nhẫn, cẩn thận và thói quen bảo quản đồ dùng mĩ thuật.`
+  };
+
+  let warmup = {
+    activity: `Đố vui và quan sát tranh ảnh sinh động về ${topic} để khơi gợi cảm hứng thẩm mĩ cho học sinh.`,
+    teacherNote: `Thầy/Cô dùng ngữ điệu ấm áp, vui tươi, khích lệ học sinh tự tin chia sẻ những điều các em đã biết về ${topic}.`
+  };
+
+  let fourSteps = [
+    `Bước 1: Phác khung hình học cơ bản của ${topic} vào vị trí trung tâm tờ giấy`,
+    `Bước 2: Dựng các nét chính và chi tiết đặc trưng làm nổi bật đối tượng`,
+    `Bước 3: Vẽ thêm cảnh vật phụ và không gian xung quanh để tạo chiều sâu`,
+    `Bước 4: Sử dụng ${material.name} lên màu tươi sáng, tạo độ đậm nhạt và hoàn thiện`
+  ];
+
+  let guidingQuestions = [
+    `Em sẽ chọn màu sắc gì để thể hiện ${topic} theo cảm xúc của riêng mình?`,
+    `Em muốn thêm chi tiết hoặc khung cảnh nào xung quanh để bức tranh thật sinh động?`,
+    `Em cảm thấy chi tiết nào trong tác phẩm của mình độc đáo nhất?`
+  ];
+
+  if (isPig) {
+    objectives = {
+      knowledge: `Nhận biết được đặc điểm hình dáng (thân mình tròn trịa, đôi tai cụp, chiếc mõm bầu dục với hai lỗ mũi tròn, bốn chân ngắn và chiếc đuôi xoăn tít) cùng sắc hồng tươi sáng, đáng yêu của con heo; hiểu cách phối hợp các hình khối cơ bản (hình tròn, hình elip) để tạo hình chú heo.`,
+      skills: `Biết phác hình chú heo cân đối ở vị trí trung tâm trang giấy; sử dụng thành thạo ${material.name} để vẽ nét mượt mà và tô màu tươi tắn, hài hòa.`,
+      qualities: `Bồi dưỡng tình yêu thương đối với các loài vật nuôi quen thuộc; rèn luyện tính kiên nhẫn, cẩn thận và thói quen giữ gìn vệ sinh lớp học mĩ thuật.`
+    };
+    warmup = {
+      activity: `Trò chơi đố vui "Đoán tên loài vật": Thầy/Cô đọc câu đố vui: "Con gì đuôi ngắn tai to / Mắt thì ti hí, bụng no tròn xoe / Suốt ngày ăn no rồi ngủ khì... là con gì?" -> Cả lớp hào hứng đoán: Con heo (con lợn). Giáo viên trình chiếu tranh ảnh chú heo ngộ nghĩnh và dẫn dắt học sinh khám phá hình dáng đặc trưng.`,
+      teacherNote: `Thầy/Cô mô phỏng tiếng kêu "ủn ỉn" vui nhộn, tạo không khí lớp học rộn rã tiếng cười, khích lệ các em học sinh hào hứng bước vào giờ vẽ.`
+    };
+    fourSteps = [
+      `Bước 1: Phác khung hình học - Vẽ một hình elip lớn nằm ngang làm thân mình, một hình tròn nhỏ hơn hơi lệch phía trước làm đầu chú heo.`,
+      `Bước 2: Dựng nét chi tiết - Vẽ chiếc mõm bầu dục với 2 lỗ mũi tròn, đôi tai cụp hình tam giác mềm, bốn chiếc chân ngắn có móng guốc và chiếc đuôi xoăn tít phía sau.`,
+      `Bước 3: Vẽ thêm cảnh vật phụ - Vẽ thêm vũng bùn vui nhộn hoặc thảm cỏ xanh mướt, vài bông hoa nhỏ và ông mặt trời rực rỡ để bức tranh thêm phần sinh động.`,
+      `Bước 4: Hoàn thiện màu sắc - Sử dụng ${material.name} tô màu hồng tươi sáng cho chú heo, nhấn đậm các đường viền thân và tô nền trời xanh, thảm cỏ hoàn thiện tác phẩm.`
+    ];
+    guidingQuestions = [
+      `Em sẽ chọn vẽ chú heo của mình đang làm gì (đang đi dạo trên cỏ, tắm vũng bùn hay đang vui đùa)?`,
+      `Em sẽ phối màu sắc gì cho chú heo và cảnh vật xung quanh để bức tranh thật rực rỡ?`,
+      `Em có muốn vẽ thêm những người bạn nào bên cạnh chú heo của mình không?`
+    ];
+  } else if (isCat) {
+    objectives = {
+      knowledge: `Nhận biết được đặc điểm hình dáng (đầu tròn, tai tam giác nhọn, mắt long lanh, đôi ria mép sinh động, đuôi dài uốn lượn) và các sắc lông đáng yêu của chú mèo; nắm được cách tạo hình nét vẽ mềm mại.`,
+      skills: `Biết phác hình chú mèo sinh động; vận dụng thành thạo ${material.name} để thể hiện chất cảm bộ lông và phối màu hài hòa.`,
+      qualities: `Nuôi dưỡng tình cảm yêu thương động vật, gắn bó với thú cưng trong gia đình.`
+    };
+    warmup = {
+      activity: `Đố vui "Tiếng kêu meo meo": Học sinh lắng nghe tiếng mèo kêu và bắt chước các động tác vồ bóng len, rửa mặt đáng yêu của chú mèo.`,
+      teacherNote: `Khơi gợi tình cảm ấm áp của học sinh với thú cưng trong gia đình.`
+    };
+    fourSteps = [
+      `Bước 1: Phác khung hình học - Vẽ hình tròn làm đầu và hình elip cong làm thân mèo đang ngồi hoặc nằm cuộn tròn.`,
+      `Bước 2: Dựng nét chi tiết - Vẽ 2 tai tam giác nhọn, mắt to tròn lấp lánh, mũi nhỏ, ria mép 2 bên, 4 chân và chiếc đuôi dài uốn lượn.`,
+      `Bước 3: Vẽ bối cảnh - Vẽ thêm cuộn len nhiều màu sắc, chiếc đĩa đựng sữa hoặc đàn bướm bay lượn quanh chú mèo.`,
+      `Bước 4: Hoàn thiện màu sắc - Lên màu lông mèo (vàng mướp, tam thể, trắng hoặc xám), dùng nét ${material.name} tỉa nhẹ đường viền lông mềm mại.`
+    ];
+    guidingQuestions = [
+      `Chú mèo của em có màu lông gì (vàng mướp, trắng tinh hay tam thể)?`,
+      `Em muốn chú mèo đang chơi đùa cùng cuộn len hay đang sưởi nắng bên cửa sổ?`,
+      `Em đã nhấn nhá chi tiết nào để đôi mắt chú mèo trông thật long lanh?`
+    ];
+  } else if (isFish) {
+    objectives = {
+      knowledge: `Nhận biết được sự đa dạng về hình dáng (thoi, tròn, tam giác), màu sắc rực rỡ và các họa tiết vảy, vây của các loài cá dưới đại dương.`,
+      skills: `Biết phối hợp các đường nét cong lượn sóng và hình cơ bản; sử dụng ${material.name} tạo hiệu ứng làn nước và ánh sáng lung linh.`,
+      qualities: `Nâng cao ý thức bảo vệ môi trường biển, yêu quý hệ sinh vật biển phong phú.`
+    };
+    warmup = {
+      activity: `Hát và múa theo bài "Cá vàng bơi": Cả lớp cùng làm động tác cá bơi tung tăng theo nhạc điệu vui nhộn.`,
+      teacherNote: `Khích lệ học sinh kể tên các loài cá biển mà các em từng thấy trên tivi hoặc trong sách ảnh.`
+    };
+    fourSteps = [
+      `Bước 1: Phác khung hình dáng - Vẽ hình bầu dục hoặc hình thoi làm thân cá uốn cong nhẹ nhàng.`,
+      `Bước 2: Vẽ các chi tiết - Vẽ đuôi cá xòe rộng, các vây lưng và vây bụng mềm mại, mắt to tròn và các đường cong vảy cá trang trí.`,
+      `Bước 3: Vẽ đáy đại dương - Vẽ thêm những nhánh san hô rực rỡ, dải rong biển uốn lượn và những chùm bọt khí nổi lên.`,
+      `Bước 4: Hoàn thiện màu sắc - Phối màu sắc tương phản nổi bật cho cá, phủ màu nước/màu sáp xanh ngọc cho làn nước biển trong lành.`
+    ];
+    guidingQuestions = [
+      `Chú cá của em có những màu sắc rực rỡ nào?`,
+      `Em đã trang trí những hoa văn gì trên thân và vây cá?`,
+      `Đáy biển xung quanh chú cá có những sinh vật nào khác đang cùng bơi lội?`
+    ];
+  } else if (isHouse) {
+    objectives = {
+      knowledge: `Nhận biết được các bộ phận chính của ngôi nhà (mái ngói tam giác/thang, thân nhà chữ nhật, cửa sổ, cửa chính) và cảnh quan thiên nhiên quanh nhà.`,
+      skills: `Vận dụng các khối hình học cơ bản để dựng hình ngôi nhà cân đối; sử dụng ${material.name} phối màu mái ngói, tường nhà và sân vườn hài hòa.`,
+      qualities: `Bồi dưỡng tình yêu quê hương, gia đình và trân trọng tổ ấm thân thương.`
+    };
+    warmup = {
+      activity: `Hát bài "Nhà của tôi": Học sinh cùng hát và chia sẻ nhanh về ngôi nhà thân yêu của mình với các bạn bên cạnh.`,
+      teacherNote: `Hướng học sinh chú ý đến vẻ đẹp của mái nhà, luống hoa và cây bóng mát quanh nhà.`
+    };
+    fourSteps = [
+      `Bước 1: Dựng khung hình học - Dùng hình chữ nhật dựng thân nhà, hình tam giác hoặc hình thang dựng mái ngói.`,
+      `Bước 2: Vẽ chi tiết kiến trúc - Vẽ cửa chính, các ô cửa sổ đón nắng, ống khói nhỏ và các viên ngói xếp lớp.`,
+      `Bước 3: Vẽ không gian sân vườn - Vẽ thêm con đường nhỏ quanh co dẫn vào nhà, cây bóng mát, hàng rào gỗ và luống hoa rực rỡ.`,
+      `Bước 4: Lên màu bức tranh - Tô mái ngói đỏ tươi, tường nhà vàng ấm áp, thảm cỏ xanh mướt và bầu trời trong xanh.`
+    ];
+    guidingQuestions = [
+      `Ngôi nhà trong tranh của em nằm ở đâu (đồng quê yên bình, phố xá hay miền núi)?`,
+      `Em sẽ chọn màu gì cho mái ngói và những ô cửa sổ?`,
+      `Khu vườn quanh nhà em có trồng những loài hoa hoặc cây bóng mát nào?`
+    ];
+  } else if (isBoat) {
+    objectives = {
+      knowledge: `Nhận biết được hình dáng con thuyền buồm (thân thuyền hình thang, cánh buồm tam giác căng gió) và không gian mênh mông của biển cả.`,
+      skills: `Biết vẽ đường lượn sóng tạo cảm giác chuyển động của mặt nước; sử dụng ${material.name} tạo sắc thái bầu trời và mặt biển.`,
+      qualities: `Bồi dưỡng tình yêu biển đảo quê hương và tinh thần dũng cảm khám phá thế giới.`
+    };
+    warmup = {
+      activity: `Trò chơi "Căng buồm ra khơi": Học sinh làm động tác chèo thuyền, đón gió biển và ngắm bình minh trên sóng.`,
+      teacherNote: `Tạo không khí hào hứng, khơi gợi cảm xúc phóng khoáng trước thiên nhiên bao la.`
+    };
+    fourSteps = [
+      `Bước 1: Dựng hình thân thuyền - Vẽ hình thang ngược đáy nhỏ làm thân thuyền gỗ bồng bềnh trên nước.`,
+      `Bước 2: Dựng cột buồm và cánh buồm - Dựng đường thẳng làm cột buồm, vẽ 2 cánh buồm tam giác lớn và nhỏ căng gió.`,
+      `Bước 3: Vẽ cảnh sắc biển cả - Vẽ các đường lượn sóng nhấp nhô, dãy núi mờ xa và đàn hải âu chao lượn trên nền trời.`,
+      `Bước 4: Hoàn thiện màu sắc - Tô màu cánh buồm rực rỡ, phản chiếu ánh bình minh vàng cam lung linh trên mặt biển biếc.`
+    ];
+    guidingQuestions = [
+      `Con thuyền của em đang ra khơi vào buổi sáng bình minh hay chiều hoàng hôn?`,
+      `Cánh buồm của em có những sắc màu hoặc hoa văn nổi bật nào?`,
+      `Mặt biển xung quanh có những con sóng nhấp nhô ra sao?`
+    ];
+  }
+
+  return {
+    objectives,
+    materialsNeeded: {
+      teacher: `Tranh mẫu minh họa ${topic}, ${material.name}, giấy vẽ khổ A3, bài giảng trình chiếu.`,
+      student: `${material.name}, giấy vẽ A4, bút chì, tẩy gôm, khăn lau tay.`
+    },
+    teachingProcess: [
+      {
+        step: 1,
+        name: '1. Khởi Động & Khám Phá (5-7 phút)',
+        activity: warmup.activity,
+        teacherNote: warmup.teacherNote
+      },
+      {
+        step: 2,
+        name: '2. Kiến Tạo Kiến Thức Mới & Thị Phạm (8-10 phút)',
+        activity: `Thầy/Cô hướng dẫn học sinh quan sát mẫu tranh và thị phạm thao tác tạo hình với ${material.name}.`,
+        fourSteps
+      },
+      {
+        step: 3,
+        name: `3. Luyện Tập & Sáng Tạo (${duration.id === 35 ? '15' : '35'} phút)`,
+        activity: `Học sinh tự do thực hành sáng tạo tác phẩm ${topic} cá nhân hoặc theo nhóm với ${material.name}. Giáo viên quan sát, khích lệ và trợ giúp các em còn lúng túng.`,
+        guidingQuestions
+      },
+      {
+        step: 4,
+        name: '4. Trưng Bày, Nhận Xét & Đánh Giá (7-10 phút)',
+        activity: `Trưng bày tác phẩm "${topic}" lên góc mĩ thuật lớp học. Học sinh tự nhận xét bài của mình và chia sẻ cảm nhận về bài của bạn.`,
+        rubricNote: 'Đánh giá theo 4 tiêu chí: Đề tài, Kĩ năng tạo hình, Sáng tạo riêng và Khả năng diễn đạt.'
+      }
+    ],
+    rubricCriteria: [
+      `Tiêu chí 1: Thực hiện đúng chủ đề "${topic}", hoàn thành bài đúng thời lượng.`,
+      `Tiêu chí 2: Sử dụng thành thạo ${material.name}, nét vẽ/hình khối rõ ràng, cân đối.`,
+      `Tiêu chí 3: Có ý tưởng sáng tạo độc đáo, màu sắc thể hiện cảm xúc hồn nhiên.`,
+      `Tiêu chí 4: Tự tin giới thiệu và chia sẻ cảm xúc về bài vẽ trước lớp.`
+    ]
+  };
+}
+
 export default function IdeaWorkshop({
   onGenerateSlidesFromIdea,
   onInsertDrawingToSlide,
@@ -139,21 +407,22 @@ export default function IdeaWorkshop({
     }
   };
 
-  const handleGenerateIdea = () => {
-    if (!currentTheme && !customIdeaInput.trim()) return;
+  const handleGenerateIdea = (overrideTitle = null, overrideMaterial = null) => {
+    const rawCustom = overrideTitle !== null ? overrideTitle : customIdeaInput.trim();
+    const isCustom = Boolean(rawCustom);
+    const materialKey = overrideMaterial || selectedMaterial;
+    const materialObj = MATERIALS.find(m => m.id === materialKey) || MATERIALS[0];
+    const durationObj = DURATIONS.find(d => d.id === selectedDuration) || DURATIONS[0];
 
-    const materialObj = MATERIALS.find(m => m.id === selectedMaterial);
-    const durationObj = DURATIONS.find(d => d.id === selectedDuration);
-
-    const rawTitle = customIdeaInput.trim() 
-      ? customIdeaInput.trim() 
-      : currentTheme.title.replace(/^Chủ đề \d+:\s*/, '');
+    const rawTitle = rawCustom 
+      ? rawCustom 
+      : (currentTheme ? currentTheme.title.replace(/^Chủ đề \d+:\s*/, '') : 'Bài vẽ mĩ thuật');
     const baseTitle = formatCapitalized(rawTitle);
     const lessonTitle = `${baseTitle} cùng ${materialObj.name}`;
 
     setIsImageLoading(true);
 
-    // Tự động sinh ngay bộ 4 phong cách tranh khác nhau siêu tốc
+    // Tự động sinh ngay bộ 4 phong cách tranh khác nhau siêu tốc (0s, offline, không bao giờ bị nghẽn)
     const STYLES = [
       { key: 'crayon', name: 'Sáp Màu Rực Rỡ' },
       { key: 'watercolor', name: 'Màu Nước Trong Trẻo' },
@@ -177,6 +446,16 @@ export default function IdeaWorkshop({
     setActiveArtworkIndex(0);
     setGeneratedArtworkUrl(initialGallery[0].url);
 
+    // Tạo kế hoạch dạy học thông minh hiểu sâu sắc ngữ cảnh đề tài và chất liệu
+    const pedagogy = generateSmartPedagogy({
+      topic: baseTitle,
+      material: materialObj,
+      duration: durationObj,
+      grade: selectedGrade,
+      isCustom,
+      currentTheme
+    });
+
     const newIdea = {
       id: 'idea-' + Date.now(),
       grade: selectedGrade,
@@ -184,59 +463,28 @@ export default function IdeaWorkshop({
       material: materialObj.name,
       duration: durationObj.name,
       lessonTitle,
+      isCustom,
+      sourceDescription: isCustom 
+        ? `Ý tưởng riêng: "${baseTitle}"` 
+        : `SGK Kết Nối Tri Thức: ${currentTheme ? currentTheme.title : baseTitle}`,
       artworkUrl: uploadedIdeaImage || initialGallery[0].url,
-      objectives: currentTheme ? currentTheme.objectives : {
-        knowledge: `Nhận biết đặc điểm, hình dáng và màu sắc của ${baseTitle}.`,
-        skills: `Biết vẽ phác hình, sử dụng ${materialObj.name} tạo hình sinh động.`,
-        qualities: 'Nuôi dưỡng tình cảm yêu thiên nhiên, gia đình và cuộc sống.'
-      },
-      materialsNeeded: {
-        teacher: `Tranh mẫu minh họa ${baseTitle}, ${materialObj.name}, giấy vẽ A3/A4.`,
-        student: `${materialObj.name}, giấy vẽ A4, khăn lau tay, bút chì, tẩy.`
-      },
-      teachingProcess: [
-        {
-          step: 1,
-          name: '1. Khởi Động & Khám Phá (5-7 phút)',
-          activity: currentTheme ? currentTheme.warmup : `Đố vui về ${baseTitle} để kích thích sự hào hứng cho học sinh.`,
-          teacherNote: currentTheme ? currentTheme.teacherScript : `Thầy/Cô dẫn dắt học sinh quan sát các hình ảnh liên quan đến ${baseTitle}.`
-        },
-        {
-          step: 2,
-          name: '2. Kiến Tạo Kiến Thức Mới & Thị Phạm (8-10 phút)',
-          activity: `Thầy/Cô hướng dẫn học sinh quan sát mẫu tranh và thị phạm thao tác cơ bản với ${materialObj.name}.`,
-          fourSteps: currentTheme ? currentTheme.fourSteps : [
-            `Bước 1: Phác khung hình học cơ bản của ${baseTitle}`,
-            'Bước 2: Vẽ các chi tiết chính',
-            'Bước 3: Vẽ thêm cảnh vật trang trí phụ',
-            'Bước 4: Lên màu tươi sáng, đều tay'
-          ]
-        },
-        {
-          step: 3,
-          name: `3. Luyện Tập & Sáng Tạo (${selectedDuration === 35 ? '15' : '35'} phút)`,
-          activity: `Học sinh tự do thực hành sáng tạo tác phẩm cá nhân hoặc theo nhóm với ${materialObj.name}. Giáo viên quan sát, khích lệ và trợ giúp các em còn lúng túng.`,
-          guidingQuestions: currentTheme ? currentTheme.questions : [
-            `Em sẽ chọn vẽ ${baseTitle} với sắc màu gì?`,
-            'Em có muốn vẽ thêm cảnh vật phụ nào xung quanh không?'
-          ]
-        },
-        {
-          step: 4,
-          name: '4. Trưng Bày, Nhận Xét & Đánh Giá (7-10 phút)',
-          activity: 'Trưng bày tác phẩm lên góc mĩ thuật. Học sinh tự nhận xét bài của mình và chia sẻ cảm nhận về bài của bạn.',
-          rubricNote: 'Đánh giá theo 4 tiêu chí: Đề tài, Kĩ năng tạo hình, Sáng tạo riêng và Khả năng diễn đạt.'
-        }
-      ],
-      rubricCriteria: [
-        'Tiêu chí 1: Thực hiện đúng chủ đề bài học và hoàn thành sản phẩm.',
-        `Tiêu chí 2: Sử dụng thành thạo ${materialObj.name}, nét vẽ/hình khối rõ ràng.`,
-        'Tiêu chí 3: Có ý tưởng sáng tạo, thể hiện cảm xúc hồn nhiên.',
-        'Tiêu chí 4: Tự tin giới thiệu và chia sẻ cảm xúc về bài vẽ trước lớp.'
-      ]
+      objectives: pedagogy.objectives,
+      materialsNeeded: pedagogy.materialsNeeded,
+      teachingProcess: pedagogy.teachingProcess,
+      rubricCriteria: pedagogy.rubricCriteria
     };
 
     setIdeaResult(newIdea);
+  };
+
+  // Chọn nhanh gợi ý thông minh 1 chạm
+  const handleSelectSuggestion = (sug) => {
+    setCustomIdeaInput(sug.title);
+    const newMaterial = sug.material || selectedMaterial;
+    if (sug.material) {
+      setSelectedMaterial(sug.material);
+    }
+    handleGenerateIdea(sug.title, newMaterial);
   };
 
   // Tạo thêm ảnh mới liên tục, tức thì 0 giây, không giới hạn số lượng ảnh
@@ -387,18 +635,53 @@ export default function IdeaWorkshop({
 
           {/* Nhập Ý Tưởng Riêng Của Thầy/Cô */}
           <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">
-              2. Nhập Ý Tưởng Riêng (Tự Do):
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-slate-700">
+                2. Nhập Ý Tưởng Riêng (Tự Do):
+              </label>
+              {customIdeaInput && (
+                <button
+                  type="button"
+                  onClick={() => setCustomIdeaInput('')}
+                  className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline"
+                  title="Xóa ô nhập để chuyển sang chủ đề SGK bên dưới"
+                >
+                  ✕ Xóa ô nhập
+                </button>
+              )}
+            </div>
             <input
               type="text"
               value={customIdeaInput}
               onChange={(e) => setCustomIdeaInput(e.target.value)}
-              placeholder="Ví dụ: Vẽ chú cá heo nhào lộn trên sóng biển..."
+              placeholder="Ví dụ: Con heo, chú mèo, vườn hoa, ô tô..."
               className="w-full px-3 py-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
             />
-            <span className="text-[10px] text-slate-400 mt-1 block">
-              (Thầy/Cô có thể tự gõ ý tưởng hoặc chọn theo chủ đề SGK bên dưới)
+
+            {/* GỢI Ý Ý TƯỞNG THÔNG MINH CHO TỪNG KHỐI LỚP (BẤM 1 CHẠM TẠO NGAY) */}
+            <div className="mt-2.5">
+              <span className="text-[10px] font-bold text-amber-800 flex items-center gap-1 mb-1.5">
+                <Sparkles className="w-3 h-3 text-amber-600" />
+                Gợi ý hay Lớp {selectedGrade} (Bấm 1 chạm để tạo ngay):
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {(SMART_GRADE_SUGGESTIONS[selectedGrade] || []).map((sug, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(sug)}
+                    className="px-2 py-1 text-[11px] font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 hover:border-amber-400 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95"
+                    title={`Bấm để tự động tạo bài dạy và tranh mẫu "${sug.title}"`}
+                  >
+                    <span>{sug.icon}</span>
+                    <span>{sug.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <span className="text-[10px] text-slate-400 mt-1.5 block">
+              (Thầy/Cô có thể tự gõ ý tưởng, bấm gợi ý trên hoặc chọn theo chủ đề SGK bên dưới)
             </span>
           </div>
 
@@ -513,11 +796,46 @@ export default function IdeaWorkshop({
           </div>
         </div>
 
-        {/* Generate Button */}
-        <div className="pt-4 border-t border-slate-100">
+        {/* Active Context Banner & Generate Button */}
+        <div className="pt-3 border-t border-slate-100 space-y-2">
+          {/* Thông tin ngữ cảnh đang chọn */}
+          <div className="p-2.5 rounded-xl border text-xs bg-slate-50 border-slate-200">
+            {customIdeaInput.trim() ? (
+              <div className="flex items-start justify-between gap-1">
+                <div>
+                  <div className="font-extrabold text-amber-900 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Đang tạo theo: Ý tưởng riêng</span>
+                  </div>
+                  <div className="text-[11px] text-amber-800 font-semibold truncate max-w-[210px] mt-0.5">
+                    "{customIdeaInput.trim()}"
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCustomIdeaInput('')}
+                  className="text-[10px] text-slate-500 hover:text-rose-600 font-bold shrink-0 underline"
+                  title="Xóa ý tưởng riêng để dùng theo Chủ đề SGK"
+                >
+                  ✕ Dùng SGK
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="font-extrabold text-indigo-950 flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <span>Đang tạo theo: SGK Kết Nối Tri Thức</span>
+                </div>
+                <div className="text-[11px] text-slate-600 font-medium truncate max-w-[240px] mt-0.5">
+                  {currentTheme?.title}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
-            onClick={handleGenerateIdea}
-            className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-sm rounded-xl shadow-md shadow-amber-200 flex items-center justify-center gap-2 transition-all transform active:scale-98"
+            onClick={() => handleGenerateIdea()}
+            className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-sm rounded-xl shadow-md shadow-amber-200 flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer"
           >
             <Sparkles className="w-4 h-4 fill-white" />
             <span>Tạo Ý Tưởng Bài Học</span>
@@ -532,9 +850,20 @@ export default function IdeaWorkshop({
             {/* Header of Idea Result */}
             <div className="flex items-start justify-between pb-4 border-b border-slate-100 gap-4">
               <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200">
-                  Lớp {ideaResult.grade} • {ideaResult.duration} • {ideaResult.material}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200">
+                    Lớp {ideaResult.grade} • {ideaResult.duration} • {ideaResult.material}
+                  </span>
+                  {ideaResult.sourceDescription && (
+                    <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                      ideaResult.isCustom 
+                        ? 'bg-rose-50 text-rose-800 border-rose-200' 
+                        : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                    }`}>
+                      {ideaResult.isCustom ? '✨ ' : '📚 '}{ideaResult.sourceDescription}
+                    </span>
+                  )}
+                </div>
                 <h1 className="text-xl font-black text-slate-800 mt-2">
                   {ideaResult.lessonTitle}
                 </h1>

@@ -35,6 +35,7 @@ export function generateProceduralArtwork(topicText = '', seed = 100, styleKey =
   const isFlower = lower.includes('hoa') || lower.includes('sen') || lower.includes('hướng dương') || lower.includes('flower');
   const isTree = lower.includes('cây') || lower.includes('rừng') || lower.includes('tree');
   const isFruit = lower.includes('quả') || lower.includes('trái cây') || lower.includes('táo') || lower.includes('fruit');
+  const isVehicle = lower.includes('xe') || lower.includes('ô tô') || lower.includes('giao thông') || lower.includes('car') || lower.includes('bus');
 
   // Cấu hình phong cách
   const isWatercolor = styleKey === 'watercolor';
@@ -823,6 +824,140 @@ export function generateProceduralArtwork(topicText = '', seed = 100, styleKey =
     ctx.fill();
     ctx.strokeStyle = '#991b1b';
     ctx.stroke();
+
+  } else if (isFlower) {
+    // === CHỦ THỂ: VƯỜN HOA RỰC RỠ SẮC MÀU ===
+    const fx = 400;
+    const fy = 250;
+
+    // Bông hoa hướng dương lớn ở giữa
+    ctx.strokeStyle = '#15803d';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy + 40);
+    ctx.lineTo(fx, fy + 150);
+    ctx.stroke();
+
+    // Lá cây xanh
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.ellipse(fx - 30, fy + 90, 35, 18, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(fx + 30, fy + 110, 35, 18, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cánh hoa hướng dương vàng rực rỡ
+    ctx.fillStyle = '#facc15';
+    for (let p = 0; p < 12; p++) {
+      const angle = (p * Math.PI) / 6;
+      const px = fx + Math.cos(angle) * 60;
+      const py = fy + Math.sin(angle) * 60;
+      ctx.beginPath();
+      ctx.ellipse(px, py, 26, 12, angle, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Nhụy hoa nâu sẫm
+    ctx.fillStyle = '#78350f';
+    ctx.beginPath();
+    ctx.arc(fx, fy, 40, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Những bông hoa nhỏ 2 bên
+    const sideColors = ['#f43f5e', '#a855f7', '#3b82f6'];
+    [-180, 180].forEach((ox, sIdx) => {
+      ctx.strokeStyle = '#15803d';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(fx + ox, fy + 70);
+      ctx.lineTo(fx + ox, fy + 150);
+      ctx.stroke();
+
+      ctx.fillStyle = sideColors[sIdx % sideColors.length];
+      for (let sp = 0; sp < 6; sp++) {
+        const sAngle = (sp * Math.PI) / 3;
+        const spx = fx + ox + Math.cos(sAngle) * 30;
+        const spy = fy + 50 + Math.sin(sAngle) * 30;
+        ctx.beginPath();
+        ctx.arc(spx, spy, 16, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(fx + ox, fy + 50, 14, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+  } else if (isVehicle) {
+    // === CHỦ THỂ: XE CỘ / Ô TÔ GIAO THÔNG ===
+    const vx = 380;
+    const vy = 260;
+
+    // Con đường
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(0, 310, 800, 140);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([30, 20]);
+    ctx.beginPath();
+    ctx.moveTo(0, 380);
+    ctx.lineTo(800, 380);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Thân xe ô tô đỏ
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(vx - 140, vy, 280, 75, [12, 12, 4, 4]) : ctx.rect(vx - 140, vy, 280, 75);
+    ctx.fill();
+    ctx.strokeStyle = '#b91c1c';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Mui xe / Cabin
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.moveTo(vx - 90, vy);
+    ctx.lineTo(vx - 50, vy - 55);
+    ctx.lineTo(vx + 60, vy - 55);
+    ctx.lineTo(vx + 100, vy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Cửa sổ xe
+    ctx.fillStyle = '#bae6fd';
+    ctx.beginPath();
+    ctx.moveTo(vx - 80, vy - 5);
+    ctx.lineTo(vx - 45, vy - 48);
+    ctx.lineTo(vx - 5, vy - 48);
+    ctx.lineTo(vx - 5, vy - 5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(vx + 5, vy - 5);
+    ctx.lineTo(vx + 5, vy - 48);
+    ctx.lineTo(vx + 52, vy - 48);
+    ctx.lineTo(vx + 88, vy - 5);
+    ctx.closePath();
+    ctx.fill();
+
+    // 2 Bánh xe
+    [-80, 80].forEach(bx => {
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.arc(vx + bx, vy + 75, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#cbd5e1';
+      ctx.beginPath();
+      ctx.arc(vx + bx, vy + 75, 14, 0, Math.PI * 2);
+      ctx.fill();
+    });
 
   } else if (isTree) {
     // === CHỦ THỂ: CÂY CỐI & RỪNG CÂY ===
