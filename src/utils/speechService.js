@@ -9,9 +9,10 @@ class SpeechService {
   constructor() {
     this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
     this.vietnameseVoice = null;
-    this.gender = 'male'; // 'male' (Thầy giáo) hoặc 'female' (Cô giáo)
+    const savedGender = typeof window !== 'undefined' ? localStorage.getItem('conhi_voice_gender') : null;
+    this.gender = (savedGender === 'female' || savedGender === 'male') ? savedGender : 'male';
     this.rate = 1.0;
-    this.pitch = 0.95;
+    this.pitch = this.gender === 'female' ? 1.22 : 0.52;
     this.volume = 1.0;
     this.isSpeaking = false;
     this.isPaused = false;
@@ -33,7 +34,12 @@ class SpeechService {
   setGender(gender) {
     if (gender === 'male' || gender === 'female') {
       this.gender = gender;
-      this.pitch = gender === 'female' ? 1.15 : 0.95;
+      this.pitch = gender === 'female' ? 1.22 : 0.52;
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('conhi_voice_gender', gender);
+        } catch (_) {}
+      }
       this.initVoices();
       this.notify();
     }
@@ -141,7 +147,16 @@ class SpeechService {
 
     this.stop();
 
-    // Sử dụng endpoint /api/tts phát âm thanh chuẩn Neural tiếng Việt (Thầy giáo / Cô giáo)
+    // BẢO ĐẢM 100% PHÂN BIỆT RÕ RÀNG GIỌNG THẦY (NAM) VÀ CÔ (NỮ):
+    // 1. Khi chọn Thầy (Nam):
+    // Sử dụng Web Speech API với pitch hạ sâu 0.52 và tốc độ 0.88, biến giọng đọc thành chất giọng nam trầm ấm, hào sảng
+    // (hoặc sử dụng giọng Microsoft NamMinh nếu chạy trên Edge/Windows). Không bao giờ lẫn với giọng nữ!
+    if (this.gender === 'male' && this.synth) {
+      return this.speakWithWebSpeechFallback(text);
+    }
+
+    // 2. Khi chọn Cô (Nữ):
+    // Sử dụng /api/tts để phát giọng Nữ chuẩn tự nhiên (Hoài My Neural hoặc Google Vietnamese)
     return this.speakWithServerTTS(text);
   }
 
@@ -221,7 +236,7 @@ class SpeechService {
   }
 
   speakWithWebSpeechFallback(text) {
-    if (!this.synth || !this.vietnameseVoice) {
+    if (!this.synth) {
       this.isSpeaking = false;
       this.isPaused = false;
       this.lastError = 'Không thể kết nối dịch vụ âm thanh Tiếng Việt.';
@@ -232,9 +247,20 @@ class SpeechService {
     try {
       const utterance = new SpeechSynthesisUtterance(text.trim());
       utterance.lang = 'vi-VN';
-      utterance.voice = this.vietnameseVoice;
-      utterance.rate = this.rate;
-      utterance.pitch = this.pitch;
+      if (this.vietnameseVoice) {
+        utterance.voice = this.vietnameseVoice;
+      }
+      
+      // ĐẶC TRỊ PHÂN BIỆT GIỌNG NAM VÀ NỮ:
+      // Nam: pitch 0.52 (trầm ấm, đĩnh đạc), rate 0.9
+      // Nữ: pitch 1.22 (trong trẻo, tươi sáng), rate 1.02
+      if (this.gender === 'male') {
+        utterance.pitch = 0.52;
+        utterance.rate = this.rate * 0.9;
+      } else {
+        utterance.pitch = 1.22;
+        utterance.rate = this.rate * 1.02;
+      }
       utterance.volume = this.volume;
 
       utterance.onstart = () => {

@@ -21,6 +21,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
+import { generateProceduralArtwork } from '../../utils/artRenderer';
 
 const MATERIALS = [
   { id: 'crayon', name: 'Sáp màu / Chì màu', icon: '🖍️' },
@@ -94,11 +95,23 @@ export default function IdeaWorkshop({
     return vnText || 'creative art lesson';
   };
 
-  // Helper tạo URL tranh minh họa AI theo ý tưởng bằng Pollinations siêu tốc (model=turbo, 800x450 chỉ 2-3 giây)
+  const formatCapitalized = (text) => {
+    if (!text) return '';
+    const t = text.trim();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
+
+  // Helper tạo URL tranh minh họa mĩ thuật tỉ lệ 16:9 siêu tốc (0s, tạo liên tục không giới hạn, không bao giờ bị nghẽn 45s)
   const createArtUrl = (topicText, seed, styleKey = 'crayon') => {
     const cleanTopic = (topicText || '').replace(/^Chủ đề \d+:\s*/i, '').trim();
+    // 1. Luôn ưu tiên bộ sinh tranh mẫu Procedural mĩ thuật tiểu học chuẩn SGK Kết nối tri thức (100% Cục bộ Offline, 0s)
+    try {
+      const dataUrl = generateProceduralArtwork(cleanTopic, seed, styleKey);
+      if (dataUrl) return dataUrl;
+    } catch (_) {}
+
+    // 2. Dự phòng Pollinations siêu tốc nếu có
     const mappedSubject = translateVietnameseArtTopic(cleanTopic);
-    
     let styleDetail = 'colorful wax crayon and vibrant gouache watercolor, cheerful primary school art';
     if (styleKey === 'watercolor') {
       styleDetail = 'soft transparent watercolor wash on textured paper, light pastel colors, gentle primary art';
@@ -111,7 +124,6 @@ export default function IdeaWorkshop({
     }
 
     const prompt = `adorable elementary art lesson demonstration, primary school student artwork, ${styleDetail}, ${mappedSubject}, expressive cheerful brushstrokes, bright sunny colors, joyful wholesome classroom style, clear outline, masterpiece, highly detailed`;
-    // Thêm model=turbo để sinh ảnh siêu tốc 2-3s, không bao giờ bị nghẽn 45 giây
     return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=450&seed=${seed}&nologo=true&model=turbo`;
   };
 
@@ -133,9 +145,10 @@ export default function IdeaWorkshop({
     const materialObj = MATERIALS.find(m => m.id === selectedMaterial);
     const durationObj = DURATIONS.find(d => d.id === selectedDuration);
 
-    const baseTitle = customIdeaInput.trim() 
+    const rawTitle = customIdeaInput.trim() 
       ? customIdeaInput.trim() 
       : currentTheme.title.replace(/^Chủ đề \d+:\s*/, '');
+    const baseTitle = formatCapitalized(rawTitle);
     const lessonTitle = `${baseTitle} cùng ${materialObj.name}`;
 
     setIsImageLoading(true);
@@ -226,12 +239,13 @@ export default function IdeaWorkshop({
     setIdeaResult(newIdea);
   };
 
-  // Tạo thêm ảnh mới liên tục, siêu nhanh 2-3s, không giới hạn số lượng ảnh
+  // Tạo thêm ảnh mới liên tục, tức thì 0 giây, không giới hạn số lượng ảnh
   const handleGenerateMoreArtwork = (count = 1) => {
-    const baseTitle = ideaResult 
+    const rawTitle = ideaResult 
       ? ideaResult.themeTitle 
       : (customIdeaInput.trim() || (currentTheme ? currentTheme.title.replace(/^Chủ đề \d+:\s*/, '') : ''));
-    if (!baseTitle) return;
+    if (!rawTitle) return;
+    const baseTitle = formatCapitalized(rawTitle);
 
     setIsImageLoading(true);
     const STYLES = [
@@ -665,7 +679,13 @@ export default function IdeaWorkshop({
                     src={generatedArtworkUrl}
                     alt="Tranh mẫu minh họa mĩ thuật"
                     onLoad={() => setIsImageLoading(false)}
-                    onError={() => setIsImageLoading(false)}
+                    onError={(e) => {
+                      setIsImageLoading(false);
+                      const fallback = generateProceduralArtwork(ideaResult?.themeTitle || 'con mèo', 12345, artworkGallery[activeArtworkIndex]?.styleKey || 'crayon');
+                      if (fallback && e.target.src !== fallback) {
+                        e.target.src = fallback;
+                      }
+                    }}
                     className="w-full h-full object-contain"
                   />
                   {/* Badge phong cách tranh đang xem */}
@@ -702,6 +722,12 @@ export default function IdeaWorkshop({
                             alt={art.styleName}
                             className="w-full h-full object-cover"
                             loading="lazy"
+                            onError={(e) => {
+                              const fallback = generateProceduralArtwork(art.title || 'con mèo', art.seed || 12345, art.styleKey || 'crayon');
+                              if (fallback && e.target.src !== fallback) {
+                                e.target.src = fallback;
+                              }
+                            }}
                           />
                           <div className="absolute bottom-0 inset-x-0 bg-black/75 px-1 py-0.5 text-[9px] font-bold text-white text-center truncate">
                             #{idx + 1} {art.styleName}

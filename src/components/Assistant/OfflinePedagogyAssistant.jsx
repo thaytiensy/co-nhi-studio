@@ -32,7 +32,14 @@ export default function OfflinePedagogyAssistant({
   const [userQuery, setUserQuery] = useState('');
   const [copiedId, setCopiedId] = useState(null);
 
-  const [currentGender, setCurrentGender] = useState(speechService.gender || 'male');
+  const [currentGender, setCurrentGender] = useState(() => speechService.gender || 'male');
+
+  React.useEffect(() => {
+    const unsub = speechService.subscribe((state) => {
+      setCurrentGender(state.gender);
+    });
+    return () => unsub();
+  }, []);
 
   // Đọc toàn bộ chữ trên slide hiện tại (loại bỏ watermark bản quyền mẫu)
   const handleReadCurrentSlide = () => {

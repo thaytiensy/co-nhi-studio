@@ -8,14 +8,7 @@ export default function SpeakerNotes({
   onChangeNotes,
   onOpenAssistant
 }) {
-  const [speechState, setSpeechState] = useState({
-    isSpeaking: false,
-    isPaused: false,
-    rate: 1.0,
-    hasViVoice: true,
-    voiceName: '',
-    lastError: null
-  });
+  const [speechState, setSpeechState] = useState(() => speechService.getState());
   const [isExpanded, setIsExpanded] = useState(true);
   const [localError, setLocalError] = useState('');
 

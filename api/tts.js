@@ -48,7 +48,7 @@ async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
         try {
           const tts = new MsEdgeTTS();
           await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-          const { audioStream } = tts.toStream(cleanText);
+          const { audioStream } = tts.toStream(cleanText, { rate: '+0%', pitch: '+0Hz', volume: '+0%' });
           const chunks = [];
 
           await new Promise((resChunk, rejChunk) => {
@@ -140,7 +140,10 @@ export default async function handler(req, res) {
       console.warn(`[Vercel TTS] MsEdgeTTS (${voiceName}) failed:`, edgeErr.message);
     }
 
-    // 2. Google TTS Fallback (female only)
+    // 2. Google TTS Fallback
+    // LƯU Ý SƯ PHẠM: Google Translate TTS là giọng NỮ chuẩn tiếng Việt.
+    // Chỉ phục vụ khi người dùng chọn Cô giáo (isFemale = true).
+    // Nếu chọn Thầy giáo (Nam), trả về 404 để frontend kích hoạt giọng Nam qua Web Speech API với pitch 0.52 trầm ấm.
     if (isFemale) {
       try {
         const googleBuf = await synthesizeGoogleTts(cleanText);
