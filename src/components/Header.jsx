@@ -95,16 +95,15 @@ export default function Header({
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           {/* Video Hướng Dẫn (7 Phút) Button */}
-                    {/* Nút Cài Đặt App (PWA & Desktop Shortcut) */}
+          {/* Nút Tải & Cài Đặt App Như Bình Thường (PWA & Desktop Shortcut) */}
           {onOpenInstallModal && (
             <button
               onClick={onOpenInstallModal}
-              className="px-3 py-1.5 text-xs font-black text-amber-950 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 hover:from-amber-400 hover:to-amber-500 border border-amber-400 rounded-lg flex items-center gap-1.5 transition-all shadow-xs transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-              title="Cài đặt Cọ Nhí Studio như ứng dụng máy tính (Desktop App)"
+              className="px-3.5 py-1.5 text-xs font-black text-emerald-950 bg-gradient-to-r from-emerald-300 via-teal-300 to-emerald-300 hover:from-emerald-400 hover:to-teal-400 border border-emerald-400 rounded-xl flex items-center gap-1.5 transition-all shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer ring-2 ring-emerald-300/40"
+              title="Tải & Cài đặt Cọ Nhí Studio như ứng dụng bình thường trên máy tính hoặc điện thoại"
             >
-              <Download className="w-3.5 h-3.5 text-amber-900" />
-              <span className="hidden sm:inline">Cài Đặt App</span>
-              <span className="sm:hidden">Cài App</span>
+              <Download className="w-4 h-4 text-emerald-900" />
+              <span>Tải & Cài Đặt App</span>
             </button>
           )}
 

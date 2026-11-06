@@ -39,7 +39,7 @@ export default function App() {
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => isUserAuthenticated());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
@@ -402,6 +402,18 @@ export default function App() {
       alert('Lỗi xuất PowerPoint: ' + res.error);
     }
   };
+
+  // 0. BẢO VỆ MÀN HÌNH KHÓA: HIỆN NGAY KHI MỞ APP (Chặn 100%, không hiển thị app phía sau khi chưa đăng nhập)
+  if (!isAuthenticated) {
+    return (
+      <LoginGateModal
+        isOpen={true}
+        onLoginSuccess={() => {
+          setIsAuthenticated(true);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-100 overflow-hidden font-sans relative">

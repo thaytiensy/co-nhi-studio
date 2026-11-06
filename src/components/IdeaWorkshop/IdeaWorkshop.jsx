@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Lightbulb, 
   Sparkles, 
@@ -484,6 +484,11 @@ export default function IdeaWorkshop({
     }, 450);
   };
 
+  // Tự động khởi tạo ngay khi mở Xưởng Ý Tưởng để không bao giờ bị trống
+  useEffect(() => {
+    handleGenerateIdea();
+  }, []);
+
   // Chọn nhanh gợi ý thông minh 1 chạm
   const handleSelectSuggestion = (sug) => {
     setCustomIdeaInput(sug.title);
@@ -615,7 +620,7 @@ export default function IdeaWorkshop({
           {/* 1. Select Grade */}
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">
-              1. Khối Lớp:
+              1. Khối Lớp (Bấm chọn lớp để AI tự động chuyển đổi bài dạy):
             </label>
             <div className="grid grid-cols-5 gap-1.5">
               {PEDAGOGY_BANK.grades.map(g => (
@@ -625,10 +630,11 @@ export default function IdeaWorkshop({
                     setSelectedGrade(g.id);
                     const newThemes = PEDAGOGY_BANK.themes[g.id] || [];
                     if (newThemes.length > 0) setSelectedThemeId(newThemes[0].id);
+                    setTimeout(() => handleGenerateIdea(null, null), 50);
                   }}
-                  className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+                  className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                     selectedGrade === g.id
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-xs ring-2 ring-amber-300'
                       : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
@@ -647,7 +653,10 @@ export default function IdeaWorkshop({
               {customIdeaInput && (
                 <button
                   type="button"
-                  onClick={() => setCustomIdeaInput('')}
+                  onClick={() => {
+                    setCustomIdeaInput('');
+                    setTimeout(() => handleGenerateIdea(''), 50);
+                  }}
                   className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline"
                   title="Xóa ô nhập để chuyển sang chủ đề SGK bên dưới"
                 >
@@ -668,6 +677,18 @@ export default function IdeaWorkshop({
               placeholder="Ví dụ: Con heo, chú mèo, vườn hoa, ô tô..."
               className="w-full px-3 py-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
             />
+
+            {/* Nút Tạo Ngay Theo Ý Tưởng Tự Do */}
+            {customIdeaInput.trim() && (
+              <button
+                type="button"
+                onClick={() => handleGenerateIdea(customIdeaInput.trim())}
+                className="mt-2 w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all transform active:scale-95 cursor-pointer animate-in fade-in"
+              >
+                <Sparkles className="w-4 h-4 fill-white" />
+                <span>Bấm Vào Đây: AI Sinh Bài Học & Tranh Mẫu "{customIdeaInput.trim()}"</span>
+              </button>
+            )}
 
             {/* GỢI Ý Ý TƯỞNG THÔNG MINH CHO TỪNG KHỐI LỚP (BẤM 1 CHẠM TẠO NGAY) */}
             <div className="mt-2.5">
@@ -703,8 +724,12 @@ export default function IdeaWorkshop({
             </label>
             <select
               value={selectedThemeId}
-              onChange={(e) => setSelectedThemeId(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+              onChange={(e) => {
+                setSelectedThemeId(e.target.value);
+                setCustomIdeaInput('');
+                setTimeout(() => handleGenerateIdea(''), 50);
+              }}
+              className="w-full px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
             >
               {themesForGrade.map(t => (
                 <option key={t.id} value={t.id}>{t.title}</option>
@@ -721,10 +746,13 @@ export default function IdeaWorkshop({
               {MATERIALS.map(mat => (
                 <button
                   key={mat.id}
-                  onClick={() => setSelectedMaterial(mat.id)}
-                  className={`w-full px-3 py-2 text-xs font-semibold rounded-xl border flex items-center justify-between transition-all ${
+                  onClick={() => {
+                    setSelectedMaterial(mat.id);
+                    handleGenerateIdea(null, mat.id);
+                  }}
+                  className={`w-full px-3 py-2 text-xs font-semibold rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
                     selectedMaterial === mat.id
-                      ? 'bg-amber-50 text-amber-900 border-amber-400 font-bold'
+                      ? 'bg-amber-50 text-amber-900 border-amber-400 font-bold ring-1 ring-amber-300'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
@@ -741,14 +769,17 @@ export default function IdeaWorkshop({
           {/* 4. Select Duration */}
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">
-              4. Thời Lượng Tiết Dạy:
+              5. Thời Lượng Tiết Dạy:
             </label>
             <div className="grid grid-cols-2 gap-2">
               {DURATIONS.map(dur => (
                 <button
                   key={dur.id}
-                  onClick={() => setSelectedDuration(dur.id)}
-                  className={`p-2.5 text-xs rounded-xl border text-left transition-all ${
+                  onClick={() => {
+                    setSelectedDuration(dur.id);
+                    handleGenerateIdea();
+                  }}
+                  className={`p-2.5 text-xs rounded-xl border text-left transition-all cursor-pointer ${
                     selectedDuration === dur.id
                       ? 'bg-amber-50 text-amber-900 border-amber-400 font-bold'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'

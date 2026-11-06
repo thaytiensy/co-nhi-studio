@@ -31,18 +31,18 @@ export default function LoginGateModal({ isOpen, onLoginSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/60 select-none backdrop-blur-md animate-in fade-in duration-200">
       <div 
         className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col transform animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Banner Top */}
-        <div className="px-6 pt-7 pb-6 bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white text-center relative overflow-hidden">
+        <div className="px-6 pt-8 pb-7 bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white text-center relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
           <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-black/10 rounded-full blur-xl pointer-events-none"></div>
 
           <div className="relative z-10 flex flex-col items-center">
-            <div className="w-16 h-16 rounded-2xl bg-white shadow-lg p-2.5 flex items-center justify-center mb-3 border-2 border-amber-200">
+            <div className="w-16 h-16 rounded-2xl bg-white shadow-lg p-2 flex items-center justify-center mb-3 border-2 border-amber-200">
               <img 
                 src="/teacher.jpg" 
                 alt="Thầy Cọ Nhí" 
@@ -65,7 +65,7 @@ export default function LoginGateModal({ isOpen, onLoginSuccess }) {
         </div>
 
         {/* Form Body */}
-        <div className="p-6 md:p-7 space-y-5 bg-white">
+        <div className="p-6 md:p-8 space-y-5 bg-white">
           <div className="text-center space-y-1">
             <h3 className="text-base font-extrabold text-slate-800 flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-5 h-5 text-amber-600" />
@@ -104,7 +104,7 @@ export default function LoginGateModal({ isOpen, onLoginSuccess }) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                   title={showPassword ? 'Ẩn ký tự' : 'Hiện ký tự'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
