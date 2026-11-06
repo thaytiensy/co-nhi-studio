@@ -9,6 +9,8 @@ import StudentEvaluationSMAS from './components/Evaluation/StudentEvaluationSMAS
 import OfflinePedagogyAssistant from './components/Assistant/OfflinePedagogyAssistant';
 import PPTXPreviewModal from './components/SlideEditor/PPTXPreviewModal';
 import VideoGuideModal from './components/VideoGuide/VideoGuideModal';
+import AdminModal from './components/Admin/AdminModal';
+import InstallAppModal from './components/Install/InstallAppModal';
 import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 import { exportToPPTX } from './utils/pptxExportService';
@@ -33,7 +35,11 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'ideas', 'drawing', 'games', 'camera', 'evaluation'
   const [isSaved, setIsSaved] = useState(true);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
-  const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
+    const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
 
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -42,6 +48,36 @@ export default function App() {
   const [pptxPreviewData, setPptxPreviewData] = useState(null);
   const [isImportingPPTX, setIsImportingPPTX] = useState(false);
   const pptxFileInputRef = useRef(null);
+
+  // Listener bắt sự kiện cài đặt PWA và phím tắt quản trị
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setIsAdminModalOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Load from local storage on initial mount (loại bỏ dữ liệu mẫu cũ nếu có để app luôn trắng)
   useEffect(() => {
@@ -389,7 +425,11 @@ export default function App() {
         onExportPPTX={handleExportPPTX}
         onUploadPPTX={handleTriggerPPTXUpload}
         onNewProject={handleNewProject}
-        onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
+                onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
+        onOpenAdminModal={() => setIsAdminModalOpen(true)}
+        onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        installPrompt={installPrompt}
+        isAppInstalled={isAppInstalled}
       />
 
       {/* 2. Main Tab Body */}
@@ -496,6 +536,20 @@ export default function App() {
       <VideoGuideModal
         isOpen={isVideoGuideOpen}
         onClose={() => setIsVideoGuideOpen(false)}
+      />
+
+      {/* 6. Admin Authentication & Management Modal */}
+      <AdminModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
+
+      {/* 7. Install Application Modal */}
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        installPrompt={installPrompt}
+        isInstalled={isAppInstalled}
       />
     </div>
   );

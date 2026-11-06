@@ -16,7 +16,8 @@ import {
   Sparkles,
   FilePlus,
   RotateCcw,
-  Film
+  Film,
+  Lock
 } from 'lucide-react';
 import { exportProjectFile } from '../utils/storageService';
 
@@ -33,7 +34,9 @@ export default function Header({
   onExportPPTX,
   onUploadPPTX,
   onNewProject,
-  onOpenVideoGuide
+  onOpenVideoGuide,
+  onOpenAdminModal,
+  onOpenInstallModal
 }) {
   const [showFileMenu, setShowFileMenu] = useState(false);
 
@@ -92,6 +95,29 @@ export default function Header({
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           {/* Video Hướng Dẫn (7 Phút) Button */}
+                    {/* Nút Cài Đặt App (PWA & Desktop Shortcut) */}
+          {onOpenInstallModal && (
+            <button
+              onClick={onOpenInstallModal}
+              className="px-3 py-1.5 text-xs font-black text-amber-950 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300 hover:from-amber-400 hover:to-amber-500 border border-amber-400 rounded-lg flex items-center gap-1.5 transition-all shadow-xs transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              title="Cài đặt Cọ Nhí Studio như ứng dụng máy tính (Desktop App)"
+            >
+              <Download className="w-3.5 h-3.5 text-amber-900" />
+              <span className="hidden sm:inline">Cài Đặt App</span>
+              <span className="sm:hidden">Cài App</span>
+            </button>
+          )}
+
+          {/* Nút Quản Trị Viên Bảo Mật (Không hiển thị thông tin nhạy cảm) */}
+          {onOpenAdminModal && (
+            <button
+              onClick={onOpenAdminModal}
+              className="p-1.5 text-slate-400 hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200 rounded-lg transition-all"
+              title="Khu vực quản trị hệ thống (Bảo mật)"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onOpenVideoGuide && (
             <button
               onClick={onOpenVideoGuide}
@@ -131,6 +157,15 @@ export default function Header({
                 className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setShowFileMenu(false)}
               >
+                                {onOpenAdminModal && (
+                  <button
+                    onClick={onOpenAdminModal}
+                    className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 flex items-center gap-2 border-b border-slate-100"
+                  >
+                    <Lock className="w-4 h-4 text-amber-600" />
+                    <span>Quản trị viên & Chia sẻ Gmail</span>
+                  </button>
+                )}
                 {onNewProject && (
                   <button
                     onClick={onNewProject}
