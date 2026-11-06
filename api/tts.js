@@ -42,48 +42,45 @@ async function synthesizeGoogleTts(cleanText) {
 }
 
 async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
-  return new Promise((resolve, reject) => {
-    ttsQueue = ttsQueue.then(async () => {
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          const tts = new MsEdgeTTS();
-          await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-          const { audioStream } = tts.toStream(cleanText, { rate: '+0%', pitch: '+0Hz', volume: '+0%' });
-          const chunks = [];
+  const task = ttsQueue.then(async () => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const tts = new MsEdgeTTS();
+        await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+        const { audioStream } = tts.toStream(cleanText, { rate: '+0%', pitch: '+0Hz', volume: '+0%' });
+        const chunks = [];
 
-          await new Promise((resChunk, rejChunk) => {
-            const timer = setTimeout(() => {
-              if (chunks.length > 0) resChunk();
-              else rejChunk(new Error('Timeout Edge TTS'));
-            }, 8000);
+        await new Promise((resChunk, rejChunk) => {
+          const timer = setTimeout(() => {
+            if (chunks.length > 0) resChunk();
+            else rejChunk(new Error('Timeout Edge TTS'));
+          }, 8000);
 
-            audioStream.on('data', c => chunks.push(c));
-            audioStream.on('end', () => {
-              clearTimeout(timer);
-              resChunk();
-            });
-            audioStream.on('error', (err) => {
-              clearTimeout(timer);
-              if (chunks.length > 0) resChunk();
-              else rejChunk(err);
-            });
+          audioStream.on('data', c => chunks.push(c));
+          audioStream.on('end', () => {
+            clearTimeout(timer);
+            resChunk();
           });
+          audioStream.on('error', (err) => {
+            clearTimeout(timer);
+            if (chunks.length > 0) resChunk();
+            else rejChunk(err);
+          });
+        });
 
-          const audioBuf = Buffer.concat(chunks);
-          if (audioBuf.length > 0) {
-            resolve(audioBuf);
-            return;
-          }
-        } catch (err) {
-          if (attempt === 3) {
-            reject(err);
-            return;
-          }
-          await new Promise(r => setTimeout(r, 350));
-        }
+        const audioBuf = Buffer.concat(chunks);
+        if (audioBuf.length > 0) return audioBuf;
+        throw new Error('Edge TTS trả về âm thanh rỗng');
+      } catch (err) {
+        if (attempt === 3) throw err;
+        await new Promise(r => setTimeout(r, 350));
       }
-    }).catch(reject);
+    }
+    throw new Error('Không thể tổng hợp âm thanh qua Edge TTS');
   });
+
+  ttsQueue = task.catch(() => undefined);
+  return task;
 }
 
 export default async function handler(req, res) {
