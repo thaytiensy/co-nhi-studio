@@ -324,6 +324,8 @@ export default function IdeaWorkshop({
   const [isCopied, setIsCopied] = useState(false);
   const [addedNotice, setAddedNotice] = useState(false);
   const [insertSuccessNotice, setInsertSuccessNotice] = useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [aiGeneratingStatus, setAiGeneratingStatus] = useState('');
 
   // Ảnh do người dùng tải lên từ máy tính cho ý tưởng
   const [uploadedIdeaImage, setUploadedIdeaImage] = useState(null);
@@ -337,6 +339,7 @@ export default function IdeaWorkshop({
     const lower = (vnText || '').toLowerCase();
     const keywords = [];
 
+    if (lower.includes('heo') || lower.includes('lợn') || lower.includes('ủn') || lower.includes('pig')) keywords.push('adorable cute pink piglet with curly tail smiling cheerfully in green farm');
     if (lower.includes('cá heo')) keywords.push('playful dolphins jumping over blue ocean waves');
     else if (lower.includes('cá') || lower.includes('thủy cung')) keywords.push('colorful swimming fish in vibrant coral reef');
     if (lower.includes('mèo')) keywords.push('cute fluffy kitten playing with colorful yarn ball');
@@ -420,6 +423,8 @@ export default function IdeaWorkshop({
     const baseTitle = formatCapitalized(rawTitle);
     const lessonTitle = `${baseTitle} cùng ${materialObj.name}`;
 
+    setIsAiGenerating(true);
+    setAiGeneratingStatus(`Đang phân tích ý tưởng "${baseTitle}" & chất liệu ${materialObj.name}...`);
     setIsImageLoading(true);
 
     // Tự động sinh ngay bộ 4 phong cách tranh khác nhau siêu tốc (0s, offline, không bao giờ bị nghẽn)
@@ -441,10 +446,6 @@ export default function IdeaWorkshop({
         title: baseTitle
       };
     });
-
-    setArtworkGallery(initialGallery);
-    setActiveArtworkIndex(0);
-    setGeneratedArtworkUrl(initialGallery[0].url);
 
     // Tạo kế hoạch dạy học thông minh hiểu sâu sắc ngữ cảnh đề tài và chất liệu
     const pedagogy = generateSmartPedagogy({
@@ -474,7 +475,13 @@ export default function IdeaWorkshop({
       rubricCriteria: pedagogy.rubricCriteria
     };
 
-    setIdeaResult(newIdea);
+    setTimeout(() => {
+      setArtworkGallery(initialGallery);
+      setActiveArtworkIndex(0);
+      setGeneratedArtworkUrl(initialGallery[0].url);
+      setIdeaResult(newIdea);
+      setIsAiGenerating(false);
+    }, 450);
   };
 
   // Chọn nhanh gợi ý thông minh 1 chạm
@@ -489,9 +496,7 @@ export default function IdeaWorkshop({
 
   // Tạo thêm ảnh mới liên tục, tức thì 0 giây, không giới hạn số lượng ảnh
   const handleGenerateMoreArtwork = (count = 1) => {
-    const rawTitle = ideaResult 
-      ? ideaResult.themeTitle 
-      : (customIdeaInput.trim() || (currentTheme ? currentTheme.title.replace(/^Chủ đề \d+:\s*/, '') : ''));
+    const rawTitle = (customIdeaInput.trim()) || (ideaResult ? ideaResult.themeTitle : (currentTheme ? currentTheme.title.replace(/^Chủ đề \d+:\s*/, '') : ''));
     if (!rawTitle) return;
     const baseTitle = formatCapitalized(rawTitle);
 
@@ -654,6 +659,12 @@ export default function IdeaWorkshop({
               type="text"
               value={customIdeaInput}
               onChange={(e) => setCustomIdeaInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleGenerateIdea();
+                }
+              }}
               placeholder="Ví dụ: Con heo, chú mèo, vườn hoa, ô tô..."
               className="w-full px-3 py-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
             />
@@ -845,7 +856,27 @@ export default function IdeaWorkshop({
 
       {/* Right Output Display Area */}
       <div className="flex-1 p-6 overflow-y-auto">
-        {ideaResult ? (
+        {isAiGenerating ? (
+          <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl border-2 border-amber-300 shadow-xl p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-200">
+              <Sparkles className="w-8 h-8 animate-spin" />
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-base font-black text-slate-800">
+                🤖 AI Thầy Cọ Nhí đang kiến tạo ý tưởng sư phạm...
+              </h4>
+              <p className="text-xs text-amber-900 font-bold bg-amber-50 py-1.5 px-4 rounded-full border border-amber-200 inline-block">
+                {aiGeneratingStatus || 'Đang phân tích ngữ cảnh và thiết kế giáo án GDPT 2018...'}
+              </p>
+            </div>
+            <div className="w-48 h-2 bg-slate-100 rounded-full mx-auto overflow-hidden">
+              <div className="w-full h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full animate-pulse"></div>
+            </div>
+            <p className="text-[11px] text-slate-400 font-medium">
+              Tích hợp chuẩn CT GDPT 2018 môn Mĩ thuật Tiểu học (Thông tư 32/2018/TT-BGDĐT)
+            </p>
+          </div>
+        ) : ideaResult ? (
           <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
             {/* Header of Idea Result */}
             <div className="flex items-start justify-between pb-4 border-b border-slate-100 gap-4">

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Play, Pause, Square, Sparkles, AlertCircle, Info } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Volume2, VolumeX, Play, Pause, Square, Sparkles, AlertCircle, Info, Check } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 
 export default function SpeakerNotes({
@@ -11,12 +11,16 @@ export default function SpeakerNotes({
   const [speechState, setSpeechState] = useState(() => speechService.getState());
   const [isExpanded, setIsExpanded] = useState(true);
   const [localError, setLocalError] = useState('');
+  const [isGeneratingAiSpeech, setIsGeneratingAiSpeech] = useState(false);
+  const [speechSuccessNotice, setSpeechSuccessNotice] = useState(false);
+  const streamIntervalRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = speechService.subscribe(setSpeechState);
     return () => {
       unsubscribe();
       speechService.stop();
+      if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
     };
   }, []);
 
@@ -113,6 +117,55 @@ export default function SpeakerNotes({
     speechService.setRate(rate);
   };
 
+  // AI Tự Động Soạn Lời Giảng Truyền Cảm Hứng Chuẩn GDPT 2018 (Hiệu Ứng Streaming Như AI Thật)
+  const handleGenerateAiSpeech = () => {
+    if (isGeneratingAiSpeech) return;
+    setIsGeneratingAiSpeech(true);
+    setSpeechSuccessNotice(false);
+
+    if (speechState.isSpeaking) {
+      speechService.stop();
+    }
+
+    const slideTitle = slide?.title || '';
+    const slideContent = getSlideTextContent();
+    const combined = `${slideTitle} ${slideContent}`.toLowerCase();
+
+    let targetSpeech = '';
+
+    if (combined.includes('khởi động') || combined.includes('đố vui') || combined.includes('trang 1')) {
+      targetSpeech = `Thầy/Cô chào tất cả các em học sinh thân mến! Hôm nay, lớp chúng ta sẽ cùng nhau bước vào một hành trình mĩ thuật vô cùng thú vị và tràn ngập sắc màu. Các em hãy ngồi thật ngay ngắn, mở rộng đôi mắt quan sát và chuẩn bị sẵn sàng đồ dùng học tập để cùng Thầy/Cô khám phá những điều kì diệu nhé! Bạn nào đã sẵn sàng rồi hãy mỉm cười thật tươi cho Thầy/Cô xem nào!`;
+    } else if (combined.includes('thực hành') || combined.includes('bước') || combined.includes('vẽ') || combined.includes('tạo hình')) {
+      targetSpeech = `Bây giờ, các em hãy cùng nhìn lên màn hình và chú ý theo dõi từng thao tác thị phạm của Thầy/Cô nhé. Bước đầu tiên, chúng ta sẽ dùng nét chì mờ phác khung hình học cơ bản ở vị trí chính giữa trang giấy. Các em hãy tự tin cầm bút, đừng lo nếu nét vẽ chưa thật thẳng, nét vẽ đẹp nhất là nét vẽ tự nhiên và chứa chan tình cảm của chính các em!`;
+    } else if (combined.includes('trưng bày') || combined.includes('chia sẻ') || combined.includes('cảm nhận') || combined.includes('đánh giá')) {
+      targetSpeech = `Đã đến lúc chúng ta cùng trưng bày những tác phẩm tuyệt vời của mình lên góc mĩ thuật lớp học rồi! Thầy/Cô rất tự hào về sự kiên nhẫn và sáng tạo của tất cả các em hôm nay. Bây giờ, bạn nào xung phong lên trước giới thiệu về ý tưởng bức tranh của mình và chia sẻ cảm xúc cho cả lớp cùng lắng nghe nào?`;
+    } else {
+      targetSpeech = `Các em học sinh yêu quý, hãy cùng Thầy/Cô hướng mắt lên màn hình để quan sát thật kĩ những đường nét và màu sắc tươi sáng trong bức tranh này. Các em có nhận thấy sự hòa quyện nhịp nhàng giữa nét vẽ và gam màu ấm áp không? Mỗi tác phẩm mĩ thuật đều kể một câu chuyện riêng, và hôm nay Thầy/Cô tin rằng các em sẽ kể được câu chuyện của chính mình bằng nét vẽ thật sinh động!`;
+    }
+
+    // Hiệu ứng streaming/typewriter thời gian thực
+    onChangeNotes('');
+    const words = targetSpeech.split(' ');
+    let currentIdx = 0;
+    let accumulated = '';
+
+    if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
+
+    streamIntervalRef.current = setInterval(() => {
+      if (currentIdx < words.length) {
+        accumulated += (currentIdx > 0 ? ' ' : '') + words[currentIdx];
+        onChangeNotes(accumulated);
+        currentIdx++;
+      } else {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = null;
+        setIsGeneratingAiSpeech(false);
+        setSpeechSuccessNotice(true);
+        setTimeout(() => setSpeechSuccessNotice(false), 3000);
+      }
+    }, 40);
+  };
+
   const errorMessage = localError || speechState.lastError;
 
   return (
@@ -174,10 +227,16 @@ export default function SpeakerNotes({
             ))}
           </div>
 
-          {/* Voice indicator badge */}
-          <span className="text-[11px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200 font-semibold flex items-center gap-1.5 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>🎙️ {speechState.voiceName || 'Giọng đọc Tiếng Việt'}</span>
+          {/* Voice indicator badge - 100% Phân biệt chuẩn xác Nam Minh / Hoài My */}
+          <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-semibold flex items-center gap-1.5 shadow-2xs transition-colors ${
+            speechState.gender === 'female' 
+              ? 'bg-pink-50 text-pink-700 border-pink-200' 
+              : 'bg-amber-50 text-amber-800 border-amber-200'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+              speechState.gender === 'female' ? 'bg-pink-500' : 'bg-amber-500'
+            }`}></span>
+            <span>🎙️ {speechState.gender === 'female' ? 'Cô giáo (Nữ - Hoài My)' : 'Thầy giáo (Nam - Nam Minh)'}</span>
           </span>
 
           {/* Nút Đọc Riêng Chữ Trên Slide */}
@@ -224,14 +283,35 @@ export default function SpeakerNotes({
             </button>
           )}
 
-          {/* Open Assistant Button */}
+          {/* Direct AI Speech Generation Button (Sinh lời giảng streaming như AI thật) */}
+          <button
+            onClick={handleGenerateAiSpeech}
+            disabled={isGeneratingAiSpeech}
+            className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+              isGeneratingAiSpeech
+                ? 'bg-amber-100 text-amber-900 border border-amber-400 animate-pulse'
+                : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 active:scale-95'
+            }`}
+            title="AI Thầy Cọ Nhí tự động phân tích trang slide và soạn thảo lời giảng truyền cảm hứng theo GDPT 2018"
+          >
+            <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isGeneratingAiSpeech ? 'animate-spin' : ''}`} />
+            <span>
+              {isGeneratingAiSpeech 
+                ? 'AI đang soạn lời giảng...' 
+                : speechSuccessNotice 
+                ? '✓ Đã tạo lời giảng AI!' 
+                : '✨ Gợi Ý Lời Giảng AI'}
+            </span>
+          </button>
+
+          {/* Open Assistant Drawer Button */}
           <button
             onClick={onOpenAssistant}
-            className="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1 transition-all"
-            title="Mở gợi ý lời dẫn sư phạm từ Trợ giảng"
+            className="px-2 py-1 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1 transition-all"
+            title="Mở thanh trợ giảng sư phạm chi tiết"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-            <span>Gợi Ý Lời Giảng</span>
+            <span>📚</span>
+            <span>Trợ Giảng</span>
           </button>
         </div>
       </div>

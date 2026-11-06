@@ -29,7 +29,7 @@ import {
   ROLES 
 } from '../../utils/adminAuthService';
 
-export default function AdminModal({ isOpen, onClose }) {
+export default function AdminModal({ isOpen, onClose, onLogout }) {
   const [session, setSession] = useState(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -151,6 +151,7 @@ export default function AdminModal({ isOpen, onClose }) {
     setPasswordInput('');
     setErrorMsg('');
     setSuccessMsg('');
+    if (onLogout) onLogout();
   };
 
   const isSuperAdmin = session?.role === ROLES.SUPER_ADMIN;

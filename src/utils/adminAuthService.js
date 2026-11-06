@@ -167,3 +167,45 @@ export function removeSharedGmail(emailToRemove) {
     return { success: false };
   }
 }
+
+// Kiểm tra xác thực tổng quát (Mật khẩu Super Admin, Mật khẩu Sub Admin hoặc Gmail được cấp quyền)
+export function loginAccess(credential) {
+  const trimmed = (credential || '').trim();
+  if (!trimmed) {
+    return { success: false, message: 'Vui lòng nhập mật khẩu hoặc Gmail được cấp quyền!' };
+  }
+
+  // 1. Kiểm tra mật khẩu Admin Chính hoặc Admin Phụ
+  const adminRes = loginAdmin(trimmed);
+  if (adminRes.success) {
+    return adminRes;
+  }
+
+  // 2. Kiểm tra nếu là Gmail trong danh sách chia sẻ
+  const lower = trimmed.toLowerCase();
+  const sharedList = getSharedGmails();
+  const found = sharedList.find(item => (item.email || '').toLowerCase() === lower);
+  if (found) {
+    const session = {
+      role: 'shared_teacher',
+      name: `Giáo Viên (${found.email})`,
+      canChangePassword: false,
+      canShareGmail: false,
+      canEditApp: false,
+      email: found.email,
+      loggedInAt: Date.now()
+    };
+    try {
+      localStorage.setItem(STORAGE_KEYS.ADMIN_SESSION, JSON.stringify(session));
+    } catch {}
+    return { success: true, session };
+  }
+
+  return { success: false, message: 'Mật khẩu hoặc Gmail chưa được cấp quyền truy cập!' };
+}
+
+// Kiểm tra xem ứng dụng đã có phiên đăng nhập hợp lệ chưa
+export function isUserAuthenticated() {
+  const session = getCurrentAdminSession();
+  return Boolean(session && session.role);
+}

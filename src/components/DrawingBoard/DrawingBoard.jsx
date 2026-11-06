@@ -284,6 +284,8 @@ export default function DrawingBoard({
         // Cung đáy dưới: đi từ góc PI (trái) tới góc 0 (phải) qua đáy (anticlockwise = true)
         ctx.ellipse(cx, maxY - ry, rx, ry, 0, Math.PI, 0, true);
         ctx.lineTo(maxX, minY + ry);
+        // Cung đỉnh trên: đi từ góc 0 (phải) tới góc PI (trái) qua đỉnh (anticlockwise = true)
+        ctx.ellipse(cx, minY + ry, rx, ry, 0, 0, Math.PI, true);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();

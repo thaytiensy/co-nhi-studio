@@ -10,11 +10,13 @@ import OfflinePedagogyAssistant from './components/Assistant/OfflinePedagogyAssi
 import PPTXPreviewModal from './components/SlideEditor/PPTXPreviewModal';
 import VideoGuideModal from './components/VideoGuide/VideoGuideModal';
 import AdminModal from './components/Admin/AdminModal';
+import LoginGateModal from './components/Admin/LoginGateModal';
 import InstallAppModal from './components/Install/InstallAppModal';
 import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 import { exportToPPTX } from './utils/pptxExportService';
 import { parsePPTXFile } from './utils/pptxImportService';
+import { isUserAuthenticated, logoutAdmin } from './utils/adminAuthService';
 import { Sparkles, MessageCircle } from 'lucide-react';
 
 // Khởi tạo trang slide trắng tinh (App hoàn toàn sạch, không chứa file mẫu có sẵn)
@@ -37,6 +39,7 @@ export default function App() {
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => isUserAuthenticated());
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
@@ -542,6 +545,10 @@ export default function App() {
       <AdminModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
+        onLogout={() => {
+          setIsAdminModalOpen(false);
+          setIsAuthenticated(false);
+        }}
       />
 
       {/* 7. Install Application Modal */}
@@ -550,6 +557,14 @@ export default function App() {
         onClose={() => setIsInstallModalOpen(false)}
         installPrompt={installPrompt}
         isInstalled={isAppInstalled}
+      />
+
+      {/* 8. Full-screen Login Gate (Hiện ngay lập tức khi mở app nếu chưa đăng nhập) */}
+      <LoginGateModal
+        isOpen={!isAuthenticated}
+        onLoginSuccess={() => {
+          setIsAuthenticated(true);
+        }}
       />
     </div>
   );
