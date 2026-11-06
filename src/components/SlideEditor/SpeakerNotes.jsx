@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Play, Pause, Square, Sparkles, AlertCircle, Info, Check } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
+import { requestTeachingAi } from '../../utils/aiLessonGenerator.js';
 
 export default function SpeakerNotes({
   slide,
@@ -117,53 +118,51 @@ export default function SpeakerNotes({
     speechService.setRate(rate);
   };
 
-  // AI Tự Động Soạn Lời Giảng Truyền Cảm Hứng Chuẩn GDPT 2018 (Hiệu Ứng Streaming Như AI Thật)
-  const handleGenerateAiSpeech = () => {
+  // Generate slide-specific teacher speech through the authenticated AI endpoint.
+  const handleGenerateAiSpeech = async () => {
     if (isGeneratingAiSpeech) return;
     setIsGeneratingAiSpeech(true);
     setSpeechSuccessNotice(false);
+    setLocalError('');
 
     if (speechState.isSpeaking) {
       speechService.stop();
     }
 
-    const slideTitle = slide?.title || '';
-    const slideContent = getSlideTextContent();
-    const combined = `${slideTitle} ${slideContent}`.toLowerCase();
-
-    let targetSpeech = '';
-
-    if (combined.includes('khởi động') || combined.includes('đố vui') || combined.includes('trang 1')) {
-      targetSpeech = `Thầy/Cô chào tất cả các em học sinh thân mến! Hôm nay, lớp chúng ta sẽ cùng nhau bước vào một hành trình mĩ thuật vô cùng thú vị và tràn ngập sắc màu. Các em hãy ngồi thật ngay ngắn, mở rộng đôi mắt quan sát và chuẩn bị sẵn sàng đồ dùng học tập để cùng Thầy/Cô khám phá những điều kì diệu nhé! Bạn nào đã sẵn sàng rồi hãy mỉm cười thật tươi cho Thầy/Cô xem nào!`;
-    } else if (combined.includes('thực hành') || combined.includes('bước') || combined.includes('vẽ') || combined.includes('tạo hình')) {
-      targetSpeech = `Bây giờ, các em hãy cùng nhìn lên màn hình và chú ý theo dõi từng thao tác thị phạm của Thầy/Cô nhé. Bước đầu tiên, chúng ta sẽ dùng nét chì mờ phác khung hình học cơ bản ở vị trí chính giữa trang giấy. Các em hãy tự tin cầm bút, đừng lo nếu nét vẽ chưa thật thẳng, nét vẽ đẹp nhất là nét vẽ tự nhiên và chứa chan tình cảm của chính các em!`;
-    } else if (combined.includes('trưng bày') || combined.includes('chia sẻ') || combined.includes('cảm nhận') || combined.includes('đánh giá')) {
-      targetSpeech = `Đã đến lúc chúng ta cùng trưng bày những tác phẩm tuyệt vời của mình lên góc mĩ thuật lớp học rồi! Thầy/Cô rất tự hào về sự kiên nhẫn và sáng tạo của tất cả các em hôm nay. Bây giờ, bạn nào xung phong lên trước giới thiệu về ý tưởng bức tranh của mình và chia sẻ cảm xúc cho cả lớp cùng lắng nghe nào?`;
-    } else {
-      targetSpeech = `Các em học sinh yêu quý, hãy cùng Thầy/Cô hướng mắt lên màn hình để quan sát thật kĩ những đường nét và màu sắc tươi sáng trong bức tranh này. Các em có nhận thấy sự hòa quyện nhịp nhàng giữa nét vẽ và gam màu ấm áp không? Mỗi tác phẩm mĩ thuật đều kể một câu chuyện riêng, và hôm nay Thầy/Cô tin rằng các em sẽ kể được câu chuyện của chính mình bằng nét vẽ thật sinh động!`;
-    }
-
-    // Hiệu ứng streaming/typewriter thời gian thực
-    onChangeNotes('');
-    const words = targetSpeech.split(' ');
-    let currentIdx = 0;
-    let accumulated = '';
-
     if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
+    streamIntervalRef.current = null;
 
-    streamIntervalRef.current = setInterval(() => {
-      if (currentIdx < words.length) {
-        accumulated += (currentIdx > 0 ? ' ' : '') + words[currentIdx];
-        onChangeNotes(accumulated);
-        currentIdx++;
-      } else {
-        clearInterval(streamIntervalRef.current);
-        streamIntervalRef.current = null;
-        setIsGeneratingAiSpeech(false);
-        setSpeechSuccessNotice(true);
-        setTimeout(() => setSpeechSuccessNotice(false), 3000);
+    try {
+      const slideTitle = String(slide?.title || '').trim().slice(0, 200);
+      const slideContent = getSlideTextContent().slice(0, 4000);
+      if (!slideTitle && !slideContent) {
+        throw new Error('Slide chưa có tiêu đề hoặc nội dung để AI dựa vào.');
       }
-    }, 40);
+      const grade = `${slideTitle} ${slideContent}`.match(/(?:lớp|khối)\s*([1-5])/i)?.[1] || '1';
+      const prompt = `Hãy tự viết lời giảng mới, riêng cho trang trình chiếu dưới đây; không dùng lời mẫu chung. Lời giảng cần tự nhiên để giáo viên có thể nói trực tiếp, phù hợp học sinh tiểu học lớp ${grade}, giải thích đúng nội dung nhìn thấy, có câu hỏi gợi mở cụ thể và một câu chuyển tiếp/khích lệ vừa phải. Không tự thêm kiến thức, hoạt động hay vật liệu không có căn cứ trong trang. Nếu nội dung trang quá ngắn, chỉ đặt câu hỏi quan sát phù hợp với phần có thật. Viết thành 2–4 đoạn ngắn, không thêm tiêu đề, ghi chú hay nhãn vai người nói. Đây là bản nháp để giáo viên xem lại.\n\nTiêu đề trang: ${slideTitle || '(không có)'}\nNội dung chữ trên trang: ${slideContent || '(không có chữ ngoài tiêu đề)'}`;
+      const targetSpeech = await requestTeachingAi({ mode: 'text', grade, prompt });
+      const words = targetSpeech.split(/\s+/);
+      let currentIdx = 0;
+      let accumulated = '';
+
+      onChangeNotes('');
+      streamIntervalRef.current = setInterval(() => {
+        if (currentIdx < words.length) {
+          accumulated += (currentIdx > 0 ? ' ' : '') + words[currentIdx];
+          onChangeNotes(accumulated);
+          currentIdx++;
+        } else {
+          clearInterval(streamIntervalRef.current);
+          streamIntervalRef.current = null;
+          setIsGeneratingAiSpeech(false);
+          setSpeechSuccessNotice(true);
+          setTimeout(() => setSpeechSuccessNotice(false), 3000);
+        }
+      }, 25);
+    } catch (error) {
+      setLocalError(error?.message || 'Không thể tạo lời giảng bằng AI. Vui lòng thử lại.');
+      setIsGeneratingAiSpeech(false);
+    }
   };
 
   const errorMessage = localError || speechState.lastError;
