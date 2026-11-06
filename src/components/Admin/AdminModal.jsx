@@ -26,6 +26,11 @@ import {
   getSharedGmails, 
   addSharedGmail, 
   removeSharedGmail,
+  getSubAdminPassword,
+  changeSubAdminPassword,
+  getSubAdminPermissions,
+  updateSubAdminPermissions,
+  updateSharedGmailRole,
   ROLES 
 } from '../../utils/adminAuthService';
 
@@ -46,6 +51,12 @@ export default function AdminModal({ isOpen, onClose, onLogout }) {
   const [showOldPwd, setShowOldPwd] = useState(false);
   const [showNewPwd, setShowNewPwd] = useState(false);
 
+  // Sub Admin Management States (Tab Phân Quyền)
+  const [subAdminPwd, setSubAdminPwd] = useState('');
+  const [newSubAdminPwd, setNewSubAdminPwd] = useState('');
+  const [showSubAdminPwd, setShowSubAdminPwd] = useState(false);
+  const [subAdminPerms, setSubAdminPerms] = useState({ isActive: true, canShareGmail: true });
+
   // Gmail Sharing States
   const [newGmail, setNewGmail] = useState('');
   const [sharedList, setSharedList] = useState([]);
@@ -57,9 +68,12 @@ export default function AdminModal({ isOpen, onClose, onLogout }) {
       const current = getCurrentAdminSession();
       setSession(current);
       setSharedList(getSharedGmails());
+      setSubAdminPwd(getSubAdminPassword());
+      setSubAdminPerms(getSubAdminPermissions());
       setErrorMsg('');
       setSuccessMsg('');
       setPasswordInput('');
+      setNewSubAdminPwd('');
       if (current?.role === ROLES.SUB_ADMIN) {
         setActiveTab('share');
       }
@@ -145,6 +159,55 @@ export default function AdminModal({ isOpen, onClose, onLogout }) {
     navigator.clipboard.writeText(shareText);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  // Đổi mật khẩu cho Admin Phụ (Admin Chính thực hiện)
+  const handleChangeSubAdminPassword = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const res = changeSubAdminPassword(newSubAdminPwd);
+    if (res.success) {
+      setSuccessMsg(res.message);
+      setSubAdminPwd(getSubAdminPassword());
+      setNewSubAdminPwd('');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } else {
+      setErrorMsg(res.message);
+    }
+  };
+
+  // Bật/Tắt kích hoạt tài khoản Admin Phụ
+  const handleToggleSubAdminActive = () => {
+    const nextState = !subAdminPerms.isActive;
+    const res = updateSubAdminPermissions({ isActive: nextState });
+    if (res.success) {
+      setSubAdminPerms(res.permissions);
+      setSuccessMsg(nextState ? 'Đã kích hoạt tài khoản Admin Phụ!' : 'Đã tạm khóa tài khoản Admin Phụ!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    }
+  };
+
+  // Bật/Tắt quyền chia sẻ Gmail của Admin Phụ
+  const handleToggleSubAdminShare = () => {
+    const nextState = !subAdminPerms.canShareGmail;
+    const res = updateSubAdminPermissions({ canShareGmail: nextState });
+    if (res.success) {
+      setSubAdminPerms(res.permissions);
+      setSuccessMsg(nextState ? 'Đã cấp quyền chia sẻ Gmail cho Admin Phụ!' : 'Đã khóa quyền chia sẻ Gmail của Admin Phụ!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    }
+  };
+
+  // Cập nhật vai trò phân quyền theo Gmail
+  const handleChangeGmailRole = (email, newRole) => {
+    const res = updateSharedGmailRole(email, newRole);
+    if (res.success) {
+      setSharedList(res.list);
+      setSuccessMsg(res.message);
+      setTimeout(() => setSuccessMsg(''), 3000);
+    }
   };
 
   // Đăng xuất
@@ -502,27 +565,234 @@ export default function AdminModal({ isOpen, onClose, onLogout }) {
                 </form>
               )}
 
-              {/* TAB 3: THÔNG TIN PHÂN QUYỀN (Super Admin) */}
+              {/* TAB 3: TRUNG TÂM PHÂN QUYỀN HỆ THỐNG (Chỉ Super Admin) */}
               {isSuperAdmin && activeTab === 'info' && (
-                <div className="space-y-3 py-1">
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
-                    <h5 className="font-extrabold text-slate-800 flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-amber-600" />
-                      <span>Sơ đồ phân quyền Ban quản trị:</span>
-                    </h5>
-                    <div className="space-y-2">
-                      <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg">
-                        <strong className="text-amber-900 block font-bold">1. Admin Chính (Super Admin):</strong>
-                        <p className="text-slate-600 text-[11px] mt-0.5">
-                          Có toàn quyền quản trị, có thể đổi mật khẩu cá nhân, chia sẻ và thu hồi quyền Gmail, và cấu hình nâng cao.
+                <div className="space-y-4 py-1">
+                  {/* Khối 1: Quản Trị Tài Khoản Admin Phụ (Admin 2) */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                          🛡️
+                        </div>
+                        <div>
+                          <h5 className="font-extrabold text-sm text-slate-800 flex items-center gap-2">
+                            <span>Quản Trị Tài Khoản Admin Phụ (Admin 2)</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              subAdminPerms.isActive 
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                                : 'bg-rose-100 text-rose-800 border border-rose-300'
+                            }`}>
+                              {subAdminPerms.isActive ? 'Đang Kích Hoạt' : 'Đang Tạm Khóa'}
+                            </span>
+                          </h5>
+                          <p className="text-[11px] text-slate-500">
+                            Cấu hình mật khẩu và quyền hạn chia sẻ cho tài khoản Admin Phụ
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Điều khiển Bật/Tắt và Quyền */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 block">Trạng Thái Tài Khoản</span>
+                          <span className="text-[11px] text-slate-500">
+                            {subAdminPerms.isActive ? 'Cho phép đăng nhập' : 'Tạm khóa truy cập'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleToggleSubAdminActive}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            subAdminPerms.isActive
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                              : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                          }`}
+                        >
+                          {subAdminPerms.isActive ? 'Đang Mở' : 'Đã Khóa'}
+                        </button>
+                      </div>
+
+                      <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 block">Quyền Cấp Gmail</span>
+                          <span className="text-[11px] text-slate-500">
+                            {subAdminPerms.canShareGmail ? 'Được phép chia sẻ' : 'Bị chặn chia sẻ'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleToggleSubAdminShare}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            subAdminPerms.canShareGmail
+                              ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs'
+                              : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                          }`}
+                        >
+                          {subAdminPerms.canShareGmail ? 'Cho Phép' : 'Khóa Quyền'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Đổi Mật Khẩu Admin Phụ */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                          <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Mật khẩu Admin Phụ hiện tại:</span>
+                        </span>
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                          <span className="font-mono font-bold text-slate-800 text-xs">
+                            {showSubAdminPwd ? subAdminPwd : '••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowSubAdminPwd(!showSubAdminPwd)}
+                            className="text-slate-400 hover:text-slate-600 p-0.5"
+                            title={showSubAdminPwd ? 'Ẩn' : 'Hiện'}
+                          >
+                            {showSubAdminPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <form onSubmit={handleChangeSubAdminPassword} className="flex gap-2 pt-1">
+                        <input
+                          type="text"
+                          value={newSubAdminPwd}
+                          onChange={(e) => setNewSubAdminPwd(e.target.value)}
+                          placeholder="Nhập mật khẩu mới cho Admin Phụ..."
+                          className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!newSubAdminPwd.trim()}
+                          className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-all whitespace-nowrap cursor-pointer"
+                        >
+                          Lưu Mật Khẩu Mới
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+
+                  {/* Khối 2: Phân Vai Trò Người Dùng Theo Gmail */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-indigo-600" />
+                          <span>Phân Vai Trò Danh Sách Gmail ({sharedList.length})</span>
+                        </h5>
+                        <p className="text-[11px] text-slate-500">
+                          Chỉ định người dùng là Giáo Viên (chỉ dùng app) hoặc Admin Phụ (được chia sẻ tiếp)
                         </p>
                       </div>
-                      <div className="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-lg">
-                        <strong className="text-emerald-900 block font-bold">2. Admin Phụ (Sub Admin):</strong>
-                        <p className="text-slate-600 text-[11px] mt-0.5">
-                          Chỉ có quyền thêm/xóa danh sách Gmail chia sẻ cho đồng nghiệp sử dụng. Không có quyền sửa app hoặc đổi mật khẩu.
-                        </p>
+                    </div>
+
+                    {sharedList.length === 0 ? (
+                      <div className="p-4 bg-white border border-dashed border-slate-200 rounded-xl text-center text-xs text-slate-500">
+                        Chưa có Gmail nào được cấp quyền. Thầy/Cô vui lòng sang tab <strong>"Chia Sẻ Qua Gmail"</strong> để thêm giáo viên trước.
                       </div>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                        {sharedList.map((item) => (
+                          <div 
+                            key={item.id}
+                            className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs hover:border-slate-300 transition-all"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-xs">
+                                ✉️
+                              </span>
+                              <div>
+                                <span className="font-bold text-slate-800">{item.email}</span>
+                                <div className="text-[10px] text-slate-400">
+                                  Vai trò hiện tại: {item.role === ROLES.SUB_ADMIN ? 'Admin Phụ (Được chia sẻ)' : 'Giáo Viên (Chỉ dùng)'}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleChangeGmailRole(item.email, ROLES.TEACHER)}
+                                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                                  item.role !== ROLES.SUB_ADMIN
+                                    ? 'bg-slate-800 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                              >
+                                Giáo Viên
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleChangeGmailRole(item.email, ROLES.SUB_ADMIN)}
+                                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all ${
+                                  item.role === ROLES.SUB_ADMIN
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}
+                              >
+                                Admin Phụ
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Khối 3: Sơ Đồ Phân Quyền Chi Tiết */}
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-2">
+                    <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Ma Trận Quyền Hạn Hệ Thống (3 Cấp):</span>
+                    </span>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-[11px] text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-500">
+                            <th className="py-1.5 pr-2 font-bold">Chức năng</th>
+                            <th className="py-1.5 px-2 font-bold text-amber-700 text-center">Admin Chính</th>
+                            <th className="py-1.5 px-2 font-bold text-emerald-700 text-center">Admin Phụ</th>
+                            <th className="py-1.5 pl-2 font-bold text-slate-600 text-center">Giáo Viên</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          <tr>
+                            <td className="py-1.5 pr-2">Mở khóa sử dụng bài giảng</td>
+                            <td className="py-1.5 px-2 text-center text-emerald-600 font-bold">✓</td>
+                            <td className="py-1.5 px-2 text-center text-emerald-600 font-bold">✓</td>
+                            <td className="py-1.5 pl-2 text-center text-emerald-600 font-bold">✓</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-2">Cấp quyền Gmail cho người khác</td>
+                            <td className="py-1.5 px-2 text-center text-emerald-600 font-bold">✓</td>
+                            <td className="py-1.5 px-2 text-center text-emerald-600 font-bold">✓</td>
+                            <td className="py-1.5 pl-2 text-center text-slate-300 font-bold">✗</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-2">Đổi mật khẩu hệ thống</td>
+                            <td className="py-1.5 px-2 text-center text-emerald-600 font-bold">✓</td>
+                            <td className="py-1.5 px-2 text-center text-slate-300 font-bold">✗</td>
+                            <td className="py-1.5 pl-2 text-center text-slate-300 font-bold">✗</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-2">Quản trị & đổi mật khẩu Admin Phụ</td>
+                            <td className="py-1.5 px-2 text-center text-emerald-600 font-bold">✓</td>
+                            <td className="py-1.5 px-2 text-center text-slate-300 font-bold">✗</td>
+                            <td className="py-1.5 pl-2 text-center text-slate-300 font-bold">✗</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-2">Sửa mã nguồn / Cấu trúc app</td>
+                            <td className="py-1.5 px-2 text-center text-slate-300 font-bold">✗</td>
+                            <td className="py-1.5 px-2 text-center text-slate-300 font-bold">✗</td>
+                            <td className="py-1.5 pl-2 text-center text-slate-300 font-bold">✗</td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>

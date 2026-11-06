@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Film,
   Lock,
+  Unlock,
   Mail,
   ShieldCheck
 } from 'lucide-react';
@@ -39,7 +40,8 @@ export default function Header({
   onOpenVideoGuide,
   onOpenAdminModal,
   onOpenInstallModal,
-  userSession
+  userSession,
+  onLogout
 }) {
   const [showFileMenu, setShowFileMenu] = useState(false);
 
@@ -110,33 +112,42 @@ export default function Header({
             </button>
           )}
 
-          {/* Nút Phân Quyền Quản Trị / Chia Sẻ (Hiển thị trực quan theo vai trò đã đăng nhập) */}
-          {userSession?.role === 'sub_admin' ? (
+          {/* Trạng thái xác thực: Người dùng chỉ thấy Gmail, Admin chỉ thấy Ổ Khóa Mở/Đóng (Không lộ chữ Admin) */}
+          {userSession?.email && userSession?.role !== 'super_admin' && userSession?.role !== 'sub_admin' ? (
+            /* Người dùng đăng nhập: CHỈ HIỂN THỊ GMAIL ĐĂNG NHẬP */
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs">
+              <Mail className="w-3.5 h-3.5 text-slate-400" />
+              <span className="truncate max-w-[200px]" title={userSession.email}>
+                {userSession.email}
+              </span>
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  title="Đăng xuất tài khoản Gmail"
+                >
+                  <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                </button>
+              )}
+            </div>
+          ) : userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' ? (
+            /* Admin đăng nhập: CHỈ HIỂN THỊ Ổ KHÓA MỞ (Tuyệt đối không hiện chữ Admin Chính/Phụ trên giao diện) */
             <button
               onClick={onOpenAdminModal}
-              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-200 flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-emerald-300 animate-in fade-in"
-              title="Thầy/Cô đang là Admin Phụ: Bấm để mở danh sách cấp quyền chia sẻ Gmail cho giáo viên khác"
+              className="p-2 text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all shadow-2xs cursor-pointer"
+              title="Khu vực quản trị hệ thống"
             >
-              <Mail className="w-3.5 h-3.5 text-emerald-100" />
-              <span>Admin Phụ (Chia Sẻ Gmail)</span>
-            </button>
-          ) : userSession?.role === 'super_admin' ? (
-            <button
-              onClick={onOpenAdminModal}
-              className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-extrabold text-xs rounded-xl shadow-md shadow-amber-200 flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-amber-300 animate-in fade-in"
-              title="Thầy/Cô đang là Admin Chính: Toàn quyền quản trị hệ thống"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-200" />
-              <span>Admin Chính</span>
+              <Unlock className="w-4 h-4 text-emerald-600" />
             </button>
           ) : (
+            /* Khi chưa đăng nhập / Khóa đóng */
             onOpenAdminModal && (
               <button
                 onClick={onOpenAdminModal}
-                className="p-1.5 text-slate-400 hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200 rounded-lg transition-all cursor-pointer"
-                title="Khu vực quản trị hệ thống (Bảo mật)"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all cursor-pointer"
+                title="Khóa hệ thống"
               >
-                <Lock className="w-3.5 h-3.5" />
+                <Lock className="w-4 h-4 text-slate-400" />
               </button>
             )
           )}

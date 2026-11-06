@@ -55,6 +55,14 @@ export default function App() {
     }
   };
 
+  // Xử lý đăng xuất tài khoản
+  const handleLogout = () => {
+    logoutAdmin();
+    setCurrentUserSession(null);
+    setIsAdminModalOpen(false);
+    setIsAuthenticated(false);
+  };
+
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
@@ -455,6 +463,7 @@ export default function App() {
         installPrompt={installPrompt}
         isAppInstalled={isAppInstalled}
         userSession={currentUserSession}
+        onLogout={handleLogout}
       />
 
       {/* 2. Main Tab Body */}
@@ -567,12 +576,7 @@ export default function App() {
       <AdminModal
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
-        onLogout={() => {
-          logoutAdmin();
-          setCurrentUserSession(null);
-          setIsAdminModalOpen(false);
-          setIsAuthenticated(false);
-        }}
+        onLogout={handleLogout}
       />
 
       {/* 7. Install Application Modal */}
