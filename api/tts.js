@@ -140,7 +140,7 @@ export default async function handler(req, res) {
     // 2. Google TTS Fallback
     // LƯU Ý SƯ PHẠM: Google Translate TTS là giọng NỮ chuẩn tiếng Việt.
     // Chỉ phục vụ khi người dùng chọn Cô giáo (isFemale = true).
-    // Nếu chọn Thầy giáo (Nam), trả về 404 để frontend kích hoạt giọng Nam qua Web Speech API với pitch 0.52 trầm ấm.
+    // Nếu chọn Thầy giáo (Nam), không dùng giọng Google nữ; frontend chỉ dự phòng giọng vi-VN nam đúng giới tính nếu thiết bị có.
     if (isFemale) {
       try {
         const googleBuf = await synthesizeGoogleTts(cleanText);

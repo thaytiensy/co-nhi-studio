@@ -12,7 +12,7 @@ class SpeechService {
     const savedGender = typeof window !== 'undefined' ? localStorage.getItem('conhi_voice_gender') : null;
     this.gender = (savedGender === 'female' || savedGender === 'male') ? savedGender : 'male';
     this.rate = 1.0;
-    this.pitch = this.gender === 'female' ? 1.22 : 0.52;
+    this.pitch = 1.0;
     this.volume = 1.0;
     this.isSpeaking = false;
     this.isPaused = false;
@@ -22,6 +22,7 @@ class SpeechService {
     this.currentChunkIndex = 0;
     this.listeners = new Set();
     this.lastError = null;
+    this.playbackId = 0;
 
     if (this.synth) {
       this.initVoices();
@@ -33,8 +34,10 @@ class SpeechService {
 
   setGender(gender) {
     if (gender === 'male' || gender === 'female') {
+      if (this.gender !== gender) this.stop();
       this.gender = gender;
-      this.pitch = gender === 'female' ? 1.22 : 0.52;
+      this.pitch = 1.0;
+      this.lastError = null;
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('conhi_voice_gender', gender);
@@ -46,7 +49,10 @@ class SpeechService {
   }
 
   initVoices() {
-    if (!this.synth) return;
+    if (!this.synth) {
+      this.vietnameseVoice = null;
+      return;
+    }
     const voices = this.synth.getVoices();
 
     const viVoices = voices.filter(v => {
@@ -63,24 +69,18 @@ class SpeechService {
       );
     });
 
-    if (viVoices.length > 0) {
-      if (this.gender === 'female') {
-        this.vietnameseVoice = viVoices.find(v => {
-          const n = v.name.toLowerCase();
-          return n.includes('hoaimy') || n.includes('mai') || n.includes('linh') || n.includes('female');
-        }) || viVoices[0];
-      } else {
-        this.vietnameseVoice = viVoices.find(v => {
-          const n = v.name.toLowerCase();
-          return n.includes('namminh') || n.includes('an') || n.includes('male') || !n.includes('hoaimy');
-        }) || viVoices[0];
-      }
-    }
+    this.vietnameseVoice = viVoices.find(voice => this.voiceMatchesGender(voice)) || null;
+  }
+
+  voiceMatchesGender(voice) {
+    const name = String(voice?.name || '').toLowerCase();
+    const explicitFemale = /hoaimy|female|woman|\bnữ\b/.test(name);
+    const explicitMale = /namminh|(^|[^a-z])male([^a-z]|$)|(^|[^a-z])man([^a-z]|$)|\bnam\b/.test(name);
+    return this.gender === 'female' ? explicitFemale : explicitMale;
   }
 
   hasViVoice() {
-    // Luôn luôn sẵn sàng giọng Tiếng Việt chất lượng cao qua /api/tts và Web Speech
-    return true;
+    return Boolean(this.vietnameseVoice);
   }
 
   subscribe(callback) {
@@ -96,7 +96,7 @@ class SpeechService {
       isPaused: this.isPaused,
       rate: this.rate,
       gender: this.gender,
-      hasViVoice: true,
+      hasViVoice: this.hasViVoice(),
       voiceName: roleName,
       lastError: this.lastError
     };
@@ -115,18 +115,29 @@ class SpeechService {
     this.notify();
   }
 
-  // Chia nhỏ đoạn văn bản dài thành các câu tự nhiên dưới 200 ký tự
+  // Giữ câu trọn vẹn khi có thể; giới hạn mỗi yêu cầu để voice fallback không ghép nhiều MP3 rời.
   splitTextIntoChunks(text) {
-    const rawSentences = text.split(/([.\n!?;]+)/);
+    const rawSentences = String(text).match(/[^.!?;\n]+[.!?;]*|\n+/g) || [];
     const chunks = [];
     let current = '';
 
-    for (let i = 0; i < rawSentences.length; i++) {
-      const part = rawSentences[i].trim();
+    for (const rawSentence of rawSentences) {
+      const part = rawSentence.replace(/\s+/g, ' ').trim();
       if (!part) continue;
 
-      if ((current + ' ' + part).length > 200) {
-        if (current.trim()) chunks.push(current.trim());
+      if (part.length > 140) {
+        if (current) chunks.push(current);
+        current = '';
+        for (const word of part.split(/\s+/)) {
+          if (current && `${current} ${word}`.length > 140) {
+            chunks.push(current);
+            current = word;
+          } else {
+            current = current ? `${current} ${word}` : word;
+          }
+        }
+      } else if (current && `${current} ${part}`.length > 140) {
+        chunks.push(current);
         current = part;
       } else {
         current = current ? `${current} ${part}` : part;
@@ -146,17 +157,7 @@ class SpeechService {
     }
 
     this.stop();
-
-    // BẢO ĐẢM 100% PHÂN BIỆT RÕ RÀNG GIỌNG THẦY (NAM) VÀ CÔ (NỮ):
-    // 1. Khi chọn Thầy (Nam):
-    // Sử dụng Web Speech API với pitch hạ sâu 0.52 và tốc độ 0.88, biến giọng đọc thành chất giọng nam trầm ấm, hào sảng
-    // (hoặc sử dụng giọng Microsoft NamMinh nếu chạy trên Edge/Windows). Không bao giờ lẫn với giọng nữ!
-    if (this.gender === 'male' && this.synth) {
-      return this.speakWithWebSpeechFallback(text);
-    }
-
-    // 2. Khi chọn Cô (Nữ):
-    // Sử dụng /api/tts để phát giọng Nữ chuẩn tự nhiên (Hoài My Neural hoặc Google Vietnamese)
+    this.lastError = null;
     return this.speakWithServerTTS(text);
   }
 
@@ -174,17 +175,16 @@ class SpeechService {
       this.lastError = null;
       this.notify();
 
-      this.playAudioChunk(0);
+      this.playAudioChunk(0, this.playbackId);
       return { success: true };
     } catch (err) {
       console.warn('Lỗi khởi động phát âm thanh:', err);
-      // Fallback sang Web Speech API nếu thiết bị có giọng vi-VN
       return this.speakWithWebSpeechFallback(text);
     }
   }
 
-  playAudioChunk(index) {
-    if (!this.isSpeaking) return;
+  playAudioChunk(index, playbackId) {
+    if (!this.isSpeaking || playbackId !== this.playbackId) return;
 
     if (index >= this.audioQueue.length) {
       this.isSpeaking = false;
@@ -205,33 +205,27 @@ class SpeechService {
     this.currentAudio = audio;
 
     audio.onended = () => {
-      this.playAudioChunk(index + 1);
+      if (playbackId !== this.playbackId || this.currentAudio !== audio) return;
+      this.currentAudio = null;
+      this.playAudioChunk(index + 1, playbackId);
     };
 
-    audio.onerror = (e) => {
-      console.warn(`Lỗi phát đoạn âm thanh ${index + 1} qua /api/tts, thử Web Speech API:`, e);
-      if (index === 0 && this.vietnameseVoice && this.synth) {
-        this.speakWithWebSpeechFallback(this.audioQueue.join('. '));
-      } else if (index + 1 < this.audioQueue.length) {
-        this.playAudioChunk(index + 1);
-      } else {
-        this.isSpeaking = false;
-        this.isPaused = false;
-        this.currentAudio = null;
-        this.notify();
+    const handlePlaybackError = (error) => {
+      if (playbackId !== this.playbackId || this.currentAudio !== audio) return;
+      console.warn(`Không phát được đoạn âm thanh ${index + 1} qua /api/tts:`, error);
+      const remainingText = this.audioQueue.slice(index).join(' ');
+      if (this.voiceMatchesGender(this.vietnameseVoice) && this.synth) {
+        this.speakWithWebSpeechFallback(remainingText);
+        return;
       }
+      this.failPlayback(this.gender === 'female'
+        ? 'Không phát được giọng nữ tiếng Việt. Hãy kiểm tra kết nối rồi thử lại.'
+        : 'Không phát được giọng nam tiếng Việt. Thiết bị chưa có giọng nam vi-VN phù hợp để dự phòng; hãy kiểm tra kết nối rồi thử lại.');
     };
+    audio.onerror = handlePlaybackError;
 
     audio.play().catch(err => {
-      console.warn('Trình duyệt cần tương tác để phát âm thanh:', err);
-      if (this.vietnameseVoice && this.synth) {
-        this.speakWithWebSpeechFallback(chunkText);
-      } else {
-        this.isSpeaking = false;
-        this.isPaused = false;
-        this.currentAudio = null;
-        this.notify();
-      }
+      handlePlaybackError(err);
     });
   }
 
@@ -244,53 +238,69 @@ class SpeechService {
       return { success: false, error: this.lastError };
     }
 
+    const voice = this.vietnameseVoice && this.voiceMatchesGender(this.vietnameseVoice)
+      ? this.vietnameseVoice
+      : null;
+    if (!voice) {
+      return this.failPlayback(this.gender === 'female'
+        ? 'Không phát được giọng nữ tiếng Việt: không có giọng nữ vi-VN phù hợp trên thiết bị.'
+        : 'Không phát được giọng nam tiếng Việt: không có giọng nam vi-VN phù hợp trên thiết bị.');
+    }
+
     try {
+      const fallbackPlaybackId = ++this.playbackId;
+      if (this.currentAudio) this.currentAudio.pause();
+      this.currentAudio = null;
+      this.audioQueue = [];
+      this.currentChunkIndex = 0;
       const utterance = new SpeechSynthesisUtterance(text.trim());
       utterance.lang = 'vi-VN';
-      if (this.vietnameseVoice) {
-        utterance.voice = this.vietnameseVoice;
-      }
-      
-      // ĐẶC TRỊ PHÂN BIỆT GIỌNG NAM VÀ NỮ:
-      // Nam: pitch 0.52 (trầm ấm, đĩnh đạc), rate 0.9
-      // Nữ: pitch 1.22 (trong trẻo, tươi sáng), rate 1.02
-      if (this.gender === 'male') {
-        utterance.pitch = 0.52;
-        utterance.rate = this.rate * 0.9;
-      } else {
-        utterance.pitch = 1.22;
-        utterance.rate = this.rate * 1.02;
-      }
+      utterance.voice = voice;
+      utterance.pitch = this.pitch;
+      utterance.rate = this.rate;
       utterance.volume = this.volume;
+      this.lastError = null;
+      const isCurrentUtterance = () => fallbackPlaybackId === this.playbackId && this.currentUtterance === utterance;
 
       utterance.onstart = () => {
+        if (!isCurrentUtterance()) return;
         this.isSpeaking = true;
         this.isPaused = false;
         this.notify();
       };
 
       utterance.onend = () => {
+        if (!isCurrentUtterance()) return;
         this.isSpeaking = false;
         this.isPaused = false;
         this.currentUtterance = null;
         this.notify();
       };
 
-      utterance.onerror = (err) => {
-        this.isSpeaking = false;
-        this.isPaused = false;
-        this.notify();
+      utterance.onerror = () => {
+        if (!isCurrentUtterance()) return;
+        this.failPlayback('Giọng đọc tiếng Việt trên thiết bị gặp lỗi. Hãy kiểm tra kết nối rồi thử lại.');
       };
 
       this.currentUtterance = utterance;
       this.synth.speak(utterance);
       return { success: true };
     } catch (err) {
-      this.isSpeaking = false;
-      this.isPaused = false;
-      this.notify();
-      return { success: false, error: err.message };
+      return this.failPlayback(err?.message || 'Không thể phát giọng đọc tiếng Việt.');
     }
+  }
+
+  failPlayback(message) {
+    this.playbackId += 1;
+    this.isSpeaking = false;
+    this.isPaused = false;
+    this.currentAudio = null;
+    this.currentUtterance = null;
+    this.audioQueue = [];
+    this.currentChunkIndex = 0;
+    this.lastError = message;
+    this.notify();
+    return { success: false, error: message };
   }
 
   pause() {
@@ -309,19 +319,38 @@ class SpeechService {
 
   resume() {
     if (this.currentAudio && this.isSpeaking && this.isPaused) {
-      this.currentAudio.play();
-      this.isPaused = false;
-      this.notify();
+      const audio = this.currentAudio;
+      const playbackId = this.playbackId;
+      audio.play().then(() => {
+        if (playbackId !== this.playbackId || this.currentAudio !== audio) return;
+        this.isPaused = false;
+        this.notify();
+      }).catch(() => {
+        if (playbackId !== this.playbackId || this.currentAudio !== audio) return;
+        const remainingText = this.audioQueue.slice(this.currentChunkIndex).join(' ');
+        if (this.voiceMatchesGender(this.vietnameseVoice) && this.synth) {
+          this.speakWithWebSpeechFallback(remainingText);
+        } else {
+          this.failPlayback(this.gender === 'female'
+            ? 'Không thể tiếp tục phát giọng nữ tiếng Việt. Hãy kiểm tra kết nối rồi thử lại.'
+            : 'Không thể tiếp tục phát giọng nam tiếng Việt. Hãy kiểm tra kết nối rồi thử lại.');
+        }
+      });
       return;
     }
     if (this.synth && this.isSpeaking && this.isPaused) {
-      this.synth.resume();
-      this.isPaused = false;
-      this.notify();
+      try {
+        this.synth.resume();
+        this.isPaused = false;
+        this.notify();
+      } catch (_) {
+        this.failPlayback('Không thể tiếp tục giọng đọc trên thiết bị. Hãy bấm đọc lại.');
+      }
     }
   }
 
   stop() {
+    this.playbackId += 1;
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio = null;
@@ -330,6 +359,7 @@ class SpeechService {
     this.currentChunkIndex = 0;
     this.isSpeaking = false;
     this.isPaused = false;
+    this.lastError = null;
     if (this.synth) {
       this.synth.cancel();
       this.currentUtterance = null;

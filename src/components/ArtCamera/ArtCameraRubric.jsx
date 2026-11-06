@@ -46,18 +46,18 @@ export default function ArtCameraRubric({
   const [teacherComment, setTeacherComment] = useState('');
   const [improvementSteps, setImprovementSteps] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisAnalysisDone, setAnalysisDone] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [insertedNotice, setInsertedNotice] = useState(false);
 
-  // Phân tích & Tự Động Chấm Điểm Bài Vẽ bằng AI Heuristic / Canvas Vision
-  const handleAutoGradeArtwork = () => {
+  // Phân tích cục bộ độ sáng/tông màu; mức rubric do giáo viên tự chọn.
+  const handleAnalyzeArtwork = () => {
     if (!capturedImage) {
-      alert('Vui lòng chụp bài vẽ hoặc chọn ảnh từ máy trước khi chấm.');
+      alert('Vui lòng chụp bài vẽ hoặc chọn ảnh từ máy trước khi phân tích.');
       return;
     }
 
     setIsAnalyzing(true);
+    setImprovementSteps([]);
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -70,60 +70,40 @@ export default function ArtCameraRubric({
         ctx.drawImage(img, 0, 0, 120, 120);
 
         const imgData = ctx.getImageData(0, 0, 120, 120).data;
-        let totalR = 0, totalG = 0, totalB = 0;
         let warmPixels = 0, coolPixels = 0;
 
         for (let i = 0; i < imgData.length; i += 4) {
           const r = imgData[i];
           const g = imgData[i + 1];
           const b = imgData[i + 2];
-          totalR += r;
-          totalG += g;
-          totalB += b;
 
           if (r > g + 20 && r > b + 20) warmPixels++;
           else if (b > r + 15 || g > r + 15) coolPixels++;
         }
 
-        const count = imgData.length / 4;
-        const avgBrightness = (totalR + totalG + totalB) / (3 * count);
-        const isWarmTone = warmPixels >= coolPixels;
+        const toneSuggestion = warmPixels > coolPixels
+          ? '1. Ảnh có nhiều điểm ảnh thiên ấm; có thể thêm một vài màu lạnh ở chi tiết phụ nếu phù hợp chủ đề.'
+          : coolPixels > warmPixels
+            ? '1. Ảnh có nhiều điểm ảnh thiên lạnh; có thể điểm thêm màu ấm ở chi tiết chính nếu phù hợp chủ đề.'
+            : '1. Chưa thấy tông ấm hoặc lạnh chiếm ưu thế; hãy chọn màu theo chủ đề và ý tưởng của học sinh.';
 
-        // Xác định mức Rubric dựa trên phân tích
-        const newReq = 3;
-        const newTech = avgBrightness > 80 && avgBrightness < 235 ? 3 : 2;
-        const newCreat = Math.random() > 0.35 ? 3 : 2;
-        const newPres = 2;
-
-        setRubricLevels({
-          requirement: newReq,
-          technique: newTech,
-          creativity: newCreat,
-          presentation: newPres
-        });
-
-        // Đề xuất 3 bước cải thiện trực quan
+        // Gợi ý chung dựa trên tông màu; không suy đoán yêu cầu bài, sáng tạo hay thuyết trình.
         const steps = [
-          isWarmTone 
-            ? '1. Gam màu ấm áp rực rỡ, em có thể thêm một chút màu lạnh ở chi tiết phụ để tranh nổi bật hơn.'
-            : '1. Màu sắc mát mẻ hài hòa, em có thể điểm thêm màu vàng hoặc đỏ ở hình ảnh chính.',
+          toneSuggestion,
           '2. Nhấn đậm thêm đường viền chu vi của hình vẽ chính để hình khối rõ ràng, dứt khoát.',
           '3. Tô kín màu đều tay, tránh để hở các đốm trắng li ti trên nền giấy.'
         ];
         setImprovementSteps(steps);
-
-        // Tạo bài nhận xét hoàn chỉnh chuẩn Thông tư 27 GDPT 2018
-        const autoComment = `Em ${studentName || 'học sinh'} đã hoàn thành tốt bài vẽ theo đúng chủ đề bài học. ${
-          isWarmTone ? 'Sử dụng gam màu ấm áp, tươi vui.' : 'Màu sắc phong phú, nhẹ nhàng, giàu cảm xúc.'
-        } Đường nét tạo hình ngộ nghĩnh, bố cục tranh tương đối cân đối. Em hãy tự tin phát huy khả năng sáng tạo của mình nhé!`;
-
-        setTeacherComment(autoComment);
-        setAnalysisDone(true);
+        setCameraError('');
       } catch (err) {
         console.warn('Lỗi phân tích canvas:', err);
       } finally {
         setIsAnalyzing(false);
       }
+    };
+    img.onerror = () => {
+      setCameraError('Không thể đọc ảnh bài vẽ để phân tích. Hãy thử chọn lại tệp ảnh.');
+      setIsAnalyzing(false);
     };
     img.src = capturedImage;
   };
@@ -174,6 +154,7 @@ export default function ArtCameraRubric({
 
     const dataUrl = sampleCanvas.toDataURL('image/jpeg');
     setCapturedImage(dataUrl);
+    setImprovementSteps([]);
     stopCamera();
     setCameraError('');
   };
@@ -274,6 +255,10 @@ export default function ArtCameraRubric({
     if (e) e.stopPropagation();
     if (!videoRef.current) return;
     const v = videoRef.current;
+    if (v.readyState < 2 || !v.videoWidth || !v.videoHeight) {
+      setCameraError('Camera đang khởi động; chờ hình ảnh hiện rõ rồi chụp lại nhé.');
+      return;
+    }
     const canvas = document.createElement('canvas');
     canvas.width = v.videoWidth || 1280;
     canvas.height = v.videoHeight || 720;
@@ -281,6 +266,7 @@ export default function ArtCameraRubric({
     ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
     setCapturedImage(dataUrl);
+    setImprovementSteps([]);
     stopCamera();
     setCameraError('');
   };
@@ -294,9 +280,11 @@ export default function ArtCameraRubric({
     const reader = new FileReader();
     reader.onload = (event) => {
       setCapturedImage(event.target.result);
+      setImprovementSteps([]);
       stopCamera();
       setCameraError('');
     };
+    reader.onerror = () => setCameraError('Không đọc được tệp ảnh bài vẽ. Hãy thử chọn lại tệp.');
     reader.readAsDataURL(file);
   };
 
@@ -309,7 +297,7 @@ export default function ArtCameraRubric({
     }
   };
 
-  // Auto-generate comment draft based on teacher's rubric selections
+  // Tổng hợp bản nháp nhận xét từ rubric do giáo viên chọn.
   useEffect(() => {
     let commentParts = [];
 
@@ -528,6 +516,7 @@ export default function ArtCameraRubric({
                   onClick={(e) => {
                     e.stopPropagation();
                     setCapturedImage(null);
+                    setImprovementSteps([]);
                     startCamera();
                   }}
                   className="absolute top-3 right-3 px-3 py-1.5 bg-black/75 hover:bg-black/90 text-white text-xs font-bold rounded-lg backdrop-blur flex items-center gap-1.5 shadow transition"
@@ -554,20 +543,23 @@ export default function ArtCameraRubric({
         {/* Action below image */}
         {capturedImage && (
           <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
-            {/* NÚT THẦY CHẤM TRANH TỰ ĐỘNG BẰNG AI */}
+            {/* Phân tích màu cục bộ; rubric vẫn do giáo viên quyết định */}
             <button
-              onClick={handleAutoGradeArtwork}
+              onClick={handleAnalyzeArtwork}
               disabled={isAnalyzing}
               className="w-full py-2.5 bg-gradient-to-r from-rose-500 via-rose-600 to-amber-600 hover:from-rose-600 hover:to-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98"
             >
-              <Sparkles className="w-4 h-4 text-amber-200 animate-spin" />
-              <span>{isAnalyzing ? 'Đang phân tích màu sắc, đường nét & bố cục...' : '🔍 Thầy Chấm Tranh (AI Phân Tích & Nhận Xét Tự Động)'}</span>
+              <Sparkles className={`w-4 h-4 text-amber-200 ${isAnalyzing ? 'animate-spin' : ''}`} />
+              <span>{isAnalyzing ? 'Đang phân tích tông màu...' : 'Phân tích màu & gợi ý cải thiện'}</span>
             </button>
+            <p className="text-[11px] text-slate-500">
+              Chỉ ước lượng tông màu từ điểm ảnh; công cụ không tự xác định đúng chủ đề, sự sáng tạo hay phần trình bày. Thầy/Cô chọn mức rubric theo bài thực tế.
+            </p>
 
-            {/* 3 Bước cải thiện trực quan sau khi chấm */}
+            {/* Gợi ý màu sắc để giáo viên xem lại */}
             {improvementSteps.length > 0 && (
               <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1 text-xs text-amber-950 animate-in fade-in">
-                <span className="font-extrabold text-amber-900 block mb-1">💡 3 bước cải thiện trực quan cho học sinh:</span>
+                <span className="font-extrabold text-amber-900 block mb-1">💡 Gợi ý màu sắc để Thầy/Cô xem lại:</span>
                 {improvementSteps.map((step, idx) => (
                   <div key={idx} className="leading-relaxed font-medium">{step}</div>
                 ))}
@@ -576,7 +568,7 @@ export default function ArtCameraRubric({
 
             <div className="flex items-center justify-between">
               <button
-                onClick={() => { setCapturedImage(null); setImprovementSteps([]); setAnalysisDone(false); }}
+                onClick={() => { setCapturedImage(null); setImprovementSteps([]); }}
                 className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1"
               >
                 <RotateCcw className="w-3.5 h-3.5" />

@@ -78,7 +78,7 @@ export default function Header({
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                100% Cục Bộ Offline
+                Dữ liệu lưu cục bộ
               </span>
             </div>
             <p className="text-xs text-slate-500 font-medium">Phần mềm soạn giảng & trình chiếu mĩ thuật chuyên biệt cho Thầy/Cô</p>

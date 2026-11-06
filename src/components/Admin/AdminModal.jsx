@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import {
   addSharedGmail,
+  getAccessErrorMessage,
   getAdminRoles,
   getSharedGmails,
   removeSharedGmail,
@@ -42,7 +43,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
     setSharedList(grants.sort((a, b) => (a.email || '').localeCompare(b.email || '')));
     setAdminRoles(roles);
   }).catch((error) => {
-    setErrorMsg(error?.message || 'Không thể tải dữ liệu phân quyền.');
+    setErrorMsg(getAccessErrorMessage(error));
   }).finally(() => {
     setIsLoading(false);
   }), [isOwner]);

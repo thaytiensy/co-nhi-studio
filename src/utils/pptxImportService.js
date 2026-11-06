@@ -183,8 +183,9 @@ export const parsePPTXFile = async (file) => {
     let totalAudiosExtracted = 0;
     let totalNotesExtracted = 0;
 
-    // Cache tệp media (hình ảnh, video, âm thanh) đã trích xuất bằng Blob URL
+    // Tách cache data URL ảnh (có thể lưu/export lại) khỏi Blob URL video tạm thời.
     const mediaCache = {};
+    const imageDataCache = {};
     const layoutMasterCache = {};
 
     const getMediaBlobUrl = async (zipPath) => {
@@ -197,6 +198,23 @@ export const parsePPTXFile = async (file) => {
       const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
       mediaCache[zipPath] = blobUrl;
       return blobUrl;
+    };
+
+    const getMediaDataUrl = async (zipPath) => {
+      if (imageDataCache[zipPath]) return imageDataCache[zipPath];
+      const mediaFile = zip.file(zipPath);
+      if (!mediaFile) return null;
+
+      const mimeType = getMediaMimeType(zipPath);
+      const bytes = await mediaFile.async('uint8array');
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+      }
+      const dataUrl = `data:${mimeType};base64,${btoa(binary)}`;
+      imageDataCache[zipPath] = dataUrl;
+      return dataUrl;
     };
 
     // Duyệt qua từng slide
@@ -455,7 +473,7 @@ export const parsePPTXFile = async (file) => {
               const posterRel = slideRels[posterEmbedId];
               const posterTarget = typeof posterRel === 'string' ? posterRel : posterRel?.target;
               if (posterTarget) {
-                posterUrl = await getMediaBlobUrl('ppt/' + posterTarget.replace(/^\.\.\//, ''));
+                posterUrl = await getMediaDataUrl('ppt/' + posterTarget.replace(/^\.\.\//, ''));
               }
             }
 
@@ -485,7 +503,7 @@ export const parsePPTXFile = async (file) => {
 
         if (imgRelTarget) {
           const imgZipPath = 'ppt/' + imgRelTarget.replace(/^\.\.\//, '');
-          const dataUrl = await getMediaBlobUrl(imgZipPath);
+          const dataUrl = await getMediaDataUrl(imgZipPath);
 
           if (dataUrl) {
             const tf = extractTransform(pic);

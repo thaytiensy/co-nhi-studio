@@ -21,8 +21,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
-import { generateProceduralArtwork } from '../../utils/artRenderer';
-import { generateAiLesson } from '../../utils/aiLessonGenerator';
+import { generateAiArtwork, generateAiLesson } from '../../utils/aiLessonGenerator';
 
 const MATERIALS = [
   { id: 'crayon', name: 'Sáp màu / Chì màu', icon: '🖍️' },
@@ -320,6 +319,8 @@ export default function IdeaWorkshop({
   const [generatedArtworkUrl, setGeneratedArtworkUrl] = useState('');
   const [artworkGallery, setArtworkGallery] = useState([]);
   const ideaResultRef = useRef(null);
+  const imageRequestRef = useRef(false);
+  const pendingImageRequestRef = useRef(null);
   useEffect(() => {
     ideaResultRef.current = ideaResult;
   }, [ideaResult]);
@@ -332,6 +333,7 @@ export default function IdeaWorkshop({
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [aiGeneratingStatus, setAiGeneratingStatus] = useState('');
   const [aiGenerationMessage, setAiGenerationMessage] = useState(null);
+  const aiPlanRequestRef = useRef(null);
 
   // Ảnh do người dùng tải lên từ máy tính cho ý tưởng
   const [uploadedIdeaImage, setUploadedIdeaImage] = useState(null);
@@ -340,68 +342,93 @@ export default function IdeaWorkshop({
   const themesForGrade = PEDAGOGY_BANK.themes[selectedGrade] || [];
   const currentTheme = themesForGrade.find(t => t.id === selectedThemeId) || themesForGrade[0];
 
-  // Từ điển ánh xạ từ khóa mĩ thuật tiếng Việt sang mô tả tiếng Anh cho AI vẽ tranh
-  const translateVietnameseArtTopic = (vnText) => {
-    const lower = (vnText || '').toLowerCase();
-    const keywords = [];
-
-    if (lower.includes('heo') || lower.includes('lợn') || lower.includes('ủn') || lower.includes('pig')) keywords.push('adorable cute pink piglet with curly tail smiling cheerfully in green farm');
-    if (lower.includes('cá heo')) keywords.push('playful dolphins jumping over blue ocean waves');
-    else if (lower.includes('cá') || lower.includes('thủy cung')) keywords.push('colorful swimming fish in vibrant coral reef');
-    if (lower.includes('mèo')) keywords.push('cute fluffy kitten playing with colorful yarn ball');
-    if (lower.includes('chó') || lower.includes('cún')) keywords.push('happy friendly puppy playing in green grassy yard');
-    if (lower.includes('chim') || lower.includes('bồ câu')) keywords.push('singing birds resting on blooming flower tree branches');
-    if (lower.includes('gà')) keywords.push('mother hen with adorable tiny yellow chicks');
-    if (lower.includes('voi')) keywords.push('kind elephant in jungle');
-    if (lower.includes('hoa') || lower.includes('sen') || lower.includes('hướng dương')) keywords.push('sunflowers and lotus in bright sunny garden');
-    if (lower.includes('cây') || lower.includes('rừng')) keywords.push('lush green ancient trees with falling autumn leaves');
-    if (lower.includes('trường') || lower.includes('lớp')) keywords.push('cheerful elementary school building with flying red flag and green schoolyard');
-    if (lower.includes('nhà') || lower.includes('phố')) keywords.push('charming countryside village cottage with red tile roof');
-    if (lower.includes('biển') || lower.includes('thuyền')) keywords.push('wooden fishing sailboat sailing on blue calm sea at sunrise');
-    if (lower.includes('gia đình') || lower.includes('mẹ') || lower.includes('bố')) keywords.push('happy loving family holding hands smiling together');
-    if (lower.includes('bạn bè') || lower.includes('vui chơi')) keywords.push('happy school children playing folk games outdoors');
-    if (lower.includes('mặt trời') || lower.includes('bình minh') || lower.includes('hoàng hôn')) keywords.push('smiling warm golden sun glowing in morning sky');
-    if (lower.includes('trăng') || lower.includes('sao') || lower.includes('đêm')) keywords.push('bright crescent moon and sparkling stars in night sky');
-    if (lower.includes('trái cây') || lower.includes('hoa quả')) keywords.push('basket of sweet tropical fruits watermelon apple banana');
-    if (lower.includes('xe') || lower.includes('giao thông')) keywords.push('traffic safety with cars bicycles and smiling traffic light');
-    if (lower.includes('lễ hội') || lower.includes('tết') || lower.includes('trung thu')) keywords.push('traditional mid-autumn festival with glowing star lanterns');
-
-    if (keywords.length > 0) {
-      return keywords.join(', ');
-    }
-    return vnText || 'creative art lesson';
-  };
-
   const formatCapitalized = (text) => {
     if (!text) return '';
     const t = text.trim();
     return t.charAt(0).toUpperCase() + t.slice(1);
   };
 
-  // Helper tạo URL tranh minh họa mĩ thuật tỉ lệ 16:9 siêu tốc (0s, tạo liên tục không giới hạn, không bao giờ bị nghẽn 45s)
-  const createArtUrl = (topicText, seed, styleKey = 'crayon') => {
-    const cleanTopic = (topicText || '').replace(/^Chủ đề \d+:\s*/i, '').trim();
-    // 1. Luôn ưu tiên bộ sinh tranh mẫu Procedural mĩ thuật tiểu học chuẩn SGK Kết nối tri thức (100% Cục bộ Offline, 0s)
-    try {
-      const dataUrl = generateProceduralArtwork(cleanTopic, seed, styleKey);
-      if (dataUrl) return dataUrl;
-    } catch (_) {}
-
-    // 2. Dự phòng Pollinations siêu tốc nếu có
-    const mappedSubject = translateVietnameseArtTopic(cleanTopic);
-    let styleDetail = 'colorful wax crayon and vibrant gouache watercolor, cheerful primary school art';
-    if (styleKey === 'watercolor') {
-      styleDetail = 'soft transparent watercolor wash on textured paper, light pastel colors, gentle primary art';
-    } else if (styleKey === 'paper-cut') {
-      styleDetail = 'paper collage cut-out art, layered colorful paper shapes, wholesome handicraft art';
-    } else if (styleKey === 'colored-pencil') {
-      styleDetail = 'vibrant colored pencil sketch, clean contours, innocent elementary school doodle';
-    } else if (styleKey === 'clay') {
-      styleDetail = 'cute colorful modeling clay sculpture, plasticine art craft, bright 3D look';
+  const generateArtworkForContext = async ({ topic, grade, materialKey, ideaId, count = 1, append = false }) => {
+    if (imageRequestRef.current) {
+      pendingImageRequestRef.current = { topic, grade, materialKey, ideaId, count, append };
+      return;
     }
+    imageRequestRef.current = true;
+    setIsImageLoading(true);
+    setAiGenerationMessage(null);
 
-    const prompt = `adorable elementary art lesson demonstration, primary school student artwork, ${styleDetail}, ${mappedSubject}, expressive cheerful brushstrokes, bright sunny colors, joyful wholesome classroom style, clear outline, masterpiece, highly detailed`;
-    return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=450&seed=${seed}&nologo=true&model=turbo`;
+    const materialObj = MATERIALS.find(material => material.id === materialKey) || MATERIALS[0];
+    const generatedItems = [];
+    let generationError = null;
+    const safeCount = Math.max(1, Math.min(4, count));
+
+    try {
+      for (let index = 0; index < safeCount; index++) {
+        const latestBeforeRequest = ideaResultRef.current;
+        if (!latestBeforeRequest || latestBeforeRequest.id !== ideaId
+          || latestBeforeRequest.themeTitle !== topic || latestBeforeRequest.grade !== grade
+          || latestBeforeRequest.materialKey !== materialKey) break;
+        setAiGeneratingStatus(safeCount > 1
+          ? `Gemini đang tạo tranh ${index + 1}/${safeCount} theo yêu cầu...`
+          : `Gemini đang tạo tranh cho “${topic}”...`);
+        try {
+          const url = await generateAiArtwork({ topic, grade, style: materialKey });
+          generatedItems.push({
+            id: `art-${Date.now()}-${index}-${Math.floor(Math.random() * 999999)}`,
+            url,
+            seed: null,
+            styleName: materialObj.name,
+            styleKey: materialKey,
+            title: topic,
+            prompt: topic,
+            source: 'Gemini'
+          });
+        } catch (error) {
+          generationError = error;
+          break;
+        }
+      }
+
+      const currentIdea = ideaResultRef.current;
+      const stillCurrent = currentIdea && currentIdea.id === ideaId
+        && currentIdea.themeTitle === topic && currentIdea.grade === grade && currentIdea.materialKey === materialKey;
+      if (!stillCurrent) return;
+
+      if (generatedItems.length > 0) {
+        setArtworkGallery(previous => append ? [...previous, ...generatedItems] : generatedItems);
+        setActiveArtworkIndex(append ? artworkGallery.length + generatedItems.length - 1 : generatedItems.length - 1);
+        const selectedArtwork = generatedItems[generatedItems.length - 1];
+        setGeneratedArtworkUrl(selectedArtwork.url);
+        const updatedIdea = { ...currentIdea, artworkUrl: selectedArtwork.url };
+        ideaResultRef.current = updatedIdea;
+        setIdeaResult(updatedIdea);
+      }
+
+      if (generationError) {
+        setAiGenerationMessage({
+          type: 'error',
+          text: generatedItems.length
+            ? `Đã tạo ${generatedItems.length}/${safeCount} tranh; ảnh tiếp theo chưa tạo được. ${generationError.message}`
+            : generationError.message || 'Không tạo được tranh AI. Thầy/Cô có thể thử lại.'
+        });
+      } else {
+        setAiGenerationMessage(previous => previous?.type === 'error' ? previous : {
+          type: 'success', text: 'Tranh đã được tạo bằng AI theo đúng chủ đề, khối lớp và chất liệu đã chọn.'
+        });
+      }
+    } finally {
+      imageRequestRef.current = false;
+      const pending = pendingImageRequestRef.current;
+      pendingImageRequestRef.current = null;
+      const latest = ideaResultRef.current;
+      if (pending && latest && latest.id === pending.ideaId
+        && latest.themeTitle === pending.topic && latest.grade === pending.grade
+        && latest.materialKey === pending.materialKey) {
+        void generateArtworkForContext(pending);
+      } else {
+        setIsImageLoading(false);
+      }
+    }
   };
 
   const handleUploadIdeaImage = (e) => {
@@ -416,103 +443,133 @@ export default function IdeaWorkshop({
     }
   };
 
-  const handleGenerateIdea = (overrideTitle = null, overrideMaterial = null) => {
+  const handleGenerateIdea = (overrideTitle = null, overrideMaterial = null, options = {}) => {
+    const {
+      generateArtwork = true,
+      generatePlan = true,
+      grade = selectedGrade,
+      themeId = selectedThemeId,
+      durationId = selectedDuration
+    } = options;
     const rawCustom = overrideTitle !== null ? overrideTitle : customIdeaInput.trim();
     const isCustom = Boolean(rawCustom);
     const materialKey = overrideMaterial || selectedMaterial;
     const materialObj = MATERIALS.find(m => m.id === materialKey) || MATERIALS[0];
-    const durationObj = DURATIONS.find(d => d.id === selectedDuration) || DURATIONS[0];
+    const durationObj = DURATIONS.find(d => d.id === durationId) || DURATIONS[0];
+    const gradeThemes = PEDAGOGY_BANK.themes[grade] || [];
+    const theme = gradeThemes.find(t => t.id === themeId) || gradeThemes[0];
 
     const rawTitle = rawCustom 
       ? rawCustom 
-      : (currentTheme ? currentTheme.title.replace(/^Chủ đề \d+:\s*/, '') : 'Bài vẽ mĩ thuật');
+      : (theme ? theme.title.replace(/^Chủ đề \d+:\s*/, '') : 'Bài vẽ mĩ thuật');
     const baseTitle = formatCapitalized(rawTitle);
     const lessonTitle = `${baseTitle} cùng ${materialObj.name}`;
-
-    setIsAiGenerating(true);
-    setAiGeneratingStatus(`Đang dựng bản nháp nhanh "${baseTitle}" từ ngân hàng cục bộ...`);
-    setIsImageLoading(true);
-
-    // Tự động sinh ngay bộ 4 phong cách tranh khác nhau siêu tốc (0s, offline, không bao giờ bị nghẽn)
-    const STYLES = [
-      { key: 'crayon', name: 'Sáp Màu Rực Rỡ' },
-      { key: 'watercolor', name: 'Màu Nước Trong Trẻo' },
-      { key: 'paper-cut', name: 'Xé Dán Giấy Màu' },
-      { key: 'colored-pencil', name: 'Chì Màu Tươi Sáng' }
-    ];
-
-    const initialGallery = STYLES.map((st, i) => {
-      const s = Math.floor(Math.random() * 900000) + (i + 1) * 333;
-      return {
-        id: `art-${Date.now()}-${i}`,
-        url: createArtUrl(baseTitle, s, st.key),
-        seed: s,
-        styleName: st.name,
-        styleKey: st.key,
-        title: baseTitle
-      };
-    });
 
     // Tạo kế hoạch dạy học thông minh hiểu sâu sắc ngữ cảnh đề tài và chất liệu
     const pedagogy = generateSmartPedagogy({
       topic: baseTitle,
       material: materialObj,
       duration: durationObj,
-      grade: selectedGrade,
+      grade,
       isCustom,
-      currentTheme
+      currentTheme: theme
     });
 
     const newIdea = {
       id: 'idea-' + Date.now(),
-      grade: selectedGrade,
+      grade,
       themeTitle: baseTitle,
+      materialKey,
       material: materialObj.name,
+      durationId: durationObj.id,
       duration: durationObj.name,
       lessonTitle,
       isCustom,
-      generationSource: 'Mẫu nhanh cục bộ',
+      generationSource: 'Bản nháp cục bộ',
+      referenceTheme: theme?.title || '',
       sourceDescription: isCustom 
         ? `Ý tưởng riêng: "${baseTitle}"` 
-        : `SGK Kết Nối Tri Thức: ${currentTheme ? currentTheme.title : baseTitle}`,
-      artworkUrl: uploadedIdeaImage || initialGallery[0].url,
+        : `SGK Kết Nối Tri Thức: ${theme ? theme.title : baseTitle}`,
+      artworkUrl: uploadedIdeaImage || '',
       objectives: pedagogy.objectives,
       materialsNeeded: pedagogy.materialsNeeded,
       teachingProcess: pedagogy.teachingProcess,
       rubricCriteria: pedagogy.rubricCriteria
     };
 
-    setTimeout(() => {
-      setArtworkGallery(initialGallery);
-      setActiveArtworkIndex(0);
-      setGeneratedArtworkUrl(initialGallery[0].url);
-      setIdeaResult(newIdea);
-      ideaResultRef.current = newIdea;
+    setAiGenerationMessage(null);
+    setArtworkGallery([]);
+    setActiveArtworkIndex(0);
+    setGeneratedArtworkUrl('');
+    setIdeaResult(newIdea);
+    ideaResultRef.current = newIdea;
+
+    if (generatePlan) {
+      const planRequestId = `${newIdea.id}-plan`;
+      aiPlanRequestRef.current = planRequestId;
+      setIsAiGenerating(true);
+      setAiGeneratingStatus(`Gemini đang soạn kế hoạch riêng cho "${baseTitle}"...`);
+      const requestContext = {
+        grade,
+        topic: baseTitle,
+        material: materialObj.name,
+        duration: durationObj.name,
+        referenceTheme: theme?.title || '',
+      };
+      void generateAiLesson(requestContext).then(pedagogyResult => {
+        const latest = ideaResultRef.current;
+        if (aiPlanRequestRef.current !== planRequestId || !latest || latest.id !== newIdea.id) return;
+        const updated = { ...latest, ...pedagogyResult, generationSource: 'AI trực tuyến · Gemini' };
+        ideaResultRef.current = updated;
+        setIdeaResult(updated);
+        setAiGenerationMessage(previous => previous?.type === 'error' ? previous : {
+          type: 'success', text: 'AI đã soạn kế hoạch theo đúng chủ đề, khối lớp và chất liệu. Thầy/Cô vui lòng xem lại trước khi sử dụng.'
+        });
+      }).catch(error => {
+        const latest = ideaResultRef.current;
+        if (aiPlanRequestRef.current === planRequestId && latest?.id === newIdea.id) {
+          setAiGenerationMessage({ type: 'error', text: `Chưa tạo được kế hoạch AI; bản nháp cục bộ vẫn được giữ. ${error.message || ''}`.trim() });
+        }
+      }).finally(() => {
+        if (aiPlanRequestRef.current === planRequestId) {
+          aiPlanRequestRef.current = null;
+          setIsAiGenerating(false);
+        }
+      });
+    } else {
+      aiPlanRequestRef.current = null;
       setIsAiGenerating(false);
-    }, 450);
+    }
+
+    if (generateArtwork) {
+      void generateArtworkForContext({ topic: baseTitle, grade, materialKey, ideaId: newIdea.id, count: 1, append: false });
+    }
   };
 
   const handleRewriteWithAI = async () => {
     if (!ideaResult || isAiGenerating) return;
-    const rawTitle = customIdeaInput.trim() || currentTheme?.title.replace(/^Chủ đề \d+:\s*/, '') || ideaResult.themeTitle;
-    const topic = formatCapitalized(rawTitle);
-    const materialObj = MATERIALS.find(m => m.id === selectedMaterial) || MATERIALS[0];
-    const durationObj = DURATIONS.find(d => d.id === selectedDuration) || DURATIONS[0];
+    const currentIdea = ideaResultRef.current;
+    const topic = currentIdea.themeTitle;
+    const materialObj = MATERIALS.find(m => m.id === currentIdea.materialKey) || MATERIALS[0];
+    const durationObj = DURATIONS.find(d => d.id === currentIdea.durationId) || DURATIONS[0];
     const requestContext = {
-      grade: selectedGrade,
+      grade: currentIdea.grade,
       topic,
       material: materialObj.name,
       duration: durationObj.name,
-      referenceTheme: currentTheme?.title || '',
+      referenceTheme: currentIdea.referenceTheme || '',
     };
 
+    const planRequestId = `${currentIdea.id}-rewrite-${Date.now()}`;
+    aiPlanRequestRef.current = planRequestId;
     setIsAiGenerating(true);
     setAiGeneratingStatus(`Đang nhờ AI viết riêng kế hoạch cho "${topic}"...`);
     setAiGenerationMessage(null);
     try {
       const pedagogy = await generateAiLesson(requestContext);
       const previous = ideaResultRef.current;
-      const applied = Boolean(previous && previous.grade === requestContext.grade && previous.themeTitle === topic && previous.material === requestContext.material && previous.duration === requestContext.duration);
+      if (aiPlanRequestRef.current !== planRequestId) return;
+      const applied = Boolean(previous && previous.id === currentIdea.id && previous.grade === requestContext.grade && previous.themeTitle === topic && previous.material === requestContext.material && previous.duration === requestContext.duration);
       if (applied) {
         setIdeaResult(current => {
           if (!current || current.grade !== requestContext.grade || current.themeTitle !== topic || current.material !== requestContext.material || current.duration !== requestContext.duration) return current;
@@ -525,15 +582,20 @@ export default function IdeaWorkshop({
         ? { type: 'success', text: 'AI đã viết lại kế hoạch theo chủ đề, khối lớp và chất liệu đã chọn. Hãy xem lại trước khi sử dụng.' }
         : { type: 'error', text: 'Lựa chọn đã thay đổi trong lúc chờ AI; bản mới chưa được áp dụng. Hãy tạo lại theo lựa chọn hiện tại.' });
     } catch (error) {
-      setAiGenerationMessage({ type: 'error', text: error.message || 'Chưa kết nối được AI trực tuyến; bản nháp hiện tại vẫn được giữ nguyên.' });
+      if (aiPlanRequestRef.current === planRequestId) {
+        setAiGenerationMessage({ type: 'error', text: error.message || 'Chưa kết nối được AI trực tuyến; bản nháp hiện tại vẫn được giữ nguyên.' });
+      }
     } finally {
-      setIsAiGenerating(false);
+      if (aiPlanRequestRef.current === planRequestId) {
+        aiPlanRequestRef.current = null;
+        setIsAiGenerating(false);
+      }
     }
   };
 
   // Tự động khởi tạo ngay khi mở Xưởng Ý Tưởng để không bao giờ bị trống
   useEffect(() => {
-    handleGenerateIdea();
+    handleGenerateIdea(null, null, { generateArtwork: false, generatePlan: false });
   }, []);
 
   // Chọn nhanh gợi ý thông minh 1 chạm
@@ -543,46 +605,20 @@ export default function IdeaWorkshop({
     if (sug.material) {
       setSelectedMaterial(sug.material);
     }
-    handleGenerateIdea(sug.title, newMaterial);
+    handleGenerateIdea(sug.title, newMaterial, { generateArtwork: true, generatePlan: true });
   };
 
-  // Tạo thêm ảnh mới liên tục, tức thì 0 giây, không giới hạn số lượng ảnh
   const handleGenerateMoreArtwork = (count = 1) => {
-    const rawTitle = (customIdeaInput.trim()) || (ideaResult ? ideaResult.themeTitle : (currentTheme ? currentTheme.title.replace(/^Chủ đề \d+:\s*/, '') : ''));
-    if (!rawTitle) return;
-    const baseTitle = formatCapitalized(rawTitle);
-
-    setIsImageLoading(true);
-    const STYLES = [
-      { key: 'crayon', name: 'Sáp Màu Rực Rỡ' },
-      { key: 'watercolor', name: 'Màu Nước Trong Trẻo' },
-      { key: 'paper-cut', name: 'Xé Dán Giấy Màu' },
-      { key: 'colored-pencil', name: 'Chì Màu Tươi Sáng' },
-      { key: 'clay', name: 'Đất Nặn Tạo Hình' }
-    ];
-
-    const newItems = [];
-    const currentTotal = artworkGallery.length;
-
-    for (let i = 0; i < count; i++) {
-      const st = STYLES[(currentTotal + i) % STYLES.length];
-      const s = Math.floor(Math.random() * 999999);
-      newItems.push({
-        id: `art-${Date.now()}-${i}-${s}`,
-        url: createArtUrl(baseTitle, s, st.key),
-        seed: s,
-        styleName: st.name,
-        styleKey: st.key,
-        title: baseTitle
-      });
-    }
-
-    setArtworkGallery(prev => [...prev, ...newItems]);
-    setActiveArtworkIndex(currentTotal);
-    setGeneratedArtworkUrl(newItems[0].url);
-    if (ideaResult) {
-      setIdeaResult(prev => ({ ...prev, artworkUrl: newItems[0].url }));
-    }
+    const currentIdea = ideaResultRef.current;
+    if (!currentIdea) return;
+    return generateArtworkForContext({
+      topic: currentIdea.themeTitle,
+      grade: currentIdea.grade,
+      materialKey: currentIdea.materialKey,
+      ideaId: currentIdea.id,
+      count,
+      append: true
+    });
   };
 
   // Chọn tranh trong thư viện tranh đã sinh
@@ -659,7 +695,7 @@ export default function IdeaWorkshop({
             <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-1.5">
               <Info className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-900 leading-tight">
-                Tạo nhanh dùng ngân hàng cục bộ. Khi bấm “Viết lại bằng AI”, ý tưởng/chủ đề sách, lớp, chất liệu và thời lượng được gửi qua máy chủ tới Gemini; không gửi ảnh hay thông tin cá nhân.
+                Khi bấm tạo ý tưởng, chủ đề, khối lớp, chất liệu và thời lượng được gửi tới Gemini để soạn kế hoạch và tranh minh họa. Không gửi ảnh tải lên hoặc dữ liệu cá nhân; thao tác AI dùng hạn mức Gemini của ứng dụng.
               </p>
             </div>
           </div>
@@ -676,8 +712,9 @@ export default function IdeaWorkshop({
                   onClick={() => {
                     setSelectedGrade(g.id);
                     const newThemes = PEDAGOGY_BANK.themes[g.id] || [];
-                    if (newThemes.length > 0) setSelectedThemeId(newThemes[0].id);
-                    setTimeout(() => handleGenerateIdea(null, null), 50);
+                    const nextThemeId = newThemes[0]?.id || selectedThemeId;
+                    setSelectedThemeId(nextThemeId);
+                    handleGenerateIdea(null, null, { generateArtwork: false, generatePlan: false, grade: g.id, themeId: nextThemeId, durationId: selectedDuration });
                   }}
                   className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                     selectedGrade === g.id
@@ -702,7 +739,7 @@ export default function IdeaWorkshop({
                   type="button"
                   onClick={() => {
                     setCustomIdeaInput('');
-                    setTimeout(() => handleGenerateIdea(''), 50);
+                    handleGenerateIdea('', null, { generateArtwork: false, generatePlan: false });
                   }}
                   className="text-[10px] text-rose-600 hover:text-rose-700 font-bold hover:underline"
                   title="Xóa ô nhập để chuyển sang chủ đề SGK bên dưới"
@@ -730,7 +767,8 @@ export default function IdeaWorkshop({
               <button
                 type="button"
                 onClick={() => handleGenerateIdea(customIdeaInput.trim())}
-                className="mt-2 w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all transform active:scale-95 cursor-pointer animate-in fade-in"
+                disabled={isAiGenerating || isImageLoading}
+                className="mt-2 w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all transform active:scale-95 cursor-pointer animate-in fade-in"
               >
                 <Sparkles className="w-4 h-4 fill-white" />
                 <span>Tạo nhanh mẫu bài học & tranh minh họa "{customIdeaInput.trim()}"</span>
@@ -772,9 +810,10 @@ export default function IdeaWorkshop({
             <select
               value={selectedThemeId}
               onChange={(e) => {
-                setSelectedThemeId(e.target.value);
+                const themeId = e.target.value;
+                setSelectedThemeId(themeId);
                 setCustomIdeaInput('');
-                setTimeout(() => handleGenerateIdea(''), 50);
+                handleGenerateIdea('', null, { generateArtwork: false, generatePlan: false, grade: selectedGrade, themeId, durationId: selectedDuration });
               }}
               className="w-full px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
             >
@@ -795,7 +834,7 @@ export default function IdeaWorkshop({
                   key={mat.id}
                   onClick={() => {
                     setSelectedMaterial(mat.id);
-                    handleGenerateIdea(null, mat.id);
+                    handleGenerateIdea(null, mat.id, { generateArtwork: false, generatePlan: false, grade: selectedGrade, themeId: selectedThemeId, durationId: selectedDuration });
                   }}
                   className={`w-full px-3 py-2 text-xs font-semibold rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
                     selectedMaterial === mat.id
@@ -824,7 +863,7 @@ export default function IdeaWorkshop({
                   key={dur.id}
                   onClick={() => {
                     setSelectedDuration(dur.id);
-                    handleGenerateIdea();
+                    handleGenerateIdea(null, null, { generateArtwork: false, generatePlan: false, grade: selectedGrade, themeId: selectedThemeId, durationId: dur.id });
                   }}
                   className={`p-2.5 text-xs rounded-xl border text-left transition-all cursor-pointer ${
                     selectedDuration === dur.id
@@ -924,10 +963,11 @@ export default function IdeaWorkshop({
 
           <button
             onClick={() => handleGenerateIdea()}
-            className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-extrabold text-sm rounded-xl shadow-md shadow-amber-200 flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer"
+            disabled={isAiGenerating || isImageLoading}
+            className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-extrabold text-sm rounded-xl shadow-md shadow-amber-200 flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer"
           >
             <Sparkles className="w-4 h-4 fill-white" />
-            <span>Tạo Ý Tưởng Bài Học</span>
+            <span>{isAiGenerating || isImageLoading ? 'Đang tạo nội dung AI...' : 'Tạo Ý Tưởng + Tranh AI'}</span>
           </button>
           <button
             type="button"
@@ -948,14 +988,14 @@ export default function IdeaWorkshop({
 
       {/* Right Output Display Area */}
       <div className="flex-1 p-6 overflow-y-auto">
-        {isAiGenerating ? (
+        {isAiGenerating && !ideaResult ? (
           <div className="max-w-2xl mx-auto my-12 bg-white rounded-3xl border-2 border-amber-300 shadow-xl p-8 text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-200">
               <Sparkles className="w-8 h-8 animate-spin" />
             </div>
             <div className="space-y-2">
               <h4 className="text-base font-black text-slate-800">
-                {aiGeneratingStatus.startsWith('Đang nhờ AI') ? '🤖 AI đang viết lại kế hoạch sư phạm...' : '🎨 Đang dựng bản nháp nhanh...'}
+                {aiGeneratingStatus.startsWith('Gemini đang soạn') ? '🤖 Gemini đang soạn kế hoạch sư phạm...' : '🎨 Đang dựng bản nháp nhanh...'}
               </h4>
               <p className="text-xs text-amber-900 font-bold bg-amber-50 py-1.5 px-4 rounded-full border border-amber-200 inline-block">
                 {aiGeneratingStatus || 'Đang phân tích ngữ cảnh và thiết kế giáo án GDPT 2018...'}
@@ -1060,6 +1100,21 @@ export default function IdeaWorkshop({
             )}
 
             {/* KHU VỰC THƯ VIỆN TRANH MẪU MINH HỌA SINH THEO Ý TƯỞNG (NHIỀU TRANH, LIÊN TỤC) */}
+            {ideaResult && !generatedArtworkUrl && artworkGallery.length === 0 && (
+              <div className="bg-white border border-dashed border-amber-300 rounded-2xl p-5 text-center space-y-2">
+                <p className="text-sm font-bold text-slate-700">Chưa có tranh minh họa cho ý tưởng này.</p>
+                <p className="text-xs text-slate-500">Tạo tranh AI theo đúng chủ đề, lớp và chất liệu đang chọn.</p>
+                <button
+                  type="button"
+                  onClick={() => handleGenerateMoreArtwork(1)}
+                  disabled={isImageLoading}
+                  className="px-4 py-2 text-xs font-black text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-lg"
+                >
+                  {isImageLoading ? 'Đang tạo tranh AI...' : 'Tạo tranh AI theo ý tưởng này'}
+                </button>
+              </div>
+            )}
+
             {(generatedArtworkUrl || artworkGallery.length > 0) && (
               <div className="bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/50 border border-amber-200 rounded-2xl p-4 shadow-2xs space-y-3">
                 {/* Header thanh công cụ tranh */}
@@ -1069,10 +1124,10 @@ export default function IdeaWorkshop({
                     <div>
                       <h3 className="font-extrabold text-xs md:text-sm text-amber-950 flex items-center gap-2">
                         <span>Bộ Sưu Tập Tranh Minh Họa AI ({artworkGallery.length} bức)</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Siêu Tốc 2-3s • Tạo Không Giới Hạn</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Gemini • tạo theo yêu cầu</span>
                       </h3>
                       <p className="text-[11px] text-amber-800">
-                        {artworkGallery[activeArtworkIndex]?.styleName || 'Phong cách sáp màu / màu nước'} • Bấm vào các tranh nhỏ bên dưới để chọn tranh muốn dùng
+                        {artworkGallery[activeArtworkIndex]?.styleName || ideaResult.material} • Bấm vào các tranh nhỏ bên dưới để chọn tranh muốn dùng
                       </p>
                     </div>
                   </div>
@@ -1082,24 +1137,15 @@ export default function IdeaWorkshop({
                     <button
                       type="button"
                       onClick={() => handleGenerateMoreArtwork(1)}
+                      disabled={isImageLoading}
                       className="px-3 py-1 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 border border-amber-400 rounded-lg flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
-                      title="Vẽ thêm 1 tranh minh họa mới tức thì (chỉ 2-3 giây, không giới hạn)"
+                      title="Tạo thêm một tranh AI theo đúng ý tưởng và chất liệu đang dùng"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-800" />
-                      <span>+ Vẽ Thêm 1 Bức (2s)</span>
+                      <span>+ Tạo thêm 1 tranh AI</span>
                     </button>
 
                     {/* Nút Tạo bộ 4 tranh mới cùng lúc */}
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateMoreArtwork(4)}
-                      className="px-3 py-1 text-xs font-bold text-indigo-950 bg-indigo-100 hover:bg-indigo-200 border border-indigo-300 rounded-lg flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
-                      title="Tạo thêm 4 biến thể phong cách khác nhau cùng một lúc"
-                    >
-                      <span>🎨</span>
-                      <span>+ Tạo Bộ 4 Bức Mới</span>
-                    </button>
-
                     <a
                       href={generatedArtworkUrl}
                       target="_blank"
@@ -1129,19 +1175,16 @@ export default function IdeaWorkshop({
                   {isImageLoading && (
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-2 z-10">
                       <Loader2 className="w-8 h-8 animate-spin text-amber-400" />
-                      <span className="text-xs font-bold">Đang vẽ tranh mẫu mới siêu tốc theo ý tưởng của Thầy/Cô...</span>
+                      <span className="text-xs font-bold">{aiGeneratingStatus || 'Đang tạo tranh AI theo chủ đề, khối lớp và chất liệu...'}</span>
                     </div>
                   )}
                   <img
                     src={generatedArtworkUrl}
-                    alt="Tranh mẫu minh họa mĩ thuật"
+                    alt={`Tranh AI minh họa: ${ideaResult.themeTitle}`}
                     onLoad={() => setIsImageLoading(false)}
-                    onError={(e) => {
+                    onError={() => {
                       setIsImageLoading(false);
-                      const fallback = generateProceduralArtwork(ideaResult?.themeTitle || 'con mèo', 12345, artworkGallery[activeArtworkIndex]?.styleKey || 'crayon');
-                      if (fallback && e.target.src !== fallback) {
-                        e.target.src = fallback;
-                      }
+                      setAiGenerationMessage({ type: 'error', text: 'Không tải được tranh AI đang chọn. Hãy thử tạo lại tranh theo cùng chủ đề.' });
                     }}
                     className="w-full h-full object-contain"
                   />
@@ -1179,11 +1222,8 @@ export default function IdeaWorkshop({
                             alt={art.styleName}
                             className="w-full h-full object-cover"
                             loading="lazy"
-                            onError={(e) => {
-                              const fallback = generateProceduralArtwork(art.title || 'con mèo', art.seed || 12345, art.styleKey || 'crayon');
-                              if (fallback && e.target.src !== fallback) {
-                                e.target.src = fallback;
-                              }
+                            onError={() => {
+                              setAiGenerationMessage({ type: 'error', text: 'Không tải được một tranh trong bộ sưu tập. Hãy thử tạo lại tranh đó.' });
                             }}
                           />
                           <div className="absolute bottom-0 inset-x-0 bg-black/75 px-1 py-0.5 text-[9px] font-bold text-white text-center truncate">

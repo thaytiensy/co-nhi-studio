@@ -19,6 +19,25 @@ export const ROLES = {
 
 const ACCESS_COLLECTION = 'userAccess';
 const ADMIN_COLLECTION = 'adminRoles';
+const ACCESS_ERROR_MESSAGES = {
+  'auth/popup-closed-by-user': 'Bạn đã đóng cửa sổ đăng nhập trước khi hoàn tất.',
+  'auth/popup-blocked': 'Trình duyệt đã chặn cửa sổ Google. Cho phép cửa sổ bật lên cho trang ứng dụng rồi thử lại.',
+  'auth/cancelled-popup-request': 'Một yêu cầu đăng nhập Google khác đang chạy. Đóng cửa sổ đăng nhập đang mở rồi thử lại.',
+  'auth/unauthorized-domain': 'Tên miền ứng dụng chưa được thêm vào Firebase Authorized domains.',
+  'auth/operation-not-allowed': 'Đăng nhập Google chưa được bật trong Firebase Authentication.',
+  'auth/network-request-failed': 'Không kết nối được dịch vụ Google/Firebase. Kiểm tra mạng rồi thử lại.',
+  'auth/invalid-api-key': 'Khóa Firebase của ứng dụng không hợp lệ. Quản trị viên cần kiểm tra cấu hình môi trường.',
+  'auth/too-many-requests': 'Có quá nhiều lần thử đăng nhập. Vui lòng chờ một lúc rồi thử lại.',
+  'permission-denied': 'Google đã xác thực nhưng Firestore từ chối đọc hoặc cập nhật quyền. Quản trị viên cần kiểm tra hồ sơ adminRoles/userAccess và Rules đang triển khai.',
+  unavailable: 'Firestore tạm thời không kết nối được. Kiểm tra mạng rồi thử lại.',
+};
+
+export function getAccessErrorMessage(error) {
+  const code = typeof error?.code === 'string' ? error.code : '';
+  const message = ACCESS_ERROR_MESSAGES[code];
+  if (message) return `${message} (Mã lỗi: ${code})`;
+  return error?.message || 'Không thể xác thực hoặc cập nhật quyền truy cập. Vui lòng thử lại.';
+}
 
 function requireFirebase() {
   if (!firebaseConfigured || !auth || !db) {
@@ -48,16 +67,15 @@ export async function resolveCurrentSession(user) {
   const adminSnapshot = await getDoc(doc(db, ADMIN_COLLECTION, email));
   if (adminSnapshot.exists()) {
     const admin = adminSnapshot.data();
-    if (admin.active === true && [ROLES.SUPER_ADMIN, ROLES.SUB_ADMIN].includes(admin.role)) {
-      return makeSession(user, admin.role);
-    }
-    if (admin.active !== true) return null;
+    if (admin.active !== true || ![ROLES.SUPER_ADMIN, ROLES.SUB_ADMIN].includes(admin.role)) return null;
+    return makeSession(user, admin.role);
   }
 
   const accessSnapshot = await getDoc(doc(db, ACCESS_COLLECTION, email));
   if (!accessSnapshot.exists()) return null;
   const access = accessSnapshot.data();
-  if (access.email !== email || access.role !== ROLES.TEACHER || access.active !== true) return null;
+  const grantedEmail = typeof access.email === 'string' ? access.email.trim().toLowerCase() : '';
+  if (grantedEmail !== email || access.role !== ROLES.TEACHER || access.active !== true) return null;
   return makeSession(user, ROLES.TEACHER);
 }
 
@@ -74,21 +92,13 @@ export async function loginAccess() {
     }
     if (!session) {
       await signOut(auth);
-      throw new Error('Tài khoản Google này chưa được cấp quyền sử dụng Cọ Nhí Studio.');
+      const email = (result.user.email || '').trim().toLowerCase();
+      throw new Error(`Tài khoản Google ${email || 'đang chọn'} chưa có quyền hoạt động trong Cọ Nhí Studio. Quản trị viên cần cấp đúng địa chỉ này.`);
     }
     return { success: true, session };
   } catch (error) {
-    if (error?.message?.includes('chưa được cấp quyền')) throw error;
-    if (error?.code === 'auth/popup-closed-by-user') {
-      throw new Error('Bạn đã đóng cửa sổ đăng nhập trước khi hoàn tất.');
-    }
-    if (error?.code === 'auth/unauthorized-domain') {
-      throw new Error('Tên miền ứng dụng chưa được thêm vào danh sách Firebase Authorized domains.');
-    }
-    if (error?.code === 'auth/operation-not-allowed') {
-      throw new Error('Đăng nhập Google chưa được bật trong Firebase Authentication.');
-    }
-    throw new Error(error?.message || 'Không thể đăng nhập bằng Google. Vui lòng thử lại.');
+    if (error?.message?.includes('chưa có quyền hoạt động')) throw error;
+    throw new Error(getAccessErrorMessage(error));
   }
 }
 
@@ -128,7 +138,7 @@ export async function addSharedGmail(email) {
     });
     return { success: true, message: `Đã cấp quyền sử dụng cho ${cleanEmail}.` };
   } catch (error) {
-    return { success: false, message: error?.message || 'Không thể lưu quyền truy cập.' };
+    return { success: false, message: getAccessErrorMessage(error) };
   }
 }
 
@@ -139,7 +149,7 @@ export async function removeSharedGmail(email) {
     await deleteDoc(doc(db, ACCESS_COLLECTION, cleanEmail));
     return { success: true };
   } catch (error) {
-    return { success: false, message: error?.message || 'Không thể thu hồi quyền truy cập.' };
+    return { success: false, message: getAccessErrorMessage(error) };
   }
 }
 
@@ -161,6 +171,6 @@ export async function updateAdminRoleStatus(email, active) {
     await updateDoc(roleRef, { active: Boolean(active), updatedAt: serverTimestamp() });
     return { success: true };
   } catch (error) {
-    return { success: false, message: error?.message || 'Không thể cập nhật phân quyền.' };
+    return { success: false, message: getAccessErrorMessage(error) };
   }
 }

@@ -13,31 +13,11 @@ export const saveProjectToLocal = (projectData) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     return { success: true };
   } catch (err) {
-    console.warn('Lỗi lưu vào LocalStorage, thử lưu phiên bản nén nhẹ:', err);
-    try {
-      // Nếu dung lượng ảnh Blob hoặc base64 vượt quá 5MB hạn mức LocalStorage
-      const lightweightSlides = (projectData.slides || []).map(s => ({
-        ...s,
-        elements: (s.elements || []).map(el => {
-          if (el.type === 'image' && el.src?.length > 2000) {
-            // Giữ lại kích thước và vị trí đối tượng, lược bỏ chuỗi base64 khổng lồ trong LocalStorage
-            return { ...el, src: '' };
-          }
-          return el;
-        })
-      }));
-      const lightPayload = {
-        ...projectData,
-        slides: lightweightSlides,
-        updatedAt: new Date().toISOString(),
-        version: '1.0.0',
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(lightPayload));
-      return { success: true, warning: 'Đã lưu cấu trúc slide vào bộ nhớ máy (ảnh lớn được giữ trong phiên làm việc).' };
-    } catch (e2) {
-      console.error('Không thể lưu vào LocalStorage:', e2);
-      return { success: false, error: 'Dung lượng trình duyệt đầy. Thầy/Cô có thể dùng tính năng Tệp Bài Giảng > Lưu tệp .conhi để lưu không giới hạn.' };
-    }
+    console.error('Không thể lưu vào LocalStorage; giữ nguyên phiên bản đã lưu trước đó:', err);
+    return {
+      success: false,
+      error: 'Không đủ dung lượng trình duyệt để lưu toàn bộ bài giảng. Bản đã lưu trước đó vẫn được giữ; hãy dùng Tệp Bài Giảng > Lưu tệp .conhi để lưu bản hiện tại.'
+    };
   }
 };
 

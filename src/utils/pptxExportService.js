@@ -3,6 +3,19 @@
 
 import pptxgen from 'pptxgenjs';
 
+const resolveImageData = async (src) => {
+  if (typeof src !== 'string' || !src.startsWith('blob:')) return src;
+  const response = await fetch(src);
+  if (!response.ok) throw new Error('Không đọc được ảnh tạm để xuất PowerPoint.');
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Không thể chuyển ảnh sang định dạng PowerPoint.'));
+    reader.readAsDataURL(blob);
+  });
+};
+
 export const exportToPPTX = async (projectTitle, slides) => {
   try {
     const pptx = new pptxgen();
@@ -14,7 +27,7 @@ export const exportToPPTX = async (projectTitle, slides) => {
     const pxToInchX = (px) => Number((px / 96).toFixed(2));
     const pxToInchY = (px) => Number((px / 96).toFixed(2));
 
-    slides.forEach((slideData, idx) => {
+    for (const slideData of slides) {
       const slide = pptx.addSlide();
 
       // Slide Background
@@ -29,7 +42,7 @@ export const exportToPPTX = async (projectTitle, slides) => {
 
       // Slide Elements
       if (slideData.elements && Array.isArray(slideData.elements)) {
-        slideData.elements.forEach((el) => {
+        for (const el of slideData.elements) {
           const x = pxToInchX(el.x);
           const y = pxToInchY(el.y);
           const w = pxToInchX(el.width);
@@ -66,16 +79,16 @@ export const exportToPPTX = async (projectTitle, slides) => {
             });
           } else if (el.type === 'image' && el.src) {
             slide.addImage({
-              data: el.src,
+              data: await resolveImageData(el.src),
               x,
               y,
               w,
               h,
             });
           }
-        });
+        }
       }
-    });
+    }
 
     const safeFileName = (projectTitle || 'Bai_Giang_Mi_Thuat').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
     await pptx.writeFile({ fileName: `${safeFileName}.pptx` });

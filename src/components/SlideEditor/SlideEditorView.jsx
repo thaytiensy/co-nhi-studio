@@ -378,9 +378,12 @@ export default function SlideEditorView({
     if (slides.length <= 1) return;
     const newSlides = slides.filter((_, idx) => idx !== index);
     updateSlidesWithHistory(newSlides);
-    if (currentSlideIndex >= newSlides.length) {
-      setCurrentSlideIndex(newSlides.length - 1);
-    }
+    const nextIndex = index < currentSlideIndex
+      ? currentSlideIndex - 1
+      : index === currentSlideIndex
+        ? Math.min(currentSlideIndex, newSlides.length - 1)
+        : currentSlideIndex;
+    setCurrentSlideIndex(nextIndex);
   };
 
   // Move slide (reorder)

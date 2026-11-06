@@ -17,7 +17,7 @@ import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 import { exportToPPTX } from './utils/pptxExportService';
 import { parsePPTXFile } from './utils/pptxImportService';
-import { logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
+import { getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
 import { Sparkles, MessageCircle } from 'lucide-react';
 
@@ -36,6 +36,7 @@ export default function App() {
   const [projectTitle, setProjectTitle] = useState('Bài Giảng Mĩ Thuật');
   const [slides, setSlides] = useState(INITIAL_SLIDES);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [slideEditorResetKey, setSlideEditorResetKey] = useState(0);
   const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'ideas', 'drawing', 'games', 'camera', 'evaluation'
   const [isSaved, setIsSaved] = useState(true);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
@@ -87,7 +88,10 @@ export default function App() {
       try {
         const session = await resolveCurrentSession(user);
         if (!isCurrentRequest()) return;
-        if (!session) throw new Error('Tài khoản Google này chưa được cấp quyền sử dụng Cọ Nhí Studio.');
+        if (!session) {
+          const email = (user.email || '').trim().toLowerCase();
+          throw new Error(`Tài khoản Google ${email || 'đang chọn'} chưa có quyền hoạt động trong Cọ Nhí Studio. Quản trị viên cần cấp đúng địa chỉ này.`);
+        }
         setAuthError('');
         setCurrentUserSession(session);
         setIsAuthenticated(true);
@@ -97,7 +101,7 @@ export default function App() {
         }
       } catch (error) {
         if (!isCurrentRequest()) return;
-        setAuthError(error?.message || 'Không thể xác thực quyền truy cập.');
+        setAuthError(getAccessErrorMessage(error));
         setCurrentUserSession(null);
         setIsAuthenticated(false);
         setIsAuthReady(true);
@@ -122,6 +126,10 @@ export default function App() {
 
   // Listener bắt sự kiện cài đặt PWA và phím tắt quản trị
   useEffect(() => {
+    const isStandaloneDisplay = typeof window.matchMedia === 'function'
+      && window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandaloneDisplay || window.navigator.standalone === true) setIsAppInstalled(true);
+
     const handleBeforeInstall = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
@@ -158,6 +166,7 @@ export default function App() {
       const isOldSample = saved.slides.some(s => s.id && String(s.id).startsWith('slide-init-'));
       if (!isOldSample) {
         setSlides(saved.slides);
+        setSlideEditorResetKey(key => key + 1);
         if (saved.title) setProjectTitle(saved.title);
       } else {
         // Xóa dữ liệu mẫu cũ để giữ ứng dụng trắng tinh
@@ -183,8 +192,10 @@ export default function App() {
       setSlides(blank);
       setProjectTitle('Bài Giảng Mĩ Thuật');
       setCurrentSlideIndex(0);
-      saveProjectToLocal({ title: 'Bài Giảng Mĩ Thuật', slides: blank });
-      setIsSaved(true);
+      setSlideEditorResetKey(key => key + 1);
+      const saveResult = saveProjectToLocal({ title: 'Bài Giảng Mĩ Thuật', slides: blank });
+      setIsSaved(saveResult.success);
+      if (!saveResult.success) alert(saveResult.error);
     }
   };
 
@@ -194,7 +205,7 @@ export default function App() {
     setIsSaved(false);
   };
 
-  // Manual & Auto Save
+  // Manual local save
   const handleSave = () => {
     const payload = {
       title: projectTitle,
@@ -203,6 +214,9 @@ export default function App() {
     const res = saveProjectToLocal(payload);
     if (res.success) {
       setIsSaved(true);
+    } else {
+      setIsSaved(false);
+      alert(res.error);
     }
   };
 
@@ -213,8 +227,9 @@ export default function App() {
       if (data.slides) {
         setSlides(data.slides);
         setCurrentSlideIndex(0);
+        setSlideEditorResetKey(key => key + 1);
         if (data.title) setProjectTitle(data.title);
-        setIsSaved(true);
+        setIsSaved(false);
         alert('Đã tải thành công tệp bài giảng: ' + (data.title || file.name));
       }
     } catch (err) {
@@ -253,6 +268,7 @@ export default function App() {
   const handleConfirmOpenPPTX = (parsedSlides, fileName) => {
     setSlides(parsedSlides);
     setCurrentSlideIndex(0);
+    setSlideEditorResetKey(key => key + 1);
     const cleanTitle = fileName.replace(/\.pptx$/i, '').replace(/_/g, ' ');
     setProjectTitle(cleanTitle);
     setActiveTab('editor');
@@ -472,6 +488,13 @@ export default function App() {
     }
   };
 
+  const activeSlide = slides[currentSlideIndex] || slides[0] || null;
+  const activeSlideText = [activeSlide?.title, ...(activeSlide?.elements || []).filter(element => element.type === 'text').map(element => element.text)]
+    .filter(Boolean)
+    .join(' ');
+  const gradeMatch = activeSlideText.match(/(?:lớp|khối)\s*([1-5])(?:[A-Za-z]|[\s.,;]|$)/i);
+  const activeSlideGrade = gradeMatch ? Number(gradeMatch[1]) : 1;
+
   // 0. BẢO VỆ MÀN HÌNH KHÓA: HIỆN NGAY KHI MỞ APP (Chặn 100%, không hiển thị app phía sau khi chưa đăng nhập)
   if (!isAuthReady) {
     return <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-sm font-semibold text-white">Đang kiểm tra phiên đăng nhập…</div>;
@@ -525,6 +548,7 @@ export default function App() {
       <main className="flex-1 flex overflow-hidden relative">
         {activeTab === 'editor' && (
           <SlideEditorView
+            key={slideEditorResetKey}
             slides={slides}
             setSlides={handleSlidesChange}
             currentSlideIndex={currentSlideIndex}
@@ -576,13 +600,15 @@ export default function App() {
         {isAssistantOpen && activeTab !== 'editor' && !isPresentationOpen && (
           <div className="fixed inset-y-0 right-0 w-80 md:w-96 bg-white shadow-2xl z-40 border-l border-slate-200 animate-in slide-in-from-right duration-200">
             <OfflinePedagogyAssistant
-              currentGrade={1}
+              currentSlide={activeSlide}
+              currentGrade={activeSlideGrade}
               onInsertToNotes={(text) => {
-                const currentSlide = slides[currentSlideIndex];
+                const currentSlide = slides[currentSlideIndex] || slides[0];
+                if (!currentSlide) return;
                 const existing = currentSlide.notes || '';
                 const newNotes = existing ? `${existing}\n\n${text}` : text;
                 const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
-                setSlides(updated);
+                handleSlidesChange(updated);
                 alert('Đã chèn nội dung vào ghi chú slide hiện tại!');
               }}
               onClose={() => setIsAssistantOpen(false)}
@@ -607,7 +633,7 @@ export default function App() {
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full"></span>
           </div>
           <span className="text-xs font-black tracking-wide hidden sm:inline">
-            {isAssistantOpen ? 'Thu Gọn Trợ Giảng' : 'Trợ Giảng (Offline)'}
+            {isAssistantOpen ? 'Thu Gọn Trợ Giảng' : 'Trợ Giảng'}
           </span>
         </button>
       )}

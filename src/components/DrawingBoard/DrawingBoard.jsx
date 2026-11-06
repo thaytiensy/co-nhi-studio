@@ -118,7 +118,9 @@ export default function DrawingBoard({
     };
   };
 
-  const handleMouseDown = (e) => {
+  const handlePointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
     const coords = getCanvasCoordinates(e);
     setIsDrawing(true);
     const canvas = canvasRef.current;
@@ -154,7 +156,7 @@ export default function DrawingBoard({
     }
   };
 
-  const handleMouseMove = (e) => {
+  const handlePointerMove = (e) => {
     if (!isDrawing) return;
     const coords = getCanvasCoordinates(e);
     const canvas = canvasRef.current;
@@ -327,7 +329,10 @@ export default function DrawingBoard({
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     if (isDrawing) {
       setIsDrawing(false);
       pointsRef.current = [];
@@ -519,10 +524,10 @@ export default function DrawingBoard({
             ref={canvasRef}
             width={960}
             height={540}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
             className="touch-none"
             style={{ width: '960px', height: '540px' }}
           />

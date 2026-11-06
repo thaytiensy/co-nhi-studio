@@ -55,6 +55,7 @@ const INITIAL_STUDENTS = [
 
 export default function StudentEvaluationSMAS() {
   const [className, setClassName] = useState('Lớp 1A');
+  const [classOptions, setClassOptions] = useState([]);
   const [semester, setSemester] = useState('Học kì I');
   const [students, setStudents] = useState(INITIAL_STUDENTS);
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -72,57 +73,123 @@ export default function StudentEvaluationSMAS() {
     }
   };
 
-  // Helper bóc tách dòng văn bản học sinh (từ file .txt, .csv hoặc copy-paste)
+  // Helper bóc tách danh sách TXT/dán văn bản: nhận tên, mã, lớp, mức và nhận xét.
   const parseRawTextLines = (text) => {
-    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const source = String(text || '').replace(/^\uFEFF/, '');
+    const sampleLines = source.split(/\r?\n/).filter(line => line.trim()).slice(0, 20);
+    const delimiters = ['\t', ',', ';', '|'];
+    const delimiter = delimiters
+      .map(value => ({ value, count: sampleLines.reduce((total, line) => total + line.split(value).length - 1, 0) }))
+      .sort((a, b) => b.count - a.count)[0];
+    const separator = delimiter?.count > 0 ? delimiter.value : null;
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let quoted = false;
+
+    for (let index = 0; index < source.length; index += 1) {
+      const character = source[index];
+      if (character === '"') {
+        if (quoted && source[index + 1] === '"') {
+          cell += '"';
+          index += 1;
+        } else {
+          quoted = !quoted;
+        }
+      } else if (!quoted && separator && character === separator) {
+        row.push(cell.trim());
+        cell = '';
+      } else if (!quoted && (character === '\n' || character === '\r')) {
+        if (character === '\r' && source[index + 1] === '\n') index += 1;
+        row.push(cell.trim());
+        if (row.some(value => value)) rows.push(row);
+        row = [];
+        cell = '';
+      } else {
+        cell += character;
+      }
+    }
+    row.push(cell.trim());
+    if (row.some(value => value)) rows.push(row);
+
+    const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().trim();
+    const headerIndex = rows.findIndex(cells => cells.some(value => {
+      const label = normalize(value);
+      return label.includes('ho va ten') || label === 'ho ten' || label.includes('ten hoc sinh') || label === 'stt';
+    }));
+    let nameIndex = -1;
+    let familyIndex = -1;
+    let givenIndex = -1;
+    let idIndex = -1;
+    let classIndex = -1;
+    let levelIndex = -1;
+    let commentIndex = -1;
+    if (headerIndex >= 0) {
+      const headers = rows[headerIndex].map(normalize);
+      nameIndex = headers.findIndex(label => label.includes('ho va ten') || label === 'ho ten' || label.includes('ten hoc sinh'));
+      familyIndex = headers.findIndex(label => label.includes('ho dem') || label === 'ho');
+      givenIndex = headers.findIndex(label => label === 'ten' || label === 'ten hs');
+      idIndex = headers.findIndex(label => (label.includes('ma hs') || label.includes('ma hoc sinh') || label.includes('ma dinh danh') || label === 'ma' || label === 'id') && !label.includes('stt'));
+      classIndex = headers.findIndex(label => label.includes('lop'));
+      levelIndex = headers.findIndex(label => label.includes('muc') || label.includes('dat') || label.includes('ket qua') || label.includes('xep loai'));
+      commentIndex = headers.findIndex(label => label.includes('nhan xet') || label.includes('danh gia') || label.includes('ghi chu') || label.includes('noi dung'));
+    }
+
+    const parseLevel = value => {
+      const level = String(value || '').trim().toUpperCase();
+      if (['T', 'H', 'C'].includes(level)) return level;
+      if (level.includes('TỐT') || level.includes('HOÀN THÀNH TỐT')) return 'T';
+      if (level.includes('CHƯA')) return 'C';
+      if (level.includes('HOÀN THÀNH') || level.includes('ĐẠT')) return 'H';
+      return 'H';
+    };
+    const generatedId = index => `HS${String(index + 1).padStart(3, '0')}`;
     const parsed = [];
 
-    lines.forEach((line, idx) => {
-      // Bỏ qua dòng tiêu đề nếu có
-      const lower = line.toLowerCase();
-      if (lower.startsWith('stt') || lower.includes('họ và tên') || lower.includes('danh sách')) return;
+    rows.forEach((cells, rowIndex) => {
+      if (headerIndex >= 0 && rowIndex <= headerIndex) return;
+      const values = cells.map(value => String(value || '').trim());
+      let id = '';
+      let name = '';
+      let className = '';
+      let level = 'H';
+      let comment = '';
+      let used = new Set();
 
-      // Tách theo tab, dấu phẩy, chấm phẩy hoặc dấu gạch đứng
-      let parts = line.split(/[\t,;|]/).map(p => p.trim()).filter(p => p);
-      if (parts.length === 1) {
-        // Nếu là dòng đơn thuần (ví dụ: "1. Nguyễn Văn An" hoặc "Nguyễn Văn An")
-        let cleanedName = parts[0].replace(/^\d+[\.\s\-]+/, '').trim();
-        if (cleanedName.length > 2) {
-          parsed.push({
-            id: `HS${(parsed.length + 1).toString().padStart(3, '0')}`,
-            name: cleanedName,
-            level: 'H',
-            comment: TT27_COMMENTS_BANK.H[parsed.length % TT27_COMMENTS_BANK.H.length]
-          });
-        }
+      if (headerIndex >= 0) {
+        name = nameIndex >= 0 ? values[nameIndex] : `${values[familyIndex] || ''} ${values[givenIndex] || ''}`.trim();
+        if (nameIndex >= 0) used.add(nameIndex);
+        if (familyIndex >= 0) used.add(familyIndex);
+        if (givenIndex >= 0) used.add(givenIndex);
+        if (idIndex >= 0) { id = values[idIndex]; used.add(idIndex); }
+        if (classIndex >= 0) { className = values[classIndex]; used.add(classIndex); }
+        if (levelIndex >= 0) { level = parseLevel(values[levelIndex]); used.add(levelIndex); }
+        if (commentIndex >= 0) { comment = values[commentIndex]; used.add(commentIndex); }
       } else {
-        // Nhiều cột: tìm cột có họ tên
-        let foundName = '';
-        let foundId = '';
-        let foundLevel = 'H';
-
-        parts.forEach((p, pIdx) => {
-          if (!foundName && p.split(' ').length >= 2 && /[a-zA-ZÀ-ỹ]/.test(p)) {
-            foundName = p.replace(/^\d+[\.\s\-]+/, '').trim();
-          } else if (!foundId && /^(HS|\d{3,})/.test(p)) {
-            foundId = p;
-          } else if (['T', 'H', 'C'].includes(p.toUpperCase())) {
-            foundLevel = p.toUpperCase();
-          }
-        });
-
-        if (!foundName && parts[1]) foundName = parts[1];
-        if (!foundName && parts[0]) foundName = parts[0];
-
-        if (foundName) {
-          parsed.push({
-            id: foundId || `HS${(parsed.length + 1).toString().padStart(3, '0')}`,
-            name: foundName,
-            level: foundLevel,
-            comment: TT27_COMMENTS_BANK[foundLevel][parsed.length % TT27_COMMENTS_BANK[foundLevel].length]
-          });
-        }
+        const candidateNameIndex = values.findIndex(value => value.replace(/^\d+[.\s-]+/, '').trim().split(/\s+/).length >= 2 && /[a-zA-ZÀ-ỹ]/.test(value));
+        if (candidateNameIndex < 0) return;
+        nameIndex = candidateNameIndex;
+        name = values[nameIndex].replace(/^\d+[.\s-]+/, '').trim();
+        used.add(nameIndex);
+        const idCandidate = values.findIndex((value, index) => index !== nameIndex && /^(HS[- ]?\d+|\d{6,})$/i.test(value));
+        if (idCandidate >= 0) { id = values[idCandidate]; used.add(idCandidate); }
+        const classCandidate = values.findIndex((value, index) => index !== nameIndex && /^(?:lớp\s*\d{1,2}[a-z]{0,2}|\d{1,2}[a-z]{1,2})$/i.test(value));
+        if (classCandidate >= 0) { className = values[classCandidate].replace(/^lớp\s*/i, '').trim(); used.add(classCandidate); }
+        const ordinalCandidate = values.findIndex((value, index) => index !== nameIndex && /^\d{1,3}$/.test(value));
+        if (ordinalCandidate >= 0 && ordinalCandidate !== classCandidate) used.add(ordinalCandidate);
+        const levelCandidate = values.findIndex((value, index) => index !== nameIndex && ['T', 'H', 'C'].includes(value.toUpperCase()));
+        if (levelCandidate >= 0) { level = parseLevel(values[levelCandidate]); used.add(levelCandidate); }
+        const commentCandidate = values.findIndex((value, index) => index !== nameIndex && !used.has(index) && value.length > 0);
+        if (commentCandidate >= 0) { comment = values[commentCandidate]; used.add(commentCandidate); }
       }
+
+      if (!name || /^(stt|danh sach|ho va ten|ho ten)$/i.test(normalize(name))) return;
+      const hasProvidedComment = Boolean(comment);
+      if (!comment) {
+        const bank = TT27_COMMENTS_BANK[level] || TT27_COMMENTS_BANK.H;
+        comment = bank[parsed.length % bank.length];
+      }
+      parsed.push({ id: id || generatedId(parsed.length), name, className, level, comment, commentSource: hasProvidedComment ? 'provided' : 'generated' });
     });
 
     return parsed;
@@ -136,12 +203,15 @@ export default function StudentEvaluationSMAS() {
     try {
       const fileName = file.name.toLowerCase();
 
-      // TRƯỜNG HỢP 1: Tệp văn bản thuần .txt hoặc .csv
-      if (fileName.endsWith('.txt') || fileName.endsWith('.csv')) {
+      // Tệp .txt có thể là danh sách tên mỗi dòng; CSV/TSV được đọc theo cột ở bên dưới.
+      if (fileName.endsWith('.txt')) {
         const text = await file.text();
         const parsed = parseRawTextLines(text);
         if (parsed.length > 0) {
+          const detectedClasses = Array.from(new Set(parsed.map(student => student.className).filter(Boolean)));
           setStudents(parsed);
+          setClassOptions(detectedClasses);
+          if (detectedClasses.length === 1) setClassName(detectedClasses[0]);
           setExportNotice(`✅ Đã đọc thành công ${parsed.length} học sinh từ tệp!`);
           setTimeout(() => setExportNotice(''), 4000);
           return;
@@ -171,7 +241,7 @@ export default function StudentEvaluationSMAS() {
       let levelColIdx = -1;
       let commentColIdx = -1;
 
-      for (let r = 0; r < Math.min(rawRows.length, 25); r++) {
+      for (let r = 0; r < Math.min(rawRows.length, 100); r++) {
         const row = rawRows[r] || [];
         const rowLower = row.map(cell => (cell || '').toString().toLowerCase().trim());
 
@@ -188,10 +258,10 @@ export default function StudentEvaluationSMAS() {
           hoDemColIdx = hdIdx;
           tenColIdx = tIdx;
 
-          idColIdx = rowLower.findIndex(s => s.includes('mã hs') || s.includes('mã học sinh') || s.includes('mã định danh') || s.includes('mã') || s.includes('id') || s.includes('stt'));
+          idColIdx = rowLower.findIndex(s => !s.includes('stt') && !s.includes('lớp') && (s.includes('mã hs') || s.includes('mã học sinh') || s.includes('mã định danh') || s === 'mã' || s === 'id' || s.includes('student id')));
           classColIdx = rowLower.findIndex(s => s.includes('lớp'));
           levelColIdx = rowLower.findIndex(s => s.includes('mức') || s.includes('đạt') || s.includes('kết quả') || s.includes('xếp loại'));
-          commentColIdx = rowLower.findIndex(s => s.includes('nhận xét') || s.includes('đánh giá'));
+          commentColIdx = rowLower.findIndex(s => s.includes('nhận xét') || s.includes('đánh giá') || s.includes('ghi chú'));
           break;
         }
       }
@@ -202,9 +272,10 @@ export default function StudentEvaluationSMAS() {
         let bestCol = -1;
         let maxViNames = 0;
 
-        for (let col = 0; col < 12; col++) {
+        const columnCount = rawRows.reduce((max, row) => Math.max(max, row?.length || 0), 0);
+        for (let col = 0; col < columnCount; col++) {
           let viCount = 0;
-          for (let r = 0; r < Math.min(rawRows.length, 30); r++) {
+          for (let r = 0; r < Math.min(rawRows.length, 100); r++) {
             const val = (rawRows[r]?.[col] || '').toString().trim();
             const words = val.split(' ');
             if (words.length >= 2 && words.length <= 5 && /[a-zA-ZÀ-ỹ]/.test(val)) {
@@ -229,6 +300,7 @@ export default function StudentEvaluationSMAS() {
       }
 
       const parsedStudents = [];
+      const detectedClasses = new Set();
       let detectedClass = '';
       const startRow = headerRowIdx >= 0 ? headerRowIdx + 1 : 0;
 
@@ -257,8 +329,12 @@ export default function StudentEvaluationSMAS() {
           ? row[idColIdx].toString().trim() 
           : `HS${(parsedStudents.length + 1).toString().padStart(3, '0')}`;
 
-        if (classColIdx !== -1 && row[classColIdx] && !detectedClass) {
-          detectedClass = row[classColIdx].toString().trim();
+        const rawClass = classColIdx !== -1 && row[classColIdx]
+          ? row[classColIdx].toString().trim()
+          : '';
+        if (rawClass) {
+          detectedClasses.add(rawClass);
+          if (!detectedClass) detectedClass = rawClass;
         }
 
         let rawLevel = 'H';
@@ -270,9 +346,10 @@ export default function StudentEvaluationSMAS() {
         }
 
         let rawComment = '';
-        if (commentIdx !== -1 && row[commentIdx]) {
-          rawComment = row[commentIdx].toString().trim();
+        if (commentColIdx !== -1 && row[commentColIdx]) {
+          rawComment = row[commentColIdx].toString().trim();
         }
+        const hasProvidedComment = Boolean(rawComment);
         if (!rawComment) {
           const bank = TT27_COMMENTS_BANK[rawLevel] || TT27_COMMENTS_BANK.H;
           rawComment = bank[parsedStudents.length % bank.length];
@@ -281,8 +358,10 @@ export default function StudentEvaluationSMAS() {
         parsedStudents.push({
           id: rawId,
           name: fullName,
+          className: rawClass,
           level: rawLevel,
-          comment: rawComment
+          comment: rawComment,
+          commentSource: hasProvidedComment ? 'provided' : 'generated'
         });
       }
 
@@ -292,6 +371,7 @@ export default function StudentEvaluationSMAS() {
       }
 
       setStudents(parsedStudents);
+      setClassOptions(Array.from(detectedClasses));
       if (detectedClass) setClassName(detectedClass);
       setExportNotice(`✅ Đã nạp thành công ${parsedStudents.length} học sinh từ "${file.name}"!`);
       setTimeout(() => setExportNotice(''), 4000);
@@ -304,9 +384,15 @@ export default function StudentEvaluationSMAS() {
   // Nạp danh sách qua dán văn bản (Copy - Paste)
   const handleApplyPastedStudents = () => {
     if (!pasteInputText.trim()) return;
-    const parsed = parseRawTextLines(pasteInputText);
+    const parsed = parseRawTextLines(pasteInputText).map(student => ({
+      ...student,
+      className: student.className || ''
+    }));
     if (parsed.length > 0) {
       setStudents(parsed);
+      const detectedClasses = Array.from(new Set(parsed.map(student => student.className).filter(Boolean)));
+      setClassOptions(detectedClasses);
+      if (detectedClasses.length === 1) setClassName(detectedClasses[0]);
       setShowPasteModal(false);
       setPasteInputText('');
       setExportNotice(`✅ Đã thêm ${parsed.length} học sinh từ văn bản dán!`);
@@ -339,18 +425,20 @@ export default function StudentEvaluationSMAS() {
   // Handle changing evaluation level (T, H, C) -> auto suggest corresponding TT27 comment
   const handleLevelChange = (index, newLevel) => {
     const updated = [...students];
-    const bank = TT27_COMMENTS_BANK[newLevel] || TT27_COMMENTS_BANK.H;
-    // Pick random comment from the bank for variation
-    const randomComment = bank[Math.floor(Math.random() * bank.length)];
-    updated[index].level = newLevel;
-    updated[index].comment = randomComment;
+    const student = updated[index];
+    updated[index] = { ...student, level: newLevel };
+    if (!student.comment?.trim() || student.commentSource === 'generated') {
+      const bank = TT27_COMMENTS_BANK[newLevel] || TT27_COMMENTS_BANK.H;
+      updated[index].comment = bank[0];
+      updated[index].commentSource = 'generated';
+    }
     setStudents(updated);
   };
 
   // Handle comment text edit
   const handleCommentChange = (index, newComment) => {
     const updated = [...students];
-    updated[index].comment = newComment;
+    updated[index] = { ...updated[index], comment: newComment, commentSource: 'custom' };
     setStudents(updated);
   };
 
@@ -360,8 +448,10 @@ export default function StudentEvaluationSMAS() {
     const newStudent = {
       id: newId,
       name: `Học sinh mới ${students.length + 1}`,
+      className: '',
       level: 'H',
       comment: TT27_COMMENTS_BANK.H[0],
+      commentSource: 'generated',
     };
     setStudents([...students, newStudent]);
   };
@@ -381,12 +471,17 @@ export default function StudentEvaluationSMAS() {
 
   // Export to Excel (.xlsx) compatible with SMAS import structure
   const handleExportExcel = () => {
+    if (students.some(student => !(student.className?.trim() || className.trim()))) {
+      alert('Vui lòng nhập lớp mặc định ở phía trên hoặc điền lớp cho từng học sinh trước khi xuất.');
+      return;
+    }
+
     try {
       const rows = students.map((s, idx) => ({
         'STT': idx + 1,
         'Mã Học Sinh': s.id,
         'Họ và Tên': s.name,
-        'Lớp': className,
+        'Lớp': s.className?.trim() || className.trim(),
         'Kì Đánh Giá': semester,
         'Mức Đạt Được': s.level, // T, H, C
         'Nội Dung Nhận Xét (Thông tư 27/2020)': s.comment,
@@ -447,11 +542,16 @@ export default function StudentEvaluationSMAS() {
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
             <input
               type="text"
+              list="student-class-options"
               value={className}
               onChange={(e) => setClassName(e.target.value)}
-              className="w-20 text-xs font-bold text-slate-800 bg-transparent border-0 focus:outline-none"
-              placeholder="Tên lớp"
+              className="w-24 text-xs font-bold text-slate-800 bg-transparent border-0 focus:outline-none"
+              placeholder="Lớp mặc định"
+              title="Có thể nhập lớp bất kỳ; danh sách lớp đã đọc từ tệp sẽ được gợi ý"
             />
+            <datalist id="student-class-options">
+              {classOptions.map(option => <option key={option} value={option} />)}
+            </datalist>
             <span className="text-slate-300">|</span>
             <select
               value={semester}
@@ -592,6 +692,7 @@ export default function StudentEvaluationSMAS() {
                 <th className="py-3 px-4 w-12 text-center">STT</th>
                 <th className="py-3 px-4 w-28">Mã HS</th>
                 <th className="py-3 px-4 w-48">Họ và Tên</th>
+                <th className="py-3 px-4 w-28">Lớp</th>
                 <th className="py-3 px-4 w-44">Mức Đạt Được (TT27)</th>
                 <th className="py-3 px-4">Lời Nhận Xét Mĩ Thuật (Thầy/Cô Duyệt & Sửa)</th>
                 <th className="py-3 px-4 w-28 text-center">Thao Tác</th>
@@ -616,6 +717,20 @@ export default function StudentEvaluationSMAS() {
                         setStudents(updated);
                       }}
                       className="w-full px-2 py-1 font-bold text-slate-800 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                    />
+                  </td>
+                  <td className="py-3 px-4">
+                    <input
+                      type="text"
+                      list="student-class-options"
+                      value={st.className || className}
+                      onChange={(e) => {
+                        const updated = [...students];
+                        updated[idx].className = e.target.value;
+                        setStudents(updated);
+                      }}
+                      className="w-full min-w-16 px-2 py-1 text-slate-700 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                      title="Để trống để dùng lớp mặc định ở phía trên"
                     />
                   </td>
                   <td className="py-3 px-4">

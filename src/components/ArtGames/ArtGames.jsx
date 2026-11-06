@@ -333,9 +333,13 @@ export default function ArtGames({
     } else {
       setGamesData({ ...gamesData, detailGame: updated });
     }
-    if (currentQuestionIdx >= updated.length) {
-      setCurrentQuestionIdx(0);
+    if (qIdx < currentQuestionIdx) {
+      setCurrentQuestionIdx(currentQuestionIdx - 1);
+    } else if (qIdx === currentQuestionIdx) {
+      setCurrentQuestionIdx(Math.min(qIdx, updated.length - 1));
     }
+    setSelectedOption(null);
+    setIsAnswered(false);
   };
 
   return (
