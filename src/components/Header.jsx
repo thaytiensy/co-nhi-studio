@@ -190,7 +190,7 @@ export default function Header({
                 className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setShowFileMenu(false)}
               >
-                                {onOpenAdminModal && (
+                                {onOpenAdminModal && (userSession?.role === 'super_admin' || userSession?.role === 'sub_admin') && (
                   <button
                     onClick={onOpenAdminModal}
                     className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 flex items-center gap-2 border-b border-slate-100"

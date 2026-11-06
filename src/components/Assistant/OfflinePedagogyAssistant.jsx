@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { speechService } from '../../utils/speechService';
+import { requestTeachingAi } from '../../utils/aiLessonGenerator';
 
 export default function OfflinePedagogyAssistant({
   currentSlide = null,
@@ -103,8 +104,8 @@ export default function OfflinePedagogyAssistant({
     setCurrentGender(gender);
   };
 
-  // AI Provider state: 'offline' | 'pollinations' | 'gemini' (Mặc định Cọ Nhí Cục Bộ GDPT 2018 siêu tốc, 100% không nghẽn)
-  const [aiProvider, setAiProvider] = useState('offline');
+  // AI Provider state: 'offline' | 'online' | 'gemini'
+  const [aiProvider, setAiProvider] = useState('online');
   const [geminiApiKey, setGeminiApiKey] = useState(
     typeof window !== 'undefined' ? (localStorage.getItem('co_nhi_gemini_api_key') || '') : ''
   );
@@ -150,7 +151,7 @@ export default function OfflinePedagogyAssistant({
       sender: 'assistant',
       time: 'Vừa xong',
       title: 'Chào Thầy/Cô Mĩ Thuật!',
-      content: 'Em là Trợ Giảng Sư Phạm của Cọ Nhí Studio. Thầy/Cô có thể lựa chọn mô hình AI miễn phí phù hợp bên dưới (Cọ Nhí Cục Bộ GDPT 2018, Pollinations AI Miễn Phí không cần key, hoặc Gemini API cá nhân).\n\nEm sẵn sàng hỗ trợ soạn mục tiêu, hoạt động khởi động, câu hỏi gợi mở và lời giảng truyền cảm hứng theo đúng sách Kết nối tri thức với cuộc sống!',
+      content: 'Em là Trợ Giảng Sư Phạm của Cọ Nhí Studio. Thầy/Cô có thể lựa chọn nguồn gợi ý bên dưới (AI trực tuyến qua máy chủ, ngân hàng cục bộ hoặc Gemini API cá nhân).\n\nEm sẵn sàng hỗ trợ soạn mục tiêu, hoạt động khởi động, câu hỏi gợi mở và lời giảng truyền cảm hứng theo đúng sách Kết nối tri thức với cuộc sống!',
       actions: true
     }
   ]);
@@ -172,17 +173,20 @@ export default function OfflinePedagogyAssistant({
     setShowKeyInput(false);
   };
 
-  // Call online AI (Pollinations hoặc Gemini)
+  // Call server AI or the existing personal Gemini option
   const queryOnlineAI = async (promptText) => {
-    const systemPrompt = `Bạn là Trợ Giảng Sư Phạm Mĩ Thuật Tiểu Học chuyên sâu theo bộ sách "Kết nối tri thức với cuộc sống" (Chương trình GDPT 2018). Bạn đang hỗ trợ giáo viên dạy Lớp ${selectedGrade}. Hãy trả lời bằng tiếng Việt sư phạm ấm áp, dễ hiểu, khích lệ học sinh, chỉ rõ mục tiêu, câu hỏi gợi mở, bí quyết tạo hình nét - màu sắc - bố cục và lời dặn dò cụ thể. Không trả lời bằng tiếng Anh.`;
+    const themeContext = currentTheme
+      ? `\nBài tham chiếu: ${currentTheme.title}. Mục tiêu: ${currentTheme.objectives.knowledge} ${currentTheme.objectives.skills} Gợi ý/lời dẫn trong ngân hàng: ${currentTheme.teacherScript}`
+      : '';
+    const systemPrompt = `Bạn là trợ giảng Mĩ thuật tiểu học, hỗ trợ giáo viên lớp ${selectedGrade}. Trả lời bằng tiếng Việt tự nhiên, ấm áp và đúng lứa tuổi. Hãy bám sát câu hỏi cùng chủ đề và ngữ cảnh bài học; tạo ý tưởng cụ thể, đa dạng, có thể dùng ngay trong lớp, không lặp lời mẫu chung chung. Với yêu cầu viết lời giảng, viết đúng lời giáo viên có thể nói thành tiếng: mở đầu gợi tò mò, liên hệ chi tiết riêng của bài, đặt một câu hỏi mở và dẫn tự nhiên sang hoạt động; không dùng sáo ngữ. Không tự bịa số trang, nội dung sách hay quy định chính thức. Mọi nội dung là gợi ý dự thảo để giáo viên xem lại.${themeContext}`;
 
     if (aiProvider === 'gemini') {
       if (!geminiApiKey.trim()) {
         setShowKeyInput(true);
-        throw new Error('Vui lòng nhập Gemini API Key miễn phí từ Google AI Studio hoặc chuyển sang Pollinations AI để dùng miễn phí không cần key.');
+        throw new Error('Vui lòng nhập Gemini API Key cá nhân hoặc chuyển sang AI trực tuyến của ứng dụng.');
       }
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey.trim()}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiApiKey.trim()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -204,14 +208,11 @@ export default function OfflinePedagogyAssistant({
       return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Không nhận được phản hồi từ Gemini.';
     }
 
-    // Default: Pollinations AI (100% Free, No Key Required)
-    const encodedPrompt = encodeURIComponent(`${systemPrompt}\n\nThầy/Cô hỏi: ${promptText}`);
-    const res = await fetch(`https://text.pollinations.ai/${encodedPrompt}?model=openai`);
-    if (!res.ok) {
-      throw new Error(`Lỗi kết nối Pollinations AI (${res.status}). Thầy/Cô có thể chuyển sang chế độ "Cọ Nhí Cục Bộ" nhé!`);
-    }
-    const text = await res.text();
-    return text;
+    return requestTeachingAi({
+      mode: 'text',
+      grade: selectedGrade,
+      prompt: `${systemPrompt}\n\nYêu cầu của giáo viên: ${promptText}`,
+    });
   };
 
   const handleQuickPrompt = async (type) => {
@@ -235,7 +236,7 @@ export default function OfflinePedagogyAssistant({
         break;
       case 'script':
         title = `🎙️ Lời Dẫn Giảng Sư Phạm Mẫu: ${currentTheme.title}`;
-        promptForAI = `Hãy viết một đoạn lời giảng truyền cảm hứng (khoảng 3-4 câu) của Thầy/Cô giáo viên mĩ thuật để dẫn dắt học sinh vào bài: ${currentTheme.title} - Mĩ thuật Lớp ${selectedGrade}.`;
+        promptForAI = `Viết lời dẫn mở bài khoảng 5-7 câu để giáo viên nói trực tiếp với học sinh lớp ${selectedGrade} trong bài \"${currentTheme.title}\". Mở bằng hình ảnh, tình huống hoặc câu đố gắn riêng với chủ đề; có một câu hỏi gợi tò mò và câu chuyển mạch vào hoạt động tạo hình. Tránh lời chào/sáo ngữ có thể dùng cho mọi bài.`;
         break;
       case 'steps':
         title = `🎨 4 Bước Vẽ Tranh Thị Phạm: ${currentTheme.title}`;
@@ -269,22 +270,25 @@ export default function OfflinePedagogyAssistant({
 
       setIsLoading(true);
       setTimeout(() => {
-        streamAssistantMessage(title, content, '🤖 AI Thầy Cọ Nhí (GDPT 2018)');
+        streamAssistantMessage(title, content, 'Ngân hàng sư phạm cục bộ');
       }, 150);
       return;
     }
 
-    // Nếu chọn Online AI (Pollinations hoặc Gemini)
+    // Nếu chọn AI trực tuyến
     setIsLoading(true);
     try {
       const aiResponse = await queryOnlineAI(promptForAI);
-      streamAssistantMessage(title, aiResponse, aiProvider === 'gemini' ? '✨ Gemini AI' : '🌸 Pollinations AI');
+      streamAssistantMessage(title, aiResponse, aiProvider === 'gemini' ? '✨ Gemini AI' : 'AI trực tuyến · Gemini');
     } catch (err) {
-      // Tự động chuyển mượt mà về câu trả lời chuẩn cục bộ mà không báo lỗi làm gián đoạn bài giảng
       let fallbackContent = currentTheme.teacherScript;
       if (type === 'objectives') fallbackContent = `${currentTheme.objectives.knowledge}\n\n${currentTheme.objectives.skills}`;
       else if (type === 'steps') fallbackContent = currentTheme.fourSteps.join('\n\n');
-      streamAssistantMessage(title, fallbackContent, '🤖 AI Thầy Cọ Nhí (Cục Bộ)');
+      streamAssistantMessage(
+        title,
+        `AI trực tuyến chưa phản hồi. Đây là mẫu tham khảo cục bộ, không phải nội dung do AI vừa tạo:\n\n${fallbackContent}`,
+        'Mẫu cục bộ · AI chưa kết nối'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -338,7 +342,7 @@ export default function OfflinePedagogyAssistant({
 
       setIsLoading(true);
       setTimeout(() => {
-        streamAssistantMessage(title, content, '🤖 AI Thầy Cọ Nhí (GDPT 2018)');
+        streamAssistantMessage(title, content, 'Ngân hàng sư phạm cục bộ');
       }, 150);
       return;
     }
@@ -355,7 +359,7 @@ export default function OfflinePedagogyAssistant({
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           title: `Gợi ý sư phạm: "${query}"`,
           content: aiResponse,
-          provider: aiProvider === 'gemini' ? '✨ Gemini AI' : '🌸 Pollinations AI'
+          provider: aiProvider === 'gemini' ? '✨ Gemini AI' : 'AI trực tuyến · Gemini'
         }
       ]);
     } catch (err) {
@@ -446,16 +450,16 @@ export default function OfflinePedagogyAssistant({
         {/* AI Provider Switcher Bar - THAY BẰNG CÁC AI MIỄN PHÍ DO NGƯỜI DÙNG CHỌN */}
         <div className="mt-2.5 p-1 bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between gap-1">
           <button
-            onClick={() => setAiProvider('pollinations')}
+            onClick={() => setAiProvider('online')}
             className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 ${
-              aiProvider === 'pollinations'
+              aiProvider === 'online'
                 ? 'bg-white text-pink-700 shadow-2xs border border-pink-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
-            title="Pollinations AI: 100% Miễn phí, không cần đăng nhập hay API key"
+            title="Gemini qua máy chủ; khóa AI không nằm trong trình duyệt"
           >
             <span>🌸</span>
-            <span>Pollinations (Free)</span>
+            <span>AI trực tuyến</span>
           </button>
 
           <button
@@ -487,6 +491,12 @@ export default function OfflinePedagogyAssistant({
             <span>Gemini API</span>
           </button>
         </div>
+
+        {aiProvider !== 'offline' && (
+          <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-slate-500">
+            Câu hỏi và ngữ cảnh bài học được gửi tới dịch vụ AI. Không nhập thông tin cá nhân học sinh; kết quả là bản nháp cần xem lại.
+          </p>
+        )}
 
         {/* Gemini Key Input Drawer */}
         {showKeyInput && (
@@ -663,7 +673,7 @@ export default function OfflinePedagogyAssistant({
           value={userQuery}
           disabled={isLoading}
           onChange={(e) => setUserQuery(e.target.value)}
-          placeholder={`Hỏi trợ giảng ${aiProvider === 'pollinations' ? 'Pollinations' : aiProvider === 'gemini' ? 'Gemini' : 'Cục bộ'}...`}
+          placeholder={`Hỏi trợ giảng ${aiProvider === 'online' ? 'AI trực tuyến' : aiProvider === 'gemini' ? 'Gemini' : 'Cục bộ'}...`}
           className="flex-1 px-3 py-1.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
         <button

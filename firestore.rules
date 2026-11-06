@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email is string;
+    }
+
+    function currentEmail() {
+      return request.auth.token.email.trim().lower();
+    }
+
+    function canonicalEmail(email) {
+      return email == email.trim().lower()
+        && email.matches('[^@ ]+@[^@ ]+[.][^@ ]+');
+    }
+
+    function rolePath(email) {
+      return /databases/$(database)/documents/adminRoles/$(email);
+    }
+
+    function hasActiveRole(role) {
+      return signedIn()
+        && exists(rolePath(currentEmail()))
+        && get(rolePath(currentEmail())).data.role == role
+        && get(rolePath(currentEmail())).data.active == true;
+    }
+
+    function isOwner() {
+      return hasActiveRole('super_admin');
+    }
+
+    function isSubAdmin() {
+      return hasActiveRole('sub_admin');
+    }
+
+    function isManager() {
+      return isOwner() || isSubAdmin();
+    }
+
+    match /adminRoles/{email} {
+      allow get: if signedIn() && (currentEmail() == email || isOwner());
+      allow list: if isOwner();
+      allow create, delete: if false;
+      allow update: if isOwner()
+        && canonicalEmail(email)
+        && email != currentEmail()
+        && resource.data.role == 'sub_admin'
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.active is bool
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['email', 'role', 'active', 'createdAt', 'updatedAt']);
+    }
+
+    match /userAccess/{email} {
+      allow get: if signedIn() && (currentEmail() == email || isManager());
+      allow list: if isManager();
+      allow create: if isManager()
+        && canonicalEmail(email)
+        && !exists(rolePath(email))
+        && request.resource.data.keys().hasOnly(['email', 'role', 'active', 'addedBy', 'addedAt'])
+        && request.resource.data.email == email
+        && request.resource.data.role == 'teacher'
+        && request.resource.data.active == true
+        && request.resource.data.addedBy == currentEmail()
+        && request.resource.data.addedAt == request.time;
+      allow update: if false;
+      allow delete: if isOwner() && !exists(rolePath(email));
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

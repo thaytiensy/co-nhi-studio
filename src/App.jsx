@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 import Header from './components/Header';
 import SlideEditorView from './components/SlideEditor/SlideEditorView';
 import IdeaWorkshop from './components/IdeaWorkshop/IdeaWorkshop';
@@ -16,7 +17,8 @@ import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 import { exportToPPTX } from './utils/pptxExportService';
 import { parsePPTXFile } from './utils/pptxImportService';
-import { isUserAuthenticated, logoutAdmin, getCurrentAdminSession, ROLES } from './utils/adminAuthService';
+import { logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
+import { auth } from './utils/firebaseClient';
 import { Sparkles, MessageCircle } from 'lucide-react';
 
 // Khởi tạo trang slide trắng tinh (App hoàn toàn sạch, không chứa file mẫu có sẵn)
@@ -41,27 +43,74 @@ export default function App() {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserSession, setCurrentUserSession] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(!auth);
+  const [authError, setAuthError] = useState('');
+  const authVersionRef = useRef(0);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
 
-  // Xử lý khi đăng nhập thành công từ Login Gate
-  const handleLoginSuccess = (session) => {
-    setIsAuthenticated(true);
-    setCurrentUserSession(session);
-    // Nếu là Admin Phụ hoặc Admin Chính, tự động mở ngay bảng quản trị tương ứng
-    if (session?.role === ROLES.SUB_ADMIN || session?.role === ROLES.SUPER_ADMIN) {
-      setIsAdminModalOpen(true);
-    }
-  };
-
   // Xử lý đăng xuất tài khoản
   const handleLogout = () => {
-    logoutAdmin();
+    authVersionRef.current += 1;
+    void logoutAdmin().catch(() => setAuthError('Không thể hoàn tất đăng xuất Google. Vui lòng thử lại.'));
     setCurrentUserSession(null);
     setIsAdminModalOpen(false);
     setIsAuthenticated(false);
   };
+
+  // Khôi phục phiên Google và xác thực quyền truy cập từ Firestore.
+  useEffect(() => {
+    if (!auth) {
+      return undefined;
+    }
+
+    let isActive = true;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const requestVersion = ++authVersionRef.current;
+      const isCurrentRequest = () => isActive
+        && requestVersion === authVersionRef.current
+        && auth.currentUser?.uid === user?.uid;
+      if (!isActive) return;
+      if (!user) {
+        setIsAuthenticated(false);
+        setCurrentUserSession(null);
+        setIsAdminModalOpen(false);
+        setIsAuthReady(true);
+        return;
+      }
+
+      setIsAuthReady(false);
+      setIsAuthenticated(false);
+      setCurrentUserSession(null);
+      setIsAdminModalOpen(false);
+      try {
+        const session = await resolveCurrentSession(user);
+        if (!isCurrentRequest()) return;
+        if (!session) throw new Error('Tài khoản Google này chưa được cấp quyền sử dụng Cọ Nhí Studio.');
+        setAuthError('');
+        setCurrentUserSession(session);
+        setIsAuthenticated(true);
+        setIsAuthReady(true);
+        if (session.role === ROLES.SUB_ADMIN || session.role === ROLES.SUPER_ADMIN) {
+          setIsAdminModalOpen(true);
+        }
+      } catch (error) {
+        if (!isCurrentRequest()) return;
+        setAuthError(error?.message || 'Không thể xác thực quyền truy cập.');
+        setCurrentUserSession(null);
+        setIsAuthenticated(false);
+        setIsAuthReady(true);
+        await logoutAdmin().catch(() => {});
+      }
+    });
+
+    return () => {
+      isActive = false;
+      authVersionRef.current += 1;
+      unsubscribe();
+    };
+  }, []);
 
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -87,7 +136,8 @@ export default function App() {
     window.addEventListener('appinstalled', handleAppInstalled);
 
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')
+        && (currentUserSession?.role === ROLES.SUB_ADMIN || currentUserSession?.role === ROLES.SUPER_ADMIN)) {
         e.preventDefault();
         setIsAdminModalOpen(prev => !prev);
       }
@@ -99,7 +149,7 @@ export default function App() {
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [currentUserSession?.role]);
 
   // Load from local storage on initial mount (loại bỏ dữ liệu mẫu cũ nếu có để app luôn trắng)
   useEffect(() => {
@@ -423,11 +473,16 @@ export default function App() {
   };
 
   // 0. BẢO VỆ MÀN HÌNH KHÓA: HIỆN NGAY KHI MỞ APP (Chặn 100%, không hiển thị app phía sau khi chưa đăng nhập)
+  if (!isAuthReady) {
+    return <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-sm font-semibold text-white">Đang kiểm tra phiên đăng nhập…</div>;
+  }
+
   if (!isAuthenticated) {
     return (
       <LoginGateModal
         isOpen={true}
-        onLoginSuccess={handleLoginSuccess}
+        authError={authError}
+        onClearAuthError={() => setAuthError('')}
       />
     );
   }
@@ -577,6 +632,7 @@ export default function App() {
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         onLogout={handleLogout}
+        session={currentUserSession}
       />
 
       {/* 7. Install Application Modal */}

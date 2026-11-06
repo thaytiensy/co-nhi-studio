@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { generateProceduralArtwork } from '../../utils/artRenderer';
+import { generateAiLesson } from '../../utils/aiLessonGenerator';
 
 const MATERIALS = [
   { id: 'crayon', name: 'Sáp màu / Chì màu', icon: '🖍️' },
@@ -318,6 +319,10 @@ export default function IdeaWorkshop({
   const [ideaResult, setIdeaResult] = useState(null);
   const [generatedArtworkUrl, setGeneratedArtworkUrl] = useState('');
   const [artworkGallery, setArtworkGallery] = useState([]);
+  const ideaResultRef = useRef(null);
+  useEffect(() => {
+    ideaResultRef.current = ideaResult;
+  }, [ideaResult]);
   const [activeArtworkIndex, setActiveArtworkIndex] = useState(0);
   const [artworkSeed, setArtworkSeed] = useState(100);
   const [isImageLoading, setIsImageLoading] = useState(false);
@@ -326,6 +331,7 @@ export default function IdeaWorkshop({
   const [insertSuccessNotice, setInsertSuccessNotice] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [aiGeneratingStatus, setAiGeneratingStatus] = useState('');
+  const [aiGenerationMessage, setAiGenerationMessage] = useState(null);
 
   // Ảnh do người dùng tải lên từ máy tính cho ý tưởng
   const [uploadedIdeaImage, setUploadedIdeaImage] = useState(null);
@@ -424,7 +430,7 @@ export default function IdeaWorkshop({
     const lessonTitle = `${baseTitle} cùng ${materialObj.name}`;
 
     setIsAiGenerating(true);
-    setAiGeneratingStatus(`Đang phân tích ý tưởng "${baseTitle}" & chất liệu ${materialObj.name}...`);
+    setAiGeneratingStatus(`Đang dựng bản nháp nhanh "${baseTitle}" từ ngân hàng cục bộ...`);
     setIsImageLoading(true);
 
     // Tự động sinh ngay bộ 4 phong cách tranh khác nhau siêu tốc (0s, offline, không bao giờ bị nghẽn)
@@ -465,6 +471,7 @@ export default function IdeaWorkshop({
       duration: durationObj.name,
       lessonTitle,
       isCustom,
+      generationSource: 'Mẫu nhanh cục bộ',
       sourceDescription: isCustom 
         ? `Ý tưởng riêng: "${baseTitle}"` 
         : `SGK Kết Nối Tri Thức: ${currentTheme ? currentTheme.title : baseTitle}`,
@@ -480,8 +487,48 @@ export default function IdeaWorkshop({
       setActiveArtworkIndex(0);
       setGeneratedArtworkUrl(initialGallery[0].url);
       setIdeaResult(newIdea);
+      ideaResultRef.current = newIdea;
       setIsAiGenerating(false);
     }, 450);
+  };
+
+  const handleRewriteWithAI = async () => {
+    if (!ideaResult || isAiGenerating) return;
+    const rawTitle = customIdeaInput.trim() || currentTheme?.title.replace(/^Chủ đề \d+:\s*/, '') || ideaResult.themeTitle;
+    const topic = formatCapitalized(rawTitle);
+    const materialObj = MATERIALS.find(m => m.id === selectedMaterial) || MATERIALS[0];
+    const durationObj = DURATIONS.find(d => d.id === selectedDuration) || DURATIONS[0];
+    const requestContext = {
+      grade: selectedGrade,
+      topic,
+      material: materialObj.name,
+      duration: durationObj.name,
+      referenceTheme: currentTheme?.title || '',
+    };
+
+    setIsAiGenerating(true);
+    setAiGeneratingStatus(`Đang nhờ AI viết riêng kế hoạch cho "${topic}"...`);
+    setAiGenerationMessage(null);
+    try {
+      const pedagogy = await generateAiLesson(requestContext);
+      const previous = ideaResultRef.current;
+      const applied = Boolean(previous && previous.grade === requestContext.grade && previous.themeTitle === topic && previous.material === requestContext.material && previous.duration === requestContext.duration);
+      if (applied) {
+        setIdeaResult(current => {
+          if (!current || current.grade !== requestContext.grade || current.themeTitle !== topic || current.material !== requestContext.material || current.duration !== requestContext.duration) return current;
+          const updated = { ...current, ...pedagogy, generationSource: 'AI trực tuyến · Gemini' };
+          ideaResultRef.current = updated;
+          return updated;
+        });
+      }
+      setAiGenerationMessage(applied
+        ? { type: 'success', text: 'AI đã viết lại kế hoạch theo chủ đề, khối lớp và chất liệu đã chọn. Hãy xem lại trước khi sử dụng.' }
+        : { type: 'error', text: 'Lựa chọn đã thay đổi trong lúc chờ AI; bản mới chưa được áp dụng. Hãy tạo lại theo lựa chọn hiện tại.' });
+    } catch (error) {
+      setAiGenerationMessage({ type: 'error', text: error.message || 'Chưa kết nối được AI trực tuyến; bản nháp hiện tại vẫn được giữ nguyên.' });
+    } finally {
+      setIsAiGenerating(false);
+    }
   };
 
   // Tự động khởi tạo ngay khi mở Xưởng Ý Tưởng để không bao giờ bị trống
@@ -612,7 +659,7 @@ export default function IdeaWorkshop({
             <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-1.5">
               <Info className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-900 leading-tight">
-                Hoạt động 100% bằng ngân hàng dữ liệu sư phạm cục bộ, không dùng AI trực tuyến hay API mạng tính phí.
+                Tạo nhanh dùng ngân hàng cục bộ. Khi bấm “Viết lại bằng AI”, ý tưởng/chủ đề sách, lớp, chất liệu và thời lượng được gửi qua máy chủ tới Gemini; không gửi ảnh hay thông tin cá nhân.
               </p>
             </div>
           </div>
@@ -686,7 +733,7 @@ export default function IdeaWorkshop({
                 className="mt-2 w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1.5 transition-all transform active:scale-95 cursor-pointer animate-in fade-in"
               >
                 <Sparkles className="w-4 h-4 fill-white" />
-                <span>Bấm Vào Đây: AI Sinh Bài Học & Tranh Mẫu "{customIdeaInput.trim()}"</span>
+                <span>Tạo nhanh mẫu bài học & tranh minh họa "{customIdeaInput.trim()}"</span>
               </button>
             )}
 
@@ -882,6 +929,20 @@ export default function IdeaWorkshop({
             <Sparkles className="w-4 h-4 fill-white" />
             <span>Tạo Ý Tưởng Bài Học</span>
           </button>
+          <button
+            type="button"
+            onClick={handleRewriteWithAI}
+            disabled={!ideaResult || isAiGenerating}
+            className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-50 text-white font-extrabold text-sm rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>{isAiGenerating && aiGeneratingStatus.startsWith('Đang nhờ AI') ? 'AI đang viết...' : 'Viết lại kế hoạch bằng AI'}</span>
+          </button>
+          {aiGenerationMessage && (
+            <p className={`text-[11px] leading-relaxed ${aiGenerationMessage.type === 'success' ? 'text-emerald-700' : 'text-rose-700'}`} role="status">
+              {aiGenerationMessage.text}
+            </p>
+          )}
         </div>
       </div>
 
@@ -894,7 +955,7 @@ export default function IdeaWorkshop({
             </div>
             <div className="space-y-2">
               <h4 className="text-base font-black text-slate-800">
-                🤖 AI Thầy Cọ Nhí đang kiến tạo ý tưởng sư phạm...
+                {aiGeneratingStatus.startsWith('Đang nhờ AI') ? '🤖 AI đang viết lại kế hoạch sư phạm...' : '🎨 Đang dựng bản nháp nhanh...'}
               </h4>
               <p className="text-xs text-amber-900 font-bold bg-amber-50 py-1.5 px-4 rounded-full border border-amber-200 inline-block">
                 {aiGeneratingStatus || 'Đang phân tích ngữ cảnh và thiết kế giáo án GDPT 2018...'}
@@ -923,6 +984,11 @@ export default function IdeaWorkshop({
                         : 'bg-indigo-50 text-indigo-800 border-indigo-200'
                     }`}>
                       {ideaResult.isCustom ? '✨ ' : '📚 '}{ideaResult.sourceDescription}
+                    </span>
+                  )}
+                  {ideaResult.generationSource && (
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-violet-50 text-violet-800 border-violet-200">
+                      {ideaResult.generationSource}
                     </span>
                   )}
                 </div>
