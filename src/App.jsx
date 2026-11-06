@@ -16,7 +16,7 @@ import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 import { exportToPPTX } from './utils/pptxExportService';
 import { parsePPTXFile } from './utils/pptxImportService';
-import { isUserAuthenticated, logoutAdmin } from './utils/adminAuthService';
+import { isUserAuthenticated, logoutAdmin, getCurrentAdminSession, ROLES } from './utils/adminAuthService';
 import { Sparkles, MessageCircle } from 'lucide-react';
 
 // Khởi tạo trang slide trắng tinh (App hoàn toàn sạch, không chứa file mẫu có sẵn)
@@ -40,9 +40,20 @@ export default function App() {
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUserSession, setCurrentUserSession] = useState(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  // Xử lý khi đăng nhập thành công từ Login Gate
+  const handleLoginSuccess = (session) => {
+    setIsAuthenticated(true);
+    setCurrentUserSession(session);
+    // Nếu là Admin Phụ hoặc Admin Chính, tự động mở ngay bảng quản trị tương ứng
+    if (session?.role === ROLES.SUB_ADMIN || session?.role === ROLES.SUPER_ADMIN) {
+      setIsAdminModalOpen(true);
+    }
+  };
 
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -408,9 +419,7 @@ export default function App() {
     return (
       <LoginGateModal
         isOpen={true}
-        onLoginSuccess={() => {
-          setIsAuthenticated(true);
-        }}
+        onLoginSuccess={handleLoginSuccess}
       />
     );
   }
@@ -445,6 +454,7 @@ export default function App() {
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
         installPrompt={installPrompt}
         isAppInstalled={isAppInstalled}
+        userSession={currentUserSession}
       />
 
       {/* 2. Main Tab Body */}
@@ -558,6 +568,8 @@ export default function App() {
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         onLogout={() => {
+          logoutAdmin();
+          setCurrentUserSession(null);
           setIsAdminModalOpen(false);
           setIsAuthenticated(false);
         }}
@@ -569,14 +581,6 @@ export default function App() {
         onClose={() => setIsInstallModalOpen(false)}
         installPrompt={installPrompt}
         isInstalled={isAppInstalled}
-      />
-
-      {/* 8. Full-screen Login Gate (Hiện ngay lập tức khi mở app nếu chưa đăng nhập) */}
-      <LoginGateModal
-        isOpen={!isAuthenticated}
-        onLoginSuccess={() => {
-          setIsAuthenticated(true);
-        }}
       />
     </div>
   );

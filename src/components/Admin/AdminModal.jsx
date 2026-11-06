@@ -60,6 +60,9 @@ export default function AdminModal({ isOpen, onClose, onLogout }) {
       setErrorMsg('');
       setSuccessMsg('');
       setPasswordInput('');
+      if (current?.role === ROLES.SUB_ADMIN) {
+        setActiveTab('share');
+      }
     }
   }, [isOpen]);
 
@@ -310,10 +313,20 @@ export default function AdminModal({ isOpen, onClose, onLogout }) {
 
               {/* Thông báo phân quyền nếu là Admin Phụ */}
               {isSubAdmin && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <strong>Quyền Hạn Admin Phụ:</strong> Thầy/Cô có toàn quyền cấp phép và chia sẻ ứng dụng cho các giáo viên khác thông qua danh sách Gmail dưới đây. Tài khoản Admin Phụ không có quyền sửa đổi cấu trúc app hoặc thay đổi mật khẩu hệ thống.
+                <div className="p-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-300 rounded-2xl text-xs text-emerald-950 leading-relaxed flex items-start gap-3 shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <strong className="text-emerald-900 block font-black text-sm">
+                      Chào mừng Admin Phụ (Admin 2) - Quản Trị Chia Sẻ!
+                    </strong>
+                    <p className="text-emerald-800 text-xs leading-relaxed">
+                      Bạn đã đăng nhập thành công bằng mật khẩu Admin Phụ. Bạn có toàn quyền <strong>cấp phép và chia sẻ ứng dụng</strong> cho các giáo viên khác bằng cách nhập địa chỉ Gmail bên dưới và nhấn <em>"Cấp Quyền"</em>.
+                    </p>
+                    <p className="text-emerald-700 text-[11px] italic">
+                      * Theo phân quyền bảo mật: Tài khoản Admin Phụ không hiển thị tính năng đổi mật khẩu hệ thống và không can thiệp vào mã nguồn app.
+                    </p>
                   </div>
                 </div>
               )}

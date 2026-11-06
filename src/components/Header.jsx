@@ -17,7 +17,9 @@ import {
   FilePlus,
   RotateCcw,
   Film,
-  Lock
+  Lock,
+  Mail,
+  ShieldCheck
 } from 'lucide-react';
 import { exportProjectFile } from '../utils/storageService';
 
@@ -36,7 +38,8 @@ export default function Header({
   onNewProject,
   onOpenVideoGuide,
   onOpenAdminModal,
-  onOpenInstallModal
+  onOpenInstallModal,
+  userSession
 }) {
   const [showFileMenu, setShowFileMenu] = useState(false);
 
@@ -107,15 +110,35 @@ export default function Header({
             </button>
           )}
 
-          {/* Nút Quản Trị Viên Bảo Mật (Không hiển thị thông tin nhạy cảm) */}
-          {onOpenAdminModal && (
+          {/* Nút Phân Quyền Quản Trị / Chia Sẻ (Hiển thị trực quan theo vai trò đã đăng nhập) */}
+          {userSession?.role === 'sub_admin' ? (
             <button
               onClick={onOpenAdminModal}
-              className="p-1.5 text-slate-400 hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200 rounded-lg transition-all"
-              title="Khu vực quản trị hệ thống (Bảo mật)"
+              className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-200 flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-emerald-300 animate-in fade-in"
+              title="Thầy/Cô đang là Admin Phụ: Bấm để mở danh sách cấp quyền chia sẻ Gmail cho giáo viên khác"
             >
-              <Lock className="w-3.5 h-3.5" />
+              <Mail className="w-3.5 h-3.5 text-emerald-100" />
+              <span>Admin Phụ (Chia Sẻ Gmail)</span>
             </button>
+          ) : userSession?.role === 'super_admin' ? (
+            <button
+              onClick={onOpenAdminModal}
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-extrabold text-xs rounded-xl shadow-md shadow-amber-200 flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-amber-300 animate-in fade-in"
+              title="Thầy/Cô đang là Admin Chính: Toàn quyền quản trị hệ thống"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-200" />
+              <span>Admin Chính</span>
+            </button>
+          ) : (
+            onOpenAdminModal && (
+              <button
+                onClick={onOpenAdminModal}
+                className="p-1.5 text-slate-400 hover:text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200 rounded-lg transition-all cursor-pointer"
+                title="Khu vực quản trị hệ thống (Bảo mật)"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+            )
           )}
           {onOpenVideoGuide && (
             <button
