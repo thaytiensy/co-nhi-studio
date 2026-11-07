@@ -13,6 +13,10 @@ export default function LoginGateModal({ isOpen, authError = '', onClearAuthErro
     setErrorMsg('');
     onClearAuthError();
     setIsSubmitting(true);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('conhi_explicit_logout');
+      sessionStorage.removeItem('conhi_explicit_logout');
+    }
     try {
       await loginAccess();
     } catch (error) {

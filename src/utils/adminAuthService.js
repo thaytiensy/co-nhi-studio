@@ -82,7 +82,7 @@ export async function resolveCurrentSession(user) {
 export async function loginAccess() {
   requireFirebase();
   const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
+  provider.setCustomParameters({ prompt: 'select_account', login_hint: '' });
 
   try {
     const result = await signInWithPopup(auth, provider);

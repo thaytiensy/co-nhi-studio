@@ -486,6 +486,7 @@ export default function IdeaWorkshop({
       material: materialObj.name,
       durationId: durationObj.id,
       duration: durationObj.name,
+      genre: theme?.genre || 'general',
       lessonTitle,
       isCustom,
       generationSource: 'Bản nháp cục bộ',
@@ -545,7 +546,7 @@ export default function IdeaWorkshop({
     }
 
     if (generateArtwork) {
-      void generateArtworkForContext({ topic: baseTitle, grade, materialKey, ideaId: newIdea.id, count: 1, append: false });
+      void generateArtworkForContext({ topic: baseTitle, grade, materialKey, genre: theme?.genre || 'general', ideaId: newIdea.id, count: 1, append: false });
     }
   };
 
@@ -619,6 +620,7 @@ export default function IdeaWorkshop({
         lessonTitle: plan.lessonTitle,
         material: result.parsedParams.material,
         materialKey: result.parsedParams.materialKey,
+        genre: result.parsedParams.genre || 'general',
         duration: result.parsedParams.duration,
         studentLevel: result.parsedParams.studentLevel,
         specialConditions: result.parsedParams.specialConditions,

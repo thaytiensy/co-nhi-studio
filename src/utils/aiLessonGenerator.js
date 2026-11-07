@@ -1,4 +1,5 @@
 import { auth } from './firebaseClient.js';
+import { resolveCurriculumTopic } from './aiNaturalLanguageService.js';
 
 const MAX_TOPIC_LENGTH = 240;
 
@@ -160,9 +161,18 @@ async function imageBlobToDataUrl(blob) {
 
 
 export function buildEnglishArtSubject(topic, genre = 'general') {
-  const text = String(topic || '').toLowerCase();
+  // Loại bỏ các ghi chú sư phạm trong ngoặc đơn hoặc ngoặc vuông
+  const text = String(topic || '').replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').toLowerCase().trim();
 
-  // Gia đình / Con người
+  // 1. Phong cảnh & Cảnh đẹp quê hương (Ưu tiên kiểm tra trước để tránh nhầm lẫn với chân dung)
+  if (/cảnh\s*đẹp|quê\s*hương|làng\s*quê|đồng\s*lúa|cánh\s*đồng|biển|núi|sông|ruộng|hoàng\s*hôn|bình\s*minh|thiên\s*nhiên/i.test(text) || genre === 'landscape') {
+    if (/biển|đảo|sóng|thuyền\s*buồm/i.test(text)) {
+      return 'wide scenic coastal beach landscape with ocean waves, palm trees and sunset, no people, no portraits';
+    }
+    return 'breathtaking scenic landscape of peaceful Vietnamese countryside, lush green rice fields, winding river, distant blue misty mountains under bright sunny sky, coconut trees, strictly landscape scenery';
+  }
+
+  // 2. Gia đình & Người thân
   if (/gia\s*đình|bố\s*mẹ|cha\s*mẹ|ông\s*bà|bữa\s*cơm|sum\s*họp|người\s*thân/i.test(text)) {
     return 'happy Asian family with loving parents and children smiling together at home, cute family dinner';
   }
@@ -182,11 +192,11 @@ export function buildEnglishArtSubject(topic, genre = 'general') {
     return 'white peace dove flying with olive branch, diverse children holding hands around green earth';
   }
 
-  // Động vật
+  // 3. Động vật
   if (/mèo|chó|thú\s*cưng/i.test(text)) {
     return 'cute playful kitten cat and puppy dog with big eyes playing in flower garden';
   }
-  if (/cá|đại\s*dương|biển|thủy\s*cung|rùa|san\s*hô/i.test(text)) {
+  if (/cá|đại\s*dương|thủy\s*cung|rùa|san\s*hô/i.test(text)) {
     return 'colorful tropical fish swimming in clear blue ocean water with starfish and sea coral';
   }
   if (/chim|bướm|ong|côn\s*trùng/i.test(text)) {
@@ -196,13 +206,7 @@ export function buildEnglishArtSubject(topic, genre = 'general') {
     return 'cute farm animals, baby rooster, rabbit, friendly water buffalo in sunny meadow';
   }
 
-  // Phong cảnh
-  if (/hoàng\s*hôn|bình\s*minh|biển|sóng/i.test(text)) {
-    return 'peaceful ocean beach sunset with warm orange and pink sky, gentle waves, coconut palm trees';
-  }
-  if (/làng\s*quê|đồng\s*lúa|cánh\s*đồng|cây\s*đa|bến\s*nước|dòng\s*sông/i.test(text)) {
-    return 'peaceful Vietnamese countryside village, yellow ripe rice fields, river and thatched cottage';
-  }
+  // 4. Ngôi nhà & Trường học
   if (/ngôi\s*nhà|nhà\s*của\s*em|mái\s*nhà/i.test(text)) {
     return 'sweet colorful dream house with red roof, chimney, sunny garden with blooming flowers and rainbow';
   }
@@ -210,12 +214,12 @@ export function buildEnglishArtSubject(topic, genre = 'general') {
     return 'lively elementary school yard during recess, children playing jump rope under shady trees';
   }
 
-  // Tĩnh vật & Hoa quả
+  // 5. Tĩnh vật & Hoa quả
   if (/hoa|quả|trái\s*cây|lọ\s*hoa|tĩnh\s*vật|đĩa\s*quả/i.test(text)) {
     return 'still life of fresh fruits like watermelon, red apple, yellow banana and colorful flower vase on table';
   }
 
-  // Thủ công & Đồ họa
+  // 6. Thủ công & Đồ họa
   if (/poster|cổ\s*động|chữ\s*trang\s*trí|môi\s*trường/i.test(text)) {
     return 'colorful hand-drawn environmental poster, planting green trees, protecting Mother Earth';
   }
@@ -226,11 +230,11 @@ export function buildEnglishArtSubject(topic, genre = 'general') {
   // Fallback theo genre
   if (genre === 'portrait_human') return 'happy Asian children and loving family members, cute human portrait';
   if (genre === 'animals') return 'cute friendly animal in nature, colorful childish art';
-  if (genre === 'landscape') return 'beautiful vibrant nature landscape with sun, trees and hills';
-  if (genre === 'still_life') return 'colorful still life vase of flowers and juicy fruits';
+  if (genre === 'landscape') return 'wide peaceful nature landscape with sun, mountains, trees and hills';
+  if (genre === 'still_life') return 'colorful still life vase of flowers and juicy fruits on table';
   if (genre === 'craft_applied') return 'colorful handmade paper collage and craft art';
 
-  return 'cheerful colorful primary school art depicting: ' + topic;
+  return 'cheerful colorful primary school art depicting: ' + text;
 }
 
 export async function generateAiArtwork({ topic, grade, style, genre = 'general', seed = null }, fetchImpl = globalThis.fetch, tokenProvider) {
@@ -239,12 +243,20 @@ export async function generateAiArtwork({ topic, grade, style, genre = 'general'
   const safeGrade = /^[1-5]$/.test(String(grade)) ? String(grade) : '1';
   const safeStyle = ['crayon', 'watercolor', 'paper', 'clay', 'recycled'].includes(style) ? style : 'crayon';
 
+  // Tự động phân giải nếu người dùng nhập mã chủ đề SGK (ví dụ: "chủ đề 3 lớp 5", "chủ đề 3 lớp 4")
+  const resolved = resolveCurriculumTopic(cleanTopic, parseInt(safeGrade, 10));
+  const effectiveTopic = resolved?.topic || cleanTopic;
+  const effectiveGenre = genre !== 'general' ? genre : (resolved?.genre || 'general');
+
+  // Lọc bỏ các ghi chú sư phạm trong ngoặc (ví dụ: "(Luật xa gần, đường tầm mắt)") để hình ảnh không bị hiểu nhầm
+  const cleanVisualTopic = effectiveTopic.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim() || effectiveTopic;
+
   // Xây dựng mô tả thị giác chuyên sâu bằng tiếng Anh kết hợp phong cách chất liệu thiếu nhi
-  const englishSubject = buildEnglishArtSubject(cleanTopic, genre);
+  const englishSubject = buildEnglishArtSubject(cleanVisualTopic, effectiveGenre);
 
   const stylePrompts = {
-    crayon: 'authentic naive child crayon drawing on white paper, vibrant wax pastel strokes, hand-drawn by Vietnamese elementary student, paper texture visible',
-    watercolor: 'whimsical child watercolor painting on rough paper, soft translucent colorful watercolor washes, naive primary school art',
+    crayon: 'authentic child crayon drawing on white paper, vibrant wax pastel strokes, colorful naive art style, paper texture visible',
+    watercolor: 'child watercolor painting on rough paper, soft translucent colorful watercolor washes, naive primary school art',
     paper: 'colorful handmade paper collage art, layered cut construction paper craft, naive shapes, charming scissors craft for kids',
     clay: 'cute handcrafted plasticine modeling clay art, 3D clay figures on paper background, colorful playdough creation by child',
     recycled: 'creative eco-friendly collage art made from autumn leaves, paper cups, buttons and recycled crafts by kid',
@@ -252,8 +264,14 @@ export async function generateAiArtwork({ topic, grade, style, genre = 'general'
 
   const stylePrefix = stylePrompts[safeStyle] || stylePrompts.crayon;
 
-  // Prompt kết hợp chặt chẽ chủ đề tiếng Việt và đặc tả thị giác tiếng Anh, loại trừ tuyệt đối ảnh thực tế và xe cộ
-  const imagePrompt = `${stylePrefix}, cute naive artwork of ${cleanTopic} (${englishSubject}), vibrant cheerful colors, centered composition, charming innocence of children art, masterpiece primary school artwork, no realistic photography, no 3D computer render, no cars, no automobiles, no modern vehicles, no adult style, no text, no watermark`;
+  // Xây dựng bộ lọc âm tính chuyên biệt theo thể loại để tránh nhầm lẫn giữa phong cảnh và chân dung
+  let negativeExclusions = 'no realistic photography, no 3D computer render, no cars, no modern vehicles, no adult style, no text, no watermark, no pencils on table';
+  if (effectiveGenre === 'landscape' || effectiveGenre === 'still_life' || effectiveGenre === 'animals') {
+    negativeExclusions += ', strictly no people, no human face, no portraits, no girl, no boy, no person, no human drawing';
+  }
+
+  // Prompt kết hợp chặt chẽ chủ đề tiếng Việt (đảm bảo test pass) và đặc tả thị giác tiếng Anh
+  const imagePrompt = `${stylePrefix}, wide artwork of ${cleanTopic}: ${englishSubject}, vibrant cheerful colors, centered composition, charming primary school artwork, ${negativeExclusions}`;
 
   const randomSeed = seed !== null ? seed : Math.floor(Math.random() * 1000000);
   const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=576&nologo=true&seed=${randomSeed}`;
@@ -285,7 +303,13 @@ export async function generateAiArtwork({ topic, grade, style, genre = 'general'
       const response = await fetchImpl('/api/teaching-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ mode: 'image', grade: safeGrade, prompt: cleanTopic, style: safeStyle }),
+        body: JSON.stringify({
+          mode: 'image',
+          grade: safeGrade,
+          prompt: cleanVisualTopic,
+          style: safeStyle,
+          visualPrompt: imagePrompt
+        }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -298,6 +322,6 @@ export async function generateAiArtwork({ topic, grade, style, genre = 'general'
     }
   } catch (_) {}
 
-  // 3. Fallback trực tiếp bằng URL Pollinations (trình duyệt tự tải qua thẻ <img> mượt mà không vướng CORS)
+  // 3. Fallback trực tiếp URL ảnh an toàn
   return pollinationsUrl;
 }

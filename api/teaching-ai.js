@@ -336,16 +336,18 @@ async function generateVectorArtwork({ grade, prompt, style }, apiKey) {
   return renderVectorScene(scene);
 }
 
-async function generateImage({ grade, prompt, style }, apiKey) {
+async function generateImage({ grade, prompt, style, visualPrompt }, apiKey) {
   const topic = prompt.trim();
   const styleDetails = IMAGE_STYLES[style];
   if (!styleDetails || containsUnsafe(topic)) throw new Error('invalid_image_request');
 
-  const imagePrompt = `Tạo một tranh minh họa Mĩ thuật tiểu học Việt Nam, khung ngang 16:9, phù hợp học sinh lớp ${grade}. Bám sát đúng chủ đề: "${topic}". Chất liệu: ${styleDetails.material}. Phong cách: ${styleDetails.style}. Hình ảnh trong sáng, nét vẽ ngây thơ của học sinh tiểu học, không chữ, không số, không watermark.`;
+  const finalPrompt = (typeof visualPrompt === 'string' && visualPrompt.trim().length > 10 && !containsUnsafe(visualPrompt))
+    ? visualPrompt.trim().slice(0, 1000)
+    : `authentic child naive art, ${styleDetails.material || 'crayon drawing'}, ${topic}, colorful cheerful primary school artwork, no realistic photography, no 3D computer render, no cars, no modern vehicles, no adult style, no text, no watermark`;
 
   // 1. Thử gọi Pollinations.ai API chất lượng cao (100% Free, bám sát nội dung đã nhập)
   try {
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=576&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=1024&height=576&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
     const pollResp = await fetch(pollinationsUrl);
     if (pollResp && pollResp.ok) {
       const buffer = Buffer.from(await pollResp.arrayBuffer());
@@ -366,7 +368,7 @@ async function generateImage({ grade, prompt, style }, apiKey) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: imagePrompt }] }]
+          contents: [{ role: 'user', parts: [{ text: finalPrompt }] }]
         }),
         signal: controller.signal
       });
@@ -409,6 +411,7 @@ export default async function handler(req, res) {
   const validImageRequest = input?.mode === 'image'
     && typeof input.prompt === 'string' && input.prompt.trim().length > 0 && input.prompt.length <= 500
     && typeof input.style === 'string' && Object.hasOwn(IMAGE_STYLES, input.style)
+    && (!input.visualPrompt || (typeof input.visualPrompt === 'string' && input.visualPrompt.length <= 1500))
     && !containsUnsafe(input.prompt);
   if (!input || !['lesson', 'text', 'image'].includes(input.mode) || typeof input.grade !== 'string' || !/^[1-5]$/.test(input.grade)
     || (!validTextRequest && !validImageRequest)) {

@@ -53,12 +53,21 @@ export default function App() {
   const isInitialLoadedRef = useRef(false);
 
   // Xử lý đăng xuất tài khoản
-  const handleLogout = () => {
+  const handleLogout = async () => {
     authVersionRef.current += 1;
-    void logoutAdmin().catch(() => setAuthError('Không thể hoàn tất đăng xuất Google. Vui lòng thử lại.'));
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('conhi_explicit_logout', 'true');
+        sessionStorage.setItem('conhi_explicit_logout', 'true');
+      }
+      await logoutAdmin();
+    } catch (_) {
+      setAuthError('Không thể hoàn tất đăng xuất Google. Vui lòng thử lại.');
+    }
     setCurrentUserSession(null);
     setIsAdminModalOpen(false);
     setIsAuthenticated(false);
+    setAuthError('');
   };
 
   // Khôi phục phiên Google và xác thực quyền truy cập từ Firestore.
@@ -74,7 +83,9 @@ export default function App() {
         && requestVersion === authVersionRef.current
         && auth.currentUser?.uid === user?.uid;
       if (!isActive) return;
-      if (!user) {
+      const isExplicitLogout = typeof window !== 'undefined'
+        && (localStorage.getItem('conhi_explicit_logout') === 'true' || sessionStorage.getItem('conhi_explicit_logout') === 'true');
+      if (!user || isExplicitLogout) {
         setIsAuthenticated(false);
         setCurrentUserSession(null);
         setIsAdminModalOpen(false);
@@ -97,9 +108,7 @@ export default function App() {
         setCurrentUserSession(session);
         setIsAuthenticated(true);
         setIsAuthReady(true);
-        if (session.role === ROLES.SUB_ADMIN || session.role === ROLES.SUPER_ADMIN) {
-          setIsAdminModalOpen(true);
-        }
+        // Không tự động bật AdminModal để tránh che khuất màn hình của giáo viên
       } catch (error) {
         if (!isCurrentRequest()) return;
         setAuthError(getAccessErrorMessage(error));
