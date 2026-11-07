@@ -4,6 +4,24 @@ import https from 'https';
 const ttsCache = new Map();
 let ttsQueue = Promise.resolve();
 
+// Rate limiting: theo dõi tần suất yêu cầu chống lạm dụng (tối đa 30 request/phút/IP)
+const rateLimitMap = new Map();
+const MAX_REQUESTS_PER_MINUTE = 30;
+const MAX_TEXT_LENGTH = 500;
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const windowStart = now - 60000;
+  let timestamps = rateLimitMap.get(ip) || [];
+  timestamps = timestamps.filter(t => t > windowStart);
+  if (timestamps.length >= MAX_REQUESTS_PER_MINUTE) {
+    return false;
+  }
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
+  return true;
+}
+
 function fetchGoogleTtsChunk(text) {
   return new Promise((resolve, reject) => {
     const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=vi&client=tw-ob`;
@@ -93,12 +111,29 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Phương thức yêu cầu không được hỗ trợ. Chỉ chấp nhận GET.' });
+    return;
+  }
+
+  // Chống lạm dụng: Kiểm tra tần suất yêu cầu (Rate limiting)
+  const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1').split(',')[0].trim();
+  if (!checkRateLimit(clientIp)) {
+    res.status(429).json({ error: 'Quá nhiều yêu cầu đọc giọng nói. Vui lòng thử lại sau giây lát.' });
+    return;
+  }
+
   try {
     const text = req.query.text || '';
     const voiceParam = req.query.voice || 'male';
 
-    if (!text.trim()) {
-      res.status(400).json({ error: 'Thiếu nội dung văn bản' });
+    if (!text || !text.trim()) {
+      res.status(400).json({ error: 'Thiếu nội dung văn bản cần đọc.' });
+      return;
+    }
+
+    if (text.length > MAX_TEXT_LENGTH) {
+      res.status(400).json({ error: `Văn bản quá dài (${text.length} ký tự). Vui lòng giới hạn dưới ${MAX_TEXT_LENGTH} ký tự mỗi lượt đọc.` });
       return;
     }
 
@@ -106,7 +141,6 @@ export default async function handler(req, res) {
       .replace(/[#*_`~-]/g, ' ')
       .replace(/\n+/g, '. ')
       .replace(/https?:\/\/\S+/g, '')
-      .slice(0, 1000)
       .trim();
 
     const isFemale = voiceParam === 'female' || voiceParam === 'vi-VN-HoaiMyNeural' || String(voiceParam).toLowerCase().includes('nu');
@@ -140,7 +174,6 @@ export default async function handler(req, res) {
     // 2. Google TTS Fallback
     // LƯU Ý SƯ PHẠM: Google Translate TTS là giọng NỮ chuẩn tiếng Việt.
     // Chỉ phục vụ khi người dùng chọn Cô giáo (isFemale = true).
-    // Nếu chọn Thầy giáo (Nam), không dùng giọng Google nữ; frontend chỉ dự phòng giọng vi-VN nam đúng giới tính nếu thiết bị có.
     if (isFemale) {
       try {
         const googleBuf = await synthesizeGoogleTts(cleanText);
@@ -157,8 +190,10 @@ export default async function handler(req, res) {
       }
     }
 
-    res.status(500).json({ error: 'Không thể tổng hợp giọng đọc' });
+    // Trả thông báo lỗi an toàn, không văng stack trace hay chi tiết nội bộ ra client
+    res.status(502).json({ error: 'Dịch vụ giọng đọc trực tuyến tạm thời gián đoạn. Ứng dụng sẽ chuyển sang giọng đọc máy cục bộ.' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[Vercel TTS Internal Error]:', err);
+    res.status(500).json({ error: 'Đã có lỗi xảy ra trong quá trình tổng hợp giọng đọc.' });
   }
 }

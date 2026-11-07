@@ -50,6 +50,7 @@ export default function App() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const isInitialLoadedRef = useRef(false);
 
   // Xử lý đăng xuất tài khoản
   const handleLogout = () => {
@@ -204,6 +205,44 @@ export default function App() {
     setSlides(newSlides);
     setIsSaved(false);
   };
+
+  // Cảnh báo khi người dùng đóng tab hoặc tải lại trang nếu còn thay đổi chưa lưu
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (!isSaved) {
+        e.preventDefault();
+        e.returnValue = 'Thầy/Cô có thay đổi chưa được lưu trong bài giảng. Bạn có chắc muốn rời đi?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSaved]);
+
+  // Tự động lưu (Autosave có debounce 1.5s) khi slides hoặc projectTitle thay đổi
+  useEffect(() => {
+    if (!isInitialLoadedRef.current) {
+      isInitialLoadedRef.current = true;
+      return;
+    }
+
+    if (isSaved) return;
+
+    const timer = setTimeout(() => {
+      if (slides && slides.length > 0) {
+        const payload = {
+          title: projectTitle,
+          slides,
+        };
+        const res = saveProjectToLocal(payload);
+        if (res.success) {
+          setIsSaved(true);
+        }
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [slides, projectTitle, isSaved]);
 
   // Manual local save
   const handleSave = () => {

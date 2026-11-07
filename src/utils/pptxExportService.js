@@ -16,6 +16,13 @@ const resolveImageData = async (src) => {
   });
 };
 
+export const sanitizePptxFileName = (projectTitle) => {
+  const base = String(projectTitle || '').trim();
+  const cleaned = base.replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+  const collapsed = cleaned.replace(/_+/g, '_').replace(/^_+|_+$/g, '');
+  return collapsed || 'Bai_Giang_Mi_Thuat';
+};
+
 export const exportToPPTX = async (projectTitle, slides) => {
   try {
     const pptx = new pptxgen();
@@ -90,7 +97,7 @@ export const exportToPPTX = async (projectTitle, slides) => {
       }
     }
 
-    const safeFileName = (projectTitle || 'Bai_Giang_Mi_Thuat').replace(/[^a-zA-Z0-9_\u00C0-\u024F\u1EA0-\u1EF9]/g, '_');
+    const safeFileName = sanitizePptxFileName(projectTitle);
     await pptx.writeFile({ fileName: `${safeFileName}.pptx` });
 
     return {

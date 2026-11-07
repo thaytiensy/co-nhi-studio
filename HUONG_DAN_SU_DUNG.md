@@ -1,7 +1,13 @@
 # CỌ NHÍ STUDIO - TÀI LIỆU HƯỚNG DẪN & BÁO CÁO KIỂM THỬ SƯ PHẠM
 
 **Phần mềm Soạn giảng, Trình chiếu & Trợ giảng Mĩ thuật Tiểu Học (Lớp 1 - 5)**
-*Phát triển độc lập • 100% Cục bộ & Miễn phí • Không API tính phí • Bảo mật dữ liệu học sinh tuyệt đối*
+*Phát triển chuyên biệt cho Mĩ thuật GDPT 2018 • Lưu trữ bài giảng cục bộ an toàn • Kết hợp linh hoạt chế độ Ngoại tuyến & Trực tuyến • Bảo vệ dữ liệu học sinh*
+
+> **Lưu ý minh bạch về tính năng:**
+> - **Ngoại tuyến (Offline):** Soạn bài, trình chiếu, vẽ bảng, trợ giảng ngân hàng mẫu GDPT 2018, trò chơi mẫu, lưu bài giảng LocalStorage và xuất tệp `.conhi` / `.pptx` hoạt động 100% không cần mạng.
+> - **Trực tuyến (Online):** Giọng đọc Microsoft Edge Neural TTS chất lượng cao, AI tạo bài dạy và đồng bộ xác thực đám mây cần kết nối Internet.
+> - **Cam chấm tranh & Ảnh học sinh:** Toàn bộ quá trình quét, phân tích và gắn rubric diễn ra cục bộ trên trình duyệt của giáo viên, không lưu ảnh học sinh lên máy chủ công cộng.
+> - **Xuất PPTX:** Giữ nguyên 100% màu nền, văn bản, font chữ, hình khối, ảnh và ghi chú sư phạm; video nhúng online hoặc bảng vẽ động tương tác không đóng gói nguyên bản dạng video vào tệp PPTX tĩnh tiêu chuẩn.
 
 ---
 
