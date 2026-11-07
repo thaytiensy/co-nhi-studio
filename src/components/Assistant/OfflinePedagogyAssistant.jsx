@@ -203,7 +203,7 @@ export default function OfflinePedagogyAssistant({
         throw new Error('Vui lòng nhập Gemini API Key cá nhân hoặc chuyển sang AI trực tuyến của ứng dụng.');
       }
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiApiKey.trim()}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey.trim()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

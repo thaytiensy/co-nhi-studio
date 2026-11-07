@@ -1,6 +1,7 @@
 const AUTH_LOOKUP_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup';
 const FIRESTORE_BASE_URL = 'https://firestore.googleapis.com/v1';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+const GEMINI_MODEL = GEMINI_MODELS[0];
 const NETWORK_TIMEOUT_MS = 30000;
 const GEMINI_IMAGE_MODEL = 'gemini-nano-banana-2.1';
 const IMAGE_NETWORK_TIMEOUT_MS = 120000;
@@ -48,6 +49,15 @@ const lessonSchema = {
       },
     },
     rubricCriteria: { type: 'array', minItems: 3, items: { type: 'string' } },
+    lessonTitle: { type: 'string' },
+    differentiatedMissions: {
+      type: 'object',
+      properties: {
+        tier1_basic: { type: 'string' },
+        tier2_standard: { type: 'string' },
+        tier3_advanced: { type: 'string' },
+      },
+    },
   },
   required: ['objectives', 'materialsNeeded', 'teachingProcess', 'rubricCriteria'],
 };
@@ -190,25 +200,42 @@ async function generate(mode, grade, prompt, apiKey) {
       ...(isLesson ? { responseMimeType: 'application/json', responseSchema: lessonSchema } : {}),
     },
   };
-  const timeout = withTimeout();
-  let response;
-  try {
-    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(body), signal: timeout.signal,
-    });
-  } catch { throw new Error('upstream'); } finally { timeout.clear(); }
-  if (!response.ok) throw new Error('upstream');
-  let result;
-  try { result = await response.json(); } catch { throw new Error('upstream'); }
-  const text = result?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
-  if (!text || containsUnsafe(text)) throw new Error('upstream');
-  if (isLesson) {
-    let parsed;
-    try { parsed = JSON.parse(text); } catch { throw new Error('upstream'); }
-    if (!validLesson(parsed) || containsUnsafe(parsed)) throw new Error('upstream');
-    return JSON.stringify(parsed);
+
+  for (const model of GEMINI_MODELS) {
+    const timeout = withTimeout();
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(body),
+        signal: timeout.signal,
+      });
+      if (response.ok) {
+        const result = await response.json();
+        const text = result?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
+        if (text && !containsUnsafe(text)) {
+          if (isLesson) {
+            let parsed;
+            try { parsed = JSON.parse(text); } catch { continue; }
+            if (validLesson(parsed) && !containsUnsafe(parsed)) {
+              return JSON.stringify(parsed);
+            }
+          } else {
+            return text;
+          }
+        }
+      } else {
+        const errText = await response.text().catch(() => '');
+        console.warn(`Gemini model ${model} returned ${response.status}:`, errText.slice(0, 200));
+      }
+    } catch (err) {
+      console.warn(`Gemini model ${model} network error:`, err?.message);
+    } finally {
+      timeout.clear();
+    }
   }
-  return text;
+
+  throw new Error('upstream');
 }
 
 function boundedNumber(value, min, max) {
@@ -280,7 +307,7 @@ async function generateVectorArtwork({ grade, prompt, style }, apiKey) {
   const vectorPrompt = `Tạo bản vẽ vector ngang 16:9 cho học sinh lớp ${grade}. Đề tài giáo viên yêu cầu (giữ đúng các chủ thể, hành động và bối cảnh được nêu): "${topic}". Gợi ý chất liệu/phong cách: ${styleDetails.material}; ${styleDetails.style}. Hãy tự thiết kế bố cục có tiền cảnh, trung cảnh hoặc hậu cảnh khi phù hợp; dùng nhiều hình cơ bản nhiều màu để chủ thể nhận ra rõ, sinh động, thân thiện với trẻ em. Chỉ trả scene graph theo JSON Schema. Không tạo chữ, số, URL, mã SVG, CSS, script, gradient hay thuộc tính ngoài schema.`;
   let response;
   try {
-    response = await fetchJson(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+    response = await fetchJson(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
@@ -332,7 +359,7 @@ async function generateImage({ grade, prompt, style }, apiKey) {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 20000);
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

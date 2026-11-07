@@ -80,13 +80,15 @@ export function parseAiLessonResponse(rawText) {
 }
 
 async function getAuthToken(tokenProvider) {
-  const getToken = tokenProvider || (async () => {
-    if (!auth?.currentUser) throw new Error('Vui lòng đăng nhập Google trước khi dùng AI.');
-    return auth.currentUser.getIdToken();
-  });
-  const token = await getToken();
-  if (!token) throw new Error('Chưa xác thực được phiên Google. Vui lòng đăng nhập lại.');
-  return token;
+  try {
+    const getToken = tokenProvider || (async () => {
+      if (!auth?.currentUser) return null;
+      return auth.currentUser.getIdToken();
+    });
+    return await getToken();
+  } catch (_) {
+    return null;
+  }
 }
 
 export async function requestTeachingAi({ mode = 'text', grade, prompt }, fetchImpl = globalThis.fetch, tokenProvider) {
@@ -95,9 +97,11 @@ export async function requestTeachingAi({ mode = 'text', grade, prompt }, fetchI
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 90_000);
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const response = await fetchImpl('/api/teaching-ai', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers,
       body: JSON.stringify({ mode, grade: String(grade), prompt }),
       signal: controller.signal,
     });
