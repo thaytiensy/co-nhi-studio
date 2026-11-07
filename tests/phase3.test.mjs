@@ -6,8 +6,10 @@ import {
   validateAiLessonPlan,
   validateAiGamePackage,
   generateNaturalIdeaLesson,
-  generateNaturalArtGame
+  generateNaturalArtGame,
+  generateSlidePedagogyTips
 } from '../src/utils/aiNaturalLanguageService.js';
+import { classroomAudio } from '../src/utils/classroomAudioService.js';
 
 describe('Giai đoạn 3 - Phân tích Câu Lệnh Tự Nhiên & Kiểm soát An Toàn (AI Prompt Parsing)', () => {
   it('1. Trích xuất chính xác tham số từ các câu lệnh tự nhiên trong Xưởng Ý Tưởng', () => {
@@ -228,5 +230,37 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
     assert.match(result.plan.lessonTitle, /CON CÁ/i);
     assert.match(result.source, /Dự phòng tự động/);
     assert.equal(validateAiLessonPlan(result.plan), true);
+  });
+  it('9. Phân tích nội dung slide và sinh câu hỏi sư phạm, bí quyết mĩ thuật AI', async () => {
+    const mockSlide = {
+      title: 'Bài 4: Màu sắc và Cảm xúc trong Tranh vẽ',
+      elements: [
+        { type: 'text', text: 'Hãy quan sát bông hoa hướng dương rực rỡ dưới ánh nắng vàng.' }
+      ],
+      notes: 'Thầy hướng dẫn học sinh nhận biết màu vàng tươi sáng.'
+    };
+
+    const tips = await generateSlidePedagogyTips({
+      slide: mockSlide,
+      grade: 2,
+      isOnline: false // Chạy kiểm thử offline an toàn
+    });
+
+    assert.ok(tips);
+    assert.match(tips.topic, /Màu Sắc/i);
+    assert.ok(typeof tips.inquiryQuestion === 'string' && tips.inquiryQuestion.length > 10);
+    assert.ok(typeof tips.artTechniqueTip === 'string' && tips.artTechniqueTip.length > 10);
+    assert.ok(typeof tips.encouragement === 'string' && tips.encouragement.length > 10);
+  });
+
+  it('10. Kiểm tra tính an toàn của Classroom Audio Service trong môi trường không có DOM/WebAudio', () => {
+    // Không ném lỗi khi gọi trong môi trường Node.js / headless
+    assert.doesNotThrow(() => {
+      classroomAudio.playPhaseChime();
+      classroomAudio.startClassroomMusic();
+      classroomAudio.stopClassroomMusic();
+      const state = classroomAudio.toggleMusic();
+      assert.equal(typeof state, 'boolean');
+    });
   });
 });

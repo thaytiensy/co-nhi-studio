@@ -476,3 +476,89 @@ function buildLocalPedagogyPlan(parsed) {
     safetyAlert: safetyAlert || ''
   };
 }
+
+/**
+ * AI Gợi ý Sư phạm & Lời giảng Tức Thời theo Ngữ cảnh Slide
+ * Hỗ trợ giáo viên tương tác 2 chiều, hỏi đáp gợi mở và truyền cảm hứng.
+ */
+export async function generateSlidePedagogyTips({ slide, grade = 1, isOnline = true }) {
+  const title = slide?.title || '';
+  const textContent = (slide?.elements || [])
+    .filter(e => e.type === 'text' && e.text)
+    .map(e => e.text)
+    .join(' ');
+  const notes = slide?.notes || '';
+  const combinedContext = `${title} ${textContent} ${notes}`.trim();
+
+  // 1. Phân tích ngữ cảnh chủ đề
+  const lower = combinedContext.toLowerCase();
+  let detectedTopic = 'Mĩ thuật Sáng tạo';
+  let artSecret = 'Đặt màu sáng cạnh màu tối sẽ giúp hình vẽ chính nổi bật nhất!';
+  let inquiry = 'Các em hãy quan sát xem trong bức tranh này, điểm nào thu hút ánh nhìn đầu tiên của các em?';
+  let encourage = 'Thầy tin mỗi bạn đều có một góc nhìn riêng, hãy tự tin thể hiện nét vẽ của chính mình nhé!';
+
+  if (lower.includes('màu') || lower.includes('sắc')) {
+    detectedTopic = 'Màu Sắc & Phối Màu';
+    inquiry = 'Đố các em tìm thấy gam màu nóng và gam màu lạnh đang cùng xuất hiện ở đâu trong hình vẽ này?';
+    artSecret = 'Bí quyết: Phối hợp xen kẽ màu nóng (đỏ, vàng, cam) và màu lạnh (xanh, tím) sẽ tạo cảm giác hài hòa và vui tươi!';
+    encourage = 'Hãy chọn màu sắc các em yêu thích nhất để kể câu chuyện của riêng mình!';
+  } else if (lower.includes('nét') || lower.includes('đường')) {
+    detectedTopic = 'Đường Nét & Hình Khối';
+    inquiry = 'Các em có nhận ra nét thẳng tạo cảm giác cứng cáp, còn nét cong tạo cảm giác mềm mại như thế nào không?';
+    artSecret = 'Bí quyết: Đưa tay dứt khoát khi vẽ nét chính, sau đó tỉa nhẹ các nét chi tiết nhỏ nhé!';
+    encourage = 'Đừng ngại vẽ sai! Nét vẽ tự nhiên và tự tin luôn là nét vẽ đẹp nhất!';
+  } else if (lower.includes('chân dung') || lower.includes('người')) {
+    detectedTopic = 'Chân Dung & Cảm Xúc';
+    inquiry = 'Khuôn mặt nhân vật đang thể hiện cảm xúc gì? Chi tiết nào ở mắt và miệng giúp các em nhận biết điều đó?';
+    artSecret = 'Bí quyết: Đặt mắt ở khoảng giữa khuôn mặt, miệng ở khoảng 1/3 dưới để có tỷ lệ hài hòa!';
+    encourage = 'Hãy nhớ đến nụ cười của người thân để truyền tình cảm ấm áp vào bài vẽ nhé!';
+  } else if (lower.includes('phong cảnh') || lower.includes('cây') || lower.includes('thiên nhiên')) {
+    detectedTopic = 'Phong Cảnh Thiên Nhiên';
+    inquiry = 'Trong cảnh này, vật ở gần và vật ở xa có độ to nhỏ và màu sắc khác nhau như thế nào?';
+    artSecret = 'Luật xa gần: Ở gần vẽ to và rõ màu, ở xa vẽ nhỏ hơn và nhạt màu hơn để tạo chiều sâu không gian!';
+    encourage = 'Thiên nhiên quanh ta có muôn vàn màu sắc kỳ diệu, hãy đưa cả thế giới đó vào trang giấy!';
+  } else if (lower.includes('tĩnh vật') || lower.includes('hoa') || lower.includes('quả')) {
+    detectedTopic = 'Tĩnh Vật & Bố Cục';
+    inquiry = 'Vật mẫu nào là vật chính? Các em thấy nó được đặt ở vị trí nào trên tranh?';
+    artSecret = 'Quy tắc 1/3: Đặt vật mẫu chính hơi lệch tâm một chút sẽ giúp bố cục tranh tự nhiên và cân đối hơn!';
+    encourage = 'Quan sát kĩ hình dáng quả và lọ hoa trước khi hạ bút sẽ giúp nét vẽ chuẩn xác hơn đấy!';
+  }
+
+  // 2. Nếu online, thử gọi AI để tinh chỉnh chi tiết
+  if (isOnline && combinedContext.length > 10) {
+    try {
+      const prompt = `Bạn là Thầy Cọ Nhí - Giáo viên Mĩ thuật tiểu học Việt Nam (GDPT 2018).
+Dựa vào nội dung slide: "${combinedContext.slice(0, 300)}" (Dành cho Lớp ${grade}).
+Hãy trả về JSON gồm:
+{
+  "inquiryQuestion": "Câu hỏi gợi mở học sinh quan sát nhận thức thẩm mĩ (ngắn gọn, dưới 25 từ)",
+  "artTechniqueTip": "Bí quyết mĩ thuật cô đọng dễ nhớ (dưới 30 từ)",
+  "encouragement": "Lời khích lệ học sinh thực hành tự tin (dưới 25 từ)"
+}`;
+      const res = await requestTeachingAi(prompt);
+      const jsonMatch = res.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.inquiryQuestion && parsed.artTechniqueTip) {
+          return {
+            topic: detectedTopic,
+            inquiryQuestion: parsed.inquiryQuestion,
+            artTechniqueTip: parsed.artTechniqueTip,
+            encouragement: parsed.encouragement || encourage,
+            isAiGenerated: true
+          };
+        }
+      }
+    } catch (_) {
+      // Fallback cục bộ mượt mà
+    }
+  }
+
+  return {
+    topic: detectedTopic,
+    inquiryQuestion: inquiry,
+    artTechniqueTip: artSecret,
+    encouragement: encourage,
+    isAiGenerated: false
+  };
+}

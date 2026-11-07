@@ -1,24 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
   X, 
   Volume2, 
-  Maximize, 
-  Minimize, 
   Clock, 
   FileText,
   Play,
   Pause,
+  RotateCcw,
   Gamepad2,
-  Sparkles
+  Sparkles,
+  Music,
+  Edit3,
+  Trash2,
+  HelpCircle,
+  EyeOff
 } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 import SlideGameWidget from '../ArtGames/SlideGameWidget';
 import { generateGameQuestionsByTheme } from '../../data/artGamesCurriculumBank';
+import { classroomAudio } from '../../utils/classroomAudioService';
+import { generateSlidePedagogyTips } from '../../utils/aiNaturalLanguageService';
 
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
+
+// Khung 4 chặng tiến trình 35 phút chuẩn GDPT 2018 môn Mĩ thuật
+const PEDAGOGY_PHASES = [
+  { id: 'warmup', name: '1. Khởi động', minutes: 5, color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-400/40' },
+  { id: 'explore', name: '2. Thị phạm', minutes: 8, color: 'text-sky-400', bg: 'bg-sky-500/20', border: 'border-sky-400/40' },
+  { id: 'practice', name: '3. Sáng tạo', minutes: 17, color: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-400/40' },
+  { id: 'evaluate', name: '4. Đánh giá', minutes: 5, color: 'text-purple-400', bg: 'bg-purple-500/20', border: 'border-purple-400/40' }
+];
 
 export default function PresentationModal({
   slides,
@@ -29,25 +43,83 @@ export default function PresentationModal({
   const [scale, setScale] = useState(1);
   const [showNotesOverlay, setShowNotesOverlay] = useState(false);
   const [showGameModal, setShowGameModal] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [speechState, setSpeechState] = useState({ isSpeaking: false, isPaused: false });
   const containerRef = useRef(null);
   const hideTimeoutRef = useRef(null);
 
-  // Timer for lesson duration
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // === 1. ĐỒNG HỒ SƯ PHẠM 35 PHÚT (PEDAGOGY CLASSROOM TIMER) ===
+  const [showTimerDock, setShowTimerDock] = useState(true);
+  const [currentPhaseIdx, setCurrentPhaseIdx] = useState(0);
+  const [phaseSecondsLeft, setPhaseSecondsLeft] = useState(PEDAGOGY_PHASES[0].minutes * 60);
+  const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
-  // Format time mm:ss
+  // === 2. PHÍM TẮT ĐỨNG LỚP & CHẾ ĐỘ MÀN HÌNH TỐI (BLACK SCREEN) ===
+  const [isBlackScreen, setIsBlackScreen] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+
+  // === 3. BẢNG VẼ THỊ PHẠM NHANH (WHITEBOARD & ANNOTATION) ===
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+  const [whiteboardBackground, setWhiteboardBackground] = useState('transparent'); // 'transparent' | 'white'
+  const [penColor, setPenColor] = useState('#ef4444'); // đỏ thị phạm nổi bật
+  const [penSize, setPenSize] = useState(4);
+  const whiteboardCanvasRef = useRef(null);
+  const isDrawingRef = useRef(false);
+
+  // === 4. TRỢ LÝ SƯ PHẠM AI TỨC THỜI (AI PEDAGOGY SUGGESTIONS) ===
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiTips, setAiTips] = useState(null);
+  const [isLoadingAiTips, setIsLoadingAiTips] = useState(false);
+
+  // Định dạng mm:ss
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
+  };
+
+  // Vòng lặp đếm ngược đồng hồ sư phạm
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    const interval = setInterval(() => {
+      setPhaseSecondsLeft((prev) => {
+        if (prev <= 1) {
+          // Báo chuông sư phạm nhẹ nhàng khi hết chặng
+          classroomAudio.playPhaseChime();
+          // Tự động chuyển sang chặng tiếp theo nếu chưa phải chặng cuối
+          if (currentPhaseIdx < PEDAGOGY_PHASES.length - 1) {
+            const nextIdx = currentPhaseIdx + 1;
+            setCurrentPhaseIdx(nextIdx);
+            return PEDAGOGY_PHASES[nextIdx].minutes * 60;
+          } else {
+            setIsTimerRunning(false);
+            return 0;
+          }
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isTimerRunning, currentPhaseIdx]);
+
+  // Chọn chặng thủ công
+  const handleSelectPhase = (idx) => {
+    setCurrentPhaseIdx(idx);
+    setPhaseSecondsLeft(PEDAGOGY_PHASES[idx].minutes * 60);
+    classroomAudio.playPhaseChime();
+  };
+
+  // Reset đồng hồ về đầu chặng hiện tại
+  const handleResetPhaseTimer = () => {
+    setPhaseSecondsLeft(PEDAGOGY_PHASES[currentPhaseIdx].minutes * 60);
+  };
+
+  // Bật/tắt nhạc nền êm dịu (Web Audio API Pentatonic Lofi)
+  const handleToggleClassroomMusic = () => {
+    const newState = classroomAudio.toggleMusic();
+    setIsMusicPlaying(newState);
   };
 
   // Subscribe to speech state
@@ -56,6 +128,7 @@ export default function PresentationModal({
     return () => {
       unsubscribe();
       speechService.stop();
+      classroomAudio.stopClassroomMusic();
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
         hideTimeoutRef.current = null;
@@ -63,7 +136,7 @@ export default function PresentationModal({
     };
   }, []);
 
-  // Calculate 16:9 responsive scale
+  // Tính toán scale 16:9 responsive
   useEffect(() => {
     const updateScale = () => {
       if (!containerRef.current) return;
@@ -78,17 +151,92 @@ export default function PresentationModal({
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  // Keyboard Navigation: Esc, ArrowLeft, ArrowRight, Space
+  const goToNext = useCallback(() => {
+    if (currentIndex < slides.length - 1) {
+      speechService.stop();
+      setCurrentIndex(prev => prev + 1);
+      setShowAiModal(false);
+    }
+  }, [currentIndex, slides.length]);
+
+  const goToPrev = useCallback(() => {
+    if (currentIndex > 0) {
+      speechService.stop();
+      setCurrentIndex(prev => prev - 1);
+      setShowAiModal(false);
+    }
+  }, [currentIndex]);
+
+  // === XỬ LÝ PHÍM TẮT ĐỨNG LỚP TOÀN DIỆN ===
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Bỏ qua nếu đang gõ chữ trong input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      // Phím Esc: Đóng các modal/overlay theo thứ tự ưu tiên
       if (e.key === 'Escape') {
+        if (showShortcutsHelp) {
+          setShowShortcutsHelp(false);
+          return;
+        }
+        if (showAiModal) {
+          setShowAiModal(false);
+          return;
+        }
         if (showGameModal) {
           setShowGameModal(false);
           return;
         }
+        if (isWhiteboardOpen) {
+          setIsWhiteboardOpen(false);
+          return;
+        }
+        if (isBlackScreen) {
+          setIsBlackScreen(false);
+          return;
+        }
+        if (showNotesOverlay) {
+          setShowNotesOverlay(false);
+          return;
+        }
         speechService.stop();
+        classroomAudio.stopClassroomMusic();
         onClose();
-      } else if (!showGameModal) {
+        return;
+      }
+
+      // Phím B / b: Tạm tắt màn hình máy chiếu (Black screen) để học sinh dừng vẽ, chú ý nhìn Thầy
+      if (e.key === 'b' || e.key === 'B') {
+        setIsBlackScreen(prev => !prev);
+        return;
+      }
+
+      // Phím W / w: Bật/Tắt bảng vẽ trắng thị phạm nhanh (Whiteboard)
+      if (e.key === 'w' || e.key === 'W') {
+        setIsWhiteboardOpen(prev => !prev);
+        return;
+      }
+
+      // Phím T / t: Bật/Tắt hiển thị thanh Đồng hồ sư phạm 35 phút
+      if (e.key === 't' || e.key === 'T') {
+        setShowTimerDock(prev => !prev);
+        return;
+      }
+
+      // Phím A / a: Bật/Tắt Trợ lý gợi ý câu hỏi & bí quyết mĩ thuật AI
+      if (e.key === 'a' || e.key === 'A') {
+        handleOpenAiTips();
+        return;
+      }
+
+      // Phím H / ? : Xem danh mục phím tắt
+      if (e.key === 'h' || e.key === 'H' || e.key === '?') {
+        setShowShortcutsHelp(prev => !prev);
+        return;
+      }
+
+      // Điều hướng slide: Phím cách, Mũi tên phải/trái, PageUp/PageDown
+      if (!showGameModal && !isWhiteboardOpen && !isBlackScreen) {
         if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
           goToNext();
         } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
@@ -99,33 +247,29 @@ export default function PresentationModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, slides.length, showGameModal]);
-
-  const goToNext = () => {
-    if (currentIndex < slides.length - 1) {
-      speechService.stop();
-      setCurrentIndex(prev => prev + 1);
-    }
-  };
-
-  const goToPrev = () => {
-    if (currentIndex > 0) {
-      speechService.stop();
-      setCurrentIndex(prev => prev - 1);
-    }
-  };
+  }, [
+    showShortcutsHelp, 
+    showAiModal, 
+    showGameModal, 
+    isWhiteboardOpen, 
+    isBlackScreen, 
+    showNotesOverlay, 
+    goToNext, 
+    goToPrev, 
+    onClose
+  ]);
 
   const handleMouseMove = () => {
     setControlsVisible(true);
     if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     hideTimeoutRef.current = setTimeout(() => {
       setControlsVisible(false);
-    }, 3500);
+    }, 4000);
   };
 
   const currentSlide = slides[currentIndex] || slides[0];
 
-  // Helper trích xuất lời giảng phù hợp nhất để đọc (ưu tiên nội dung sư phạm, loại bỏ thông tin bản quyền mẫu)
+  // Helper trích xuất lời giảng phù hợp
   const getLectureTextToSpeak = () => {
     const isWatermark = (txt) => {
       if (!txt) return true;
@@ -159,12 +303,10 @@ export default function PresentationModal({
 
     const slideText = parts.join('. ');
 
-    // Nếu ghi chú có nội dung thực thụ (không phải watermark), đọc ghi chú
     if (currentSlide?.notes && currentSlide.notes.trim() && !isWatermark(currentSlide.notes)) {
       return currentSlide.notes.trim();
     }
 
-    // Nếu ghi chú trống hoặc là watermark mẫu, đọc nội dung câu chữ trên slide
     if (slideText) {
       return slideText;
     }
@@ -188,7 +330,71 @@ export default function PresentationModal({
     }
   };
 
-  // Trích xuất chủ đề từ slide hiện tại để tạo trò chơi tức thời nếu cần
+  // Mở AI Gợi Ý Sư Phạm & Lời Giảng Tức Thời
+  const handleOpenAiTips = async () => {
+    setShowAiModal(true);
+    setIsLoadingAiTips(true);
+    try {
+      const tips = await generateSlidePedagogyTips({
+        slide: currentSlide,
+        grade: 1,
+        isOnline: navigator.onLine
+      });
+      setAiTips(tips);
+    } catch (e) {
+      console.warn('Lỗi lấy gợi ý AI:', e);
+    } finally {
+      setIsLoadingAiTips(false);
+    }
+  };
+
+  // Đọc riêng từng mục gợi ý của AI
+  const handleSpeakSnippet = (text) => {
+    speechService.stop();
+    speechService.speak(text);
+  };
+
+  // === VẼ THỊ PHẠM TRÊN BẢNG VẼ NHANH (CANVAS) ===
+  const startDrawing = (e) => {
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    isDrawingRef.current = true;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const draw = (e) => {
+    if (!isDrawingRef.current) return;
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    ctx.strokeStyle = penColor;
+    ctx.lineWidth = penSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    isDrawingRef.current = false;
+  };
+
+  const handleClearWhiteboard = () => {
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  // Trích xuất chủ đề slide
   const getSlideTheme = () => {
     const textEl = currentSlide?.elements?.find(e => e.type === 'text' && e.text?.trim());
     if (textEl) return textEl.text.split('\n')[0].slice(0, 40).trim();
@@ -197,6 +403,7 @@ export default function PresentationModal({
 
   const currentSlideGame = currentSlide?.elements?.find(e => e.type === 'game');
   const fallbackGameQuestions = generateGameQuestionsByTheme(1, getSlideTheme(), 'all');
+  const activePhase = PEDAGOGY_PHASES[currentPhaseIdx];
 
   return (
     <div 
@@ -204,7 +411,82 @@ export default function PresentationModal({
       onMouseMove={handleMouseMove}
       className="fixed inset-0 bg-black z-50 flex items-center justify-center select-none overflow-hidden cursor-default"
     >
-      {/* 16:9 Presentation Slide Canvas */}
+      {/* =========================================================================
+          1. THANH ĐỒNG HỒ SƯ PHẠM 35 PHÚT (PEDAGOGY TIMER DOCK - TOP)
+      ========================================================================= */}
+      {showTimerDock && (
+        <div 
+          className={`fixed top-3 left-1/2 -translate-x-1/2 z-45 transition-all duration-300 ${
+            controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+          }`}
+        >
+          <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-4 py-2 shadow-2xl flex items-center gap-3 text-white text-xs">
+            {/* Phase Selector Pills */}
+            <div className="flex items-center gap-1">
+              {PEDAGOGY_PHASES.map((phase, idx) => {
+                const isActive = idx === currentPhaseIdx;
+                return (
+                  <button
+                    key={phase.id}
+                    onClick={() => handleSelectPhase(idx)}
+                    className={`px-2.5 py-1 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
+                      isActive 
+                        ? `${phase.bg} ${phase.color} border ${phase.border} shadow-sm scale-105` 
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>{phase.name}</span>
+                    <span className="text-[10px] opacity-75">({phase.minutes}p)</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Countdown Clock Display */}
+            <div className="pl-3 border-l border-slate-700 flex items-center gap-2">
+              <div className={`font-mono font-black text-sm px-2.5 py-0.5 rounded-lg bg-black/50 border border-slate-800 ${activePhase.color}`}>
+                ⏱️ {formatTime(phaseSecondsLeft)}
+              </div>
+
+              {/* Play / Pause Timer */}
+              <button
+                onClick={() => setIsTimerRunning(!isTimerRunning)}
+                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-all"
+                title={isTimerRunning ? 'Tạm dừng đồng hồ' : 'Tiếp tục tính giờ'}
+              >
+                {isTimerRunning ? <Pause className="w-3.5 h-3.5 text-amber-400" /> : <Play className="w-3.5 h-3.5 text-emerald-400" />}
+              </button>
+
+              {/* Reset Phase */}
+              <button
+                onClick={handleResetPhaseTimer}
+                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+                title="Đặt lại giờ cho chặng này"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Nút Nhạc Nền Sáng Tạo (Pentatonic Lofi) */}
+              <button
+                onClick={handleToggleClassroomMusic}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1 ${
+                  isMusicPlaying 
+                    ? 'bg-emerald-600 text-white animate-pulse shadow-xs' 
+                    : 'bg-slate-800 text-slate-400 hover:text-emerald-300'
+                }`}
+                title="Bật/Tắt nhạc nền êm dịu không lời cho các em tập trung vẽ"
+              >
+                <Music className="w-3.5 h-3.5" />
+                <span>{isMusicPlaying ? 'Đang phát nhạc' : 'Nhạc sáng tạo'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          2. SLIDE CANVAS 16:9 CHÍNH
+      ========================================================================= */}
       <div
         className="relative overflow-hidden shadow-2xl transition-all"
         style={{
@@ -310,8 +592,8 @@ export default function PresentationModal({
               <img
                 key={el.id}
                 src={el.src}
-                alt=""
-                className={`absolute ${el.isBackground ? 'object-cover' : 'object-fill'} pointer-events-none select-none rounded`}
+                alt="Hình minh họa"
+                className="absolute object-contain pointer-events-none"
                 style={{
                   left: `${el.x}px`,
                   top: `${el.y}px`,
@@ -322,95 +604,28 @@ export default function PresentationModal({
             );
           }
 
-          if (el.type === 'audio') {
-            return (
-              <div
-                key={el.id}
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="absolute bg-emerald-50/95 border-2 border-emerald-400 rounded-xl p-2.5 flex flex-col justify-center items-center shadow-lg z-30 pointer-events-auto backdrop-blur-xs"
-                style={{
-                  left: `${el.x}px`,
-                  top: `${el.y}px`,
-                  width: `${el.width}px`,
-                  height: `${el.height}px`,
-                }}
-              >
-                <div className="flex items-center gap-1.5 text-xs font-black text-emerald-900 truncate mb-1">
-                  <span>🎵</span>
-                  <span className="truncate">{el.title || 'Nhạc Nền Tiết Học'}</span>
-                </div>
-                <audio controls src={el.src} className="w-full h-8" />
-              </div>
-            );
-          }
-
-          if (el.type === 'video') {
-            return (
-              <div
-                key={el.id}
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="absolute bg-black rounded-xl overflow-hidden shadow-2xl z-30 pointer-events-auto flex items-center justify-center group"
-                style={{
-                  left: `${el.x}px`,
-                  top: `${el.y}px`,
-                  width: `${el.width}px`,
-                  height: `${el.height}px`,
-                }}
-              >
-                <video 
-                  controls 
-                  playsInline
-                  poster={el.poster}
-                  src={el.src} 
-                  className="w-full h-full object-contain" 
-                />
-              </div>
-            );
-          }
-
-          if (el.type === 'youtube') {
-            return (
-              <div
-                key={el.id}
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="absolute bg-slate-900 rounded-xl overflow-hidden shadow-2xl z-30 pointer-events-auto"
-                style={{
-                  left: `${el.x}px`,
-                  top: `${el.y}px`,
-                  width: `${el.width}px`,
-                  height: `${el.height}px`,
-                }}
-              >
-                <iframe
-                  src={el.src}
-                  title="YouTube Video"
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            );
-          }
-
-          // Trình hiển thị TRÒ CHƠI MĨ THUẬT ngay trong slide
           if (el.type === 'game') {
             return (
               <div
                 key={el.id}
-                onClick={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="absolute z-35 pointer-events-auto"
+                className="absolute flex items-center justify-center p-4 bg-indigo-50/90 rounded-2xl border-2 border-indigo-200 cursor-pointer hover:bg-indigo-100 transition-all shadow-md group"
                 style={{
                   left: `${el.x}px`,
                   top: `${el.y}px`,
                   width: `${el.width}px`,
                   height: `${el.height}px`,
                 }}
+                onClick={() => setShowGameModal(true)}
               >
-                <SlideGameWidget element={el} isPresentationMode={true} />
+                <div className="text-center space-y-2 pointer-events-none">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-indigo-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Gamepad2 className="w-6 h-6 text-amber-300" />
+                  </div>
+                  <div className="font-extrabold text-sm text-indigo-900">{el.title || 'Trò Chơi Mĩ Thuật'}</div>
+                  <div className="text-[11px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full inline-block">
+                    🎮 Bấm để phóng to trò chơi cho cả lớp
+                  </div>
+                </div>
               </div>
             );
           }
@@ -419,43 +634,139 @@ export default function PresentationModal({
         })}
       </div>
 
-      {/* Floating Side Arrow Buttons - Đặt ở rìa màn hình ngoài Canvas, KHÔNG che Canvas và KHÔNG cướp click của Video */}
-      <button
-        onClick={goToPrev}
-        disabled={currentIndex === 0}
-        className={`fixed left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white backdrop-blur-md shadow-2xl z-40 transition-all ${
-          currentIndex === 0 ? 'opacity-20 cursor-not-allowed pointer-events-none' : 'opacity-70 hover:opacity-100 hover:scale-110'
-        }`}
-        title="Lùi về slide trước (Phím Mũi Tên Trái)"
-      >
-        <ChevronLeft className="w-8 h-8" />
-      </button>
+      {/* =========================================================================
+          3. BẢNG VẼ THỊ PHẠM NHANH (WHITEBOARD OVERLAY)
+      ========================================================================= */}
+      {isWhiteboardOpen && (
+        <div className="fixed inset-0 z-40 flex flex-col pointer-events-auto">
+          {/* Top Whiteboard Controls */}
+          <div className="bg-slate-900/95 backdrop-blur-md border-b border-slate-700 px-4 py-2 flex items-center justify-between text-white text-xs shadow-xl">
+            <div className="flex items-center gap-3">
+              <span className="font-black text-amber-400 flex items-center gap-1.5">
+                <Edit3 className="w-4 h-4" />
+                <span>Bảng Vẽ Thị Phạm Nhanh</span>
+              </span>
 
-      <button
-        onClick={goToNext}
-        disabled={currentIndex === slides.length - 1}
-        className={`fixed right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/60 hover:bg-slate-900/90 text-white backdrop-blur-md shadow-2xl z-40 transition-all ${
-          currentIndex === slides.length - 1 ? 'opacity-20 cursor-not-allowed pointer-events-none' : 'opacity-70 hover:opacity-100 hover:scale-110'
-        }`}
-        title="Sang slide kế tiếp (Phím Mũi Tên Phải hoặc Phím Cách)"
-      >
-        <ChevronRight className="w-8 h-8" />
-      </button>
+              {/* Mode Toggle: Vẽ đè lên Slide vs Bảng Trắng Toàn Phần */}
+              <div className="flex items-center gap-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+                <button
+                  onClick={() => setWhiteboardBackground('transparent')}
+                  className={`px-2.5 py-1 rounded-md font-bold transition-all ${
+                    whiteboardBackground === 'transparent' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Vẽ đè lên Slide
+                </button>
+                <button
+                  onClick={() => setWhiteboardBackground('white')}
+                  className={`px-2.5 py-1 rounded-md font-bold transition-all ${
+                    whiteboardBackground === 'white' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Bảng trắng tinh
+                </button>
+              </div>
 
-      {/* Floating Presentation Control Bar */}
+              {/* Color Palette */}
+              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-700">
+                {['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#0f172a', '#ffffff'].map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setPenColor(c)}
+                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                      penColor === c ? 'scale-125 border-white shadow-md' : 'border-transparent hover:scale-110'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+
+              {/* Brush Size */}
+              <div className="flex items-center gap-1 pl-2 border-l border-slate-700">
+                {[3, 6, 12].map((sz) => (
+                  <button
+                    key={sz}
+                    onClick={() => setPenSize(sz)}
+                    className={`px-2 py-0.5 rounded font-mono font-bold ${
+                      penSize === sz ? 'bg-slate-700 text-amber-400' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {sz === 3 ? 'Nhỏ' : sz === 6 ? 'Vừa' : 'Đậm'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleClearWhiteboard}
+                className="px-3 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-600 text-white font-bold flex items-center gap-1 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa nét vẽ</span>
+              </button>
+              <button
+                onClick={() => setIsWhiteboardOpen(false)}
+                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+              >
+                ✕ Đóng bảng (Phím W)
+              </button>
+            </div>
+          </div>
+
+          {/* Canvas Area */}
+          <div 
+            className="flex-1 w-full h-full relative cursor-crosshair"
+            style={{
+              backgroundColor: whiteboardBackground === 'white' ? '#ffffff' : 'rgba(0, 0, 0, 0.05)'
+            }}
+          >
+            <canvas
+              ref={whiteboardCanvasRef}
+              width={window.innerWidth || 1920}
+              height={window.innerHeight || 1080}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              className="absolute inset-0 w-full h-full"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          4. MÀN HÌNH TỐI TẬP TRUNG LỚP (BLACK SCREEN - PHÍM B)
+      ========================================================================= */}
+      {isBlackScreen && (
+        <div 
+          onClick={() => setIsBlackScreen(false)}
+          className="fixed inset-0 bg-black z-50 flex items-center justify-center p-6 cursor-pointer animate-in fade-in duration-300"
+        >
+          <div className="text-center space-y-4 max-w-lg">
+            <div className="w-16 h-16 mx-auto rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-3xl shadow-2xl">
+              ⏸️
+            </div>
+            <h2 className="text-xl font-extrabold text-amber-400">
+              Lớp Tạm Dừng Bút — Cùng Ngước Nhìn Thầy Hướng Dẫn Nhé!
+            </h2>
+            <p className="text-xs text-slate-400">
+              (Nhấn phím <kbd className="px-2 py-0.5 bg-slate-800 rounded border border-slate-600 text-white font-mono">B</kbd> hoặc nhấp chuột vào bất cứ đâu để tiếp tục bài giảng)
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          5. THANH ĐIỀU KHIỂN DƯỚI ĐÁY MÀN HÌNH (FLOATING CONTROL BAR - BOTTOM)
+      ========================================================================= */}
       <div 
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md text-white px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3.5 z-40 transition-all duration-300 border border-slate-700/60 ${
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-full px-5 py-2.5 flex items-center gap-2.5 text-white shadow-2xl z-40 transition-all duration-300 ${
           controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
       >
-        {/* Lesson Timer */}
-        <div className="flex items-center gap-1.5 text-xs text-amber-300 font-mono font-bold pr-2 border-r border-slate-700">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{formatTime(elapsedSeconds)}</span>
-        </div>
-
         {/* Slide Counter */}
-        <span className="text-xs font-bold text-slate-300">
+        <span className="text-xs font-bold text-slate-300 pr-2 border-r border-slate-700">
           {currentIndex + 1} / {slides.length}
         </span>
 
@@ -483,7 +794,7 @@ export default function PresentationModal({
           </button>
         </div>
 
-        {/* Chuyển đổi Giọng Thầy giáo / Cô giáo */}
+        {/* Giọng Thầy / Cô */}
         <button
           onClick={() => {
             const nextGender = speechState.gender === 'female' ? 'male' : 'female';
@@ -492,10 +803,10 @@ export default function PresentationModal({
           className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 transition-all border border-slate-700 flex items-center gap-1"
           title="Bấm để đổi giữa giọng đọc Thầy giáo (Nam) và Cô giáo (Nữ)"
         >
-          <span>{speechState.gender === 'female' ? '👩 Cô (Nữ)' : '👨 Thầy (Nam)'}</span>
+          <span>{speechState.gender === 'female' ? '👩 Cô' : '👨 Thầy'}</span>
         </button>
 
-        {/* Audio Teacher Speech Button - KHÔNG BAO GIỜ BỊ VÔ HIỆU */}
+        {/* Nút Đọc Lời Giảng */}
         <button
           onClick={handleToggleSpeak}
           className={`px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs ${
@@ -503,37 +814,78 @@ export default function PresentationModal({
               ? 'bg-amber-500 text-white animate-pulse'
               : 'bg-emerald-600 hover:bg-emerald-500 text-white'
           }`}
-          title="Đọc lời giảng của trang slide này"
+          title="Đọc lời giảng trang slide này"
         >
           <Volume2 className="w-3.5 h-3.5" />
           <span>{speechState.isSpeaking && !speechState.isPaused ? 'Tạm dừng' : 'Đọc lời giảng'}</span>
         </button>
 
-        {/* Nút Mở Trò Chơi Mĩ Thuật Trực Tiếp Trong Tiết Học */}
+        {/* Nút Trợ Lý AI Sư Phạm Tức Thời */}
+        <button
+          onClick={handleOpenAiTips}
+          className="px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-xs transition-all"
+          title="Gợi ý câu hỏi tương tác & bí quyết mĩ thuật AI (Phím A)"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
+          <span>✨ Gợi Ý AI</span>
+        </button>
+
+        {/* Nút Bảng Vẽ Thị Phạm Nhanh */}
+        <button
+          onClick={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
+          className={`px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs ${
+            isWhiteboardOpen ? 'bg-amber-500 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+          }`}
+          title="Mở bảng vẽ thị phạm nhanh (Phím W)"
+        >
+          <Edit3 className="w-3.5 h-3.5 text-amber-300" />
+          <span>Vẽ thị phạm</span>
+        </button>
+
+        {/* Nút Màn Hình Tối (Black Screen) */}
+        <button
+          onClick={() => setIsBlackScreen(true)}
+          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-300 transition-all"
+          title="Tạm tắt màn hình tập trung học sinh (Phím B)"
+        >
+          <EyeOff className="w-4 h-4" />
+        </button>
+
+        {/* Nút Mở Trò Chơi Mĩ Thuật */}
         <button
           onClick={() => setShowGameModal(true)}
           className="px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-all"
-          title="Mở trò chơi mĩ thuật tương tác cho cả lớp cùng tham gia"
+          title="Mở trò chơi mĩ thuật tương tác cho cả lớp"
         >
           <Gamepad2 className="w-3.5 h-3.5 text-amber-300" />
-          <span>🎮 Trò Chơi</span>
+          <span>Trò Chơi</span>
         </button>
 
-        {/* Toggle Notes Overlay */}
+        {/* Nút Ghi Chú Sư Phạm */}
         <button
           onClick={() => setShowNotesOverlay(!showNotesOverlay)}
           className={`p-1.5 rounded-full hover:bg-slate-700 transition-all ${
             showNotesOverlay ? 'text-amber-400 bg-slate-800' : 'text-slate-300'
           }`}
-          title="Xem ghi chú sư phạm của trang này"
+          title="Xem ghi chú sư phạm trang này"
         >
           <FileText className="w-4 h-4" />
         </button>
 
-        {/* Close Presentation (Esc) */}
+        {/* Hướng Dẫn Phím Tắt */}
+        <button
+          onClick={() => setShowShortcutsHelp(!showShortcutsHelp)}
+          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-400 hover:text-amber-300 transition-all"
+          title="Danh mục phím tắt đứng lớp (Phím ?)"
+        >
+          <HelpCircle className="w-4 h-4" />
+        </button>
+
+        {/* Nút Thoát */}
         <button
           onClick={() => {
             speechService.stop();
+            classroomAudio.stopClassroomMusic();
             onClose();
           }}
           className="p-1.5 rounded-full hover:bg-rose-600 text-slate-300 hover:text-white transition-all ml-1"
@@ -543,7 +895,181 @@ export default function PresentationModal({
         </button>
       </div>
 
-      {/* Speaker Notes Floating Overlay (Optional for Teacher) */}
+      {/* =========================================================================
+          6. MODAL GỢI Ý SƯ PHẠM & LỜI GIẢNG AI (SMART AI ASSISTANT)
+      ========================================================================= */}
+      {showAiModal && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-6 animate-in fade-in"
+          onClick={() => setShowAiModal(false)}
+        >
+          <div 
+            className="w-full max-w-xl bg-slate-900 border border-amber-500/40 rounded-3xl p-5 text-white shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">Gợi Ý Sư Phạm AI — Thầy Cọ Nhí</h3>
+                  <p className="text-[11px] text-amber-300/80 font-medium">Chủ đề nhận diện: {aiTips?.topic || 'Mĩ Thuật GDPT 2018'}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAiModal(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold px-2 py-1 rounded-lg hover:bg-slate-800"
+              >
+                ✕ Đóng (Esc)
+              </button>
+            </div>
+
+            {isLoadingAiTips ? (
+              <div className="py-8 text-center space-y-2">
+                <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-slate-400">Thầy Cọ Nhí đang đọc nội dung slide và chuẩn bị câu hỏi...</p>
+              </div>
+            ) : aiTips ? (
+              <div className="space-y-3">
+                {/* 1. Câu hỏi khơi gợi */}
+                <div className="p-3 rounded-2xl bg-slate-800/80 border border-sky-500/30 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-sky-400 flex items-center gap-1">
+                      <span>💡</span> 1. Câu Hỏi Khơi Gợi Quan Sát (Năng lực nhận thức):
+                    </span>
+                    <button
+                      onClick={() => handleSpeakSnippet(aiTips.inquiryQuestion)}
+                      className="text-[11px] font-bold text-sky-300 hover:text-white px-2 py-0.5 rounded bg-sky-600/30 hover:bg-sky-600 flex items-center gap-1"
+                    >
+                      <Volume2 className="w-3 h-3" /> Đọc cho lớp
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                    "{aiTips.inquiryQuestion}"
+                  </p>
+                </div>
+
+                {/* 2. Bí quyết mĩ thuật cô đọng */}
+                <div className="p-3 rounded-2xl bg-slate-800/80 border border-amber-500/30 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-amber-400 flex items-center gap-1">
+                      <span>🖌️</span> 2. Bí Quyết Mĩ Thuật Cô Đọng (Kĩ năng & Bố cục):
+                    </span>
+                    <button
+                      onClick={() => handleSpeakSnippet(aiTips.artTechniqueTip)}
+                      className="text-[11px] font-bold text-amber-300 hover:text-white px-2 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600 flex items-center gap-1"
+                    >
+                      <Volume2 className="w-3 h-3" /> Đọc cho lớp
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                    "{aiTips.artTechniqueTip}"
+                  </p>
+                </div>
+
+                {/* 3. Lời khích lệ thực hành */}
+                <div className="p-3 rounded-2xl bg-slate-800/80 border border-emerald-500/30 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-emerald-400 flex items-center gap-1">
+                      <span>🌟</span> 3. Lời Động Viên Sáng Tạo Tự Tin:
+                    </span>
+                    <button
+                      onClick={() => handleSpeakSnippet(aiTips.encouragement)}
+                      className="text-[11px] font-bold text-emerald-300 hover:text-white px-2 py-0.5 rounded bg-emerald-600/30 hover:bg-emerald-600 flex items-center gap-1"
+                    >
+                      <Volume2 className="w-3 h-3" /> Đọc cho lớp
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-200 leading-relaxed font-medium">
+                    "{aiTips.encouragement}"
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <span className="text-[10px] text-slate-400">
+                Chuẩn GDPT 2018 môn Mĩ thuật Tiểu học • Phím tắt [A]
+              </span>
+              <button
+                onClick={() => {
+                  if (aiTips) {
+                    const fullText = `${aiTips.inquiryQuestion}. ${aiTips.artTechniqueTip}. ${aiTips.encouragement}`;
+                    handleSpeakSnippet(fullText);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span>Đọc toàn bộ gợi ý</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          7. MODAL DANH MỤC PHÍM TẮT ĐỨNG LỚP (SHORTCUTS CHEAT SHEET)
+      ========================================================================= */}
+      {showShortcutsHelp && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-6 animate-in fade-in"
+          onClick={() => setShowShortcutsHelp(false)}
+        >
+          <div 
+            className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-5 text-white shadow-2xl space-y-3.5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="font-extrabold text-sm text-amber-400 flex items-center gap-1.5">
+                <span>⌨️</span> Phím Tắt Đứng Lớp Chuyên Dụng
+              </h3>
+              <button 
+                onClick={() => setShowShortcutsHelp(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold px-2 py-0.5 rounded hover:bg-slate-800"
+              >
+                ✕ Đóng
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Chuyển sang slide tiếp theo</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Space / Mũi tên phải</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Quay lại slide trước</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Mũi tên trái</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Tạm tắt màn hình (tập trung lớp)</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím B</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Mở bảng vẽ thị phạm nhanh</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím W</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Bật/Tắt thanh Đồng hồ 35 phút</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím T</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Mở Gợi ý Sư phạm AI</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím A</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Thoát trình chiếu / Đóng cửa sổ</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím Esc</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          8. GHI CHÚ LỜI GIẢNG SƯ PHẠM (NOTES OVERLAY)
+      ========================================================================= */}
       {showNotesOverlay && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 max-w-xl w-full bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-4 text-white shadow-2xl z-45 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
@@ -558,12 +1084,14 @@ export default function PresentationModal({
             </button>
           </div>
           <p className="mt-2.5 text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">
-            {currentSlide?.notes || '(Trang này chưa có ghi chú lời giảng riêng. Hệ thống sẽ đọc tiêu đề và nội dung chữ hiển thị trên slide)'}
+            {currentSlide?.notes || '(Trang này chưa có ghi chú riêng. Thầy/Cô có thể bấm ✨ Gợi Ý AI để lấy câu hỏi và bí quyết dạy học ngay nhé!)'}
           </p>
         </div>
       )}
 
-      {/* Modal Trò Chơi Nổi Trong Giờ Trình Chiếu */}
+      {/* =========================================================================
+          9. MODAL TRÒ CHƠI PHÓNG TO
+      ========================================================================= */}
       {showGameModal && (
         <div 
           className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in"
