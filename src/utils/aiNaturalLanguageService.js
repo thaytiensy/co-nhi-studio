@@ -80,6 +80,49 @@ export function extractCleanArtTopic(prompt) {
 /**
  * 1. Phân tích câu lệnh tự nhiên trong Xưởng Ý Tưởng (Hiểu sâu sắc toàn bộ ngữ cảnh)
  */
+
+/**
+ * Tự động ánh xạ câu lệnh của giáo viên với khung chương trình chuẩn SGK Kết nối tri thức Lớp 1 - Lớp 5
+ */
+export function resolveCurriculumTopic(prompt, grade = 1) {
+  const safeGrade = Number(grade) >= 1 && Number(grade) <= 5 ? Number(grade) : 1;
+  const gradeThemes = PEDAGOGY_BANK.themes[safeGrade] || [];
+  const lower = String(prompt || '').toLowerCase();
+
+  // 1. Nhận diện theo số thứ tự chủ đề / bài (ví dụ: "chủ đề 3 lớp 5", "bài 2 lớp 4", "cd 8")
+  const themeNumberMatch = lower.match(/(?:chủ\s*đề|bài|cd|tiết)(?:\s*số)?\s*([1-9]|10)\b/i);
+  if (themeNumberMatch) {
+    const themeIndex = parseInt(themeNumberMatch[1], 10);
+    const foundTheme = gradeThemes[themeIndex - 1];
+    if (foundTheme) {
+      return {
+        topic: foundTheme.title.replace(/^Chủ đề \d+:\s*/i, '').trim(),
+        genre: foundTheme.genre || detectArtGenre(foundTheme.title),
+        fullTitle: foundTheme.title,
+        curriculumMatch: true,
+      };
+    }
+  }
+
+  // 2. Nhận diện theo từ khóa đặc thù trong tên chủ đề SGK
+  for (const theme of gradeThemes) {
+    const cleanTitle = theme.title.replace(/^Chủ đề \d+:\s*/i, '').toLowerCase();
+    const coreKeywords = cleanTitle.split(/[\(\),&]/).map(k => k.trim()).filter(k => k.length >= 3);
+    for (const kw of coreKeywords) {
+      if (lower.includes(kw)) {
+        return {
+          topic: theme.title.replace(/^Chủ đề \d+:\s*/i, '').trim(),
+          genre: theme.genre || detectArtGenre(theme.title),
+          fullTitle: theme.title,
+          curriculumMatch: true,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 export function parseNaturalIdeaPrompt(rawPrompt) {
   const prompt = String(rawPrompt || '').trim();
   if (!prompt) {
@@ -174,15 +217,28 @@ export function parseNaturalIdeaPrompt(rawPrompt) {
     specialConditions.push('Hoạt động thực hành nhóm hợp tác');
   }
 
-  // 8. Trích xuất chủ đề cốt lõi tinh gọn & phân loại thể loại mĩ thuật
-  const topic = extractCleanArtTopic(prompt);
-  const genre = detectArtGenre(topic, prompt);
+  // 8. Trích xuất chủ đề cốt lõi & đối chiếu chuẩn SGK Kết nối tri thức
+  let topic = '';
+  let genre = 'general';
+  let curriculumRef = null;
+
+  const curriculumMatch = resolveCurriculumTopic(prompt, grade);
+  if (curriculumMatch) {
+    topic = curriculumMatch.topic;
+    genre = curriculumMatch.genre;
+    curriculumRef = curriculumMatch.fullTitle;
+    assumptions.push(`Tự động nhận diện chuẩn SGK Kết nối tri thức: ${curriculumMatch.fullTitle}`);
+  } else {
+    topic = extractCleanArtTopic(prompt);
+    genre = detectArtGenre(topic, prompt);
+  }
 
   return {
     prompt,
     grade,
     topic,
     genre,
+    curriculumRef,
     material,
     materialKey,
     duration,

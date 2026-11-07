@@ -355,7 +355,7 @@ export default function IdeaWorkshop({
     return t.charAt(0).toUpperCase() + t.slice(1);
   };
 
-  const generateArtworkForContext = async ({ topic, grade, materialKey, ideaId, count = 1, append = false }) => {
+  const generateArtworkForContext = async ({ topic, grade, materialKey, genre = 'general', ideaId, count = 1, append = false }) => {
     if (imageRequestRef.current) {
       pendingImageRequestRef.current = { topic, grade, materialKey, ideaId, count, append };
       return;
@@ -377,7 +377,7 @@ export default function IdeaWorkshop({
           ? `Gemini đang tạo tranh ${index + 1}/${safeCount} theo yêu cầu...`
           : `Gemini đang tạo tranh cho “${topic}”...`);
         try {
-          const url = await generateAiArtwork({ topic, grade, style: materialKey });
+          const url = await generateAiArtwork({ topic, grade, style: materialKey, genre });
           generatedItems.push({
             id: `art-${Date.now()}-${index}-${Math.floor(Math.random() * 999999)}`,
             url,

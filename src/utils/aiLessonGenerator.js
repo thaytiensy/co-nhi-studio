@@ -158,22 +158,102 @@ async function imageBlobToDataUrl(blob) {
   return URL.createObjectURL(blob);
 }
 
-export async function generateAiArtwork({ topic, grade, style, seed = null }, fetchImpl = globalThis.fetch, tokenProvider) {
+
+export function buildEnglishArtSubject(topic, genre = 'general') {
+  const text = String(topic || '').toLowerCase();
+
+  // Gia đình / Con người
+  if (/gia\s*đình|bố\s*mẹ|cha\s*mẹ|ông\s*bà|bữa\s*cơm|sum\s*họp|người\s*thân/i.test(text)) {
+    return 'happy Asian family with loving parents and children smiling together at home, cute family dinner';
+  }
+  if (/thầy|cô|giáo\s*viên|bục\s*giảng|bụi\s*phấn/i.test(text)) {
+    return 'friendly smiling Asian teacher and cute students in colorful classroom, primary school teacher';
+  }
+  if (/chân\s*dung|bạn\s*bè|gương\s*mặt|khuôn\s*mặt|nụ\s*cười/i.test(text)) {
+    return 'charming smiling face portrait of cute Asian elementary school child, happy expression';
+  }
+  if (/bộ\s*đội|anh\s*hùng|hải\s*quân|chú\s*công\s*an|bác\s*sĩ|lao\s*công/i.test(text)) {
+    return 'brave Vietnamese soldier or kind policeman or dedicated doctor, heroic friendly figure';
+  }
+  if (/an\s*toàn\s*giao\s*thông|qua\s*đường|đèn\s*giao\s*thông/i.test(text)) {
+    return 'children walking safely on crosswalk with traffic lights and stop sign, traffic safety art';
+  }
+  if (/hòa\s*bình|chim\s*bồ\s*câu|trẻ\s*em\s*năm\s*châu|trái\s*đất/i.test(text)) {
+    return 'white peace dove flying with olive branch, diverse children holding hands around green earth';
+  }
+
+  // Động vật
+  if (/mèo|chó|thú\s*cưng/i.test(text)) {
+    return 'cute playful kitten cat and puppy dog with big eyes playing in flower garden';
+  }
+  if (/cá|đại\s*dương|biển|thủy\s*cung|rùa|san\s*hô/i.test(text)) {
+    return 'colorful tropical fish swimming in clear blue ocean water with starfish and sea coral';
+  }
+  if (/chim|bướm|ong|côn\s*trùng/i.test(text)) {
+    return 'colorful butterflies fluttering around blooming sunflowers, singing little bird on tree';
+  }
+  if (/gà|trâu|voi|thỏ|động\s*vật|con\s*vật/i.test(text)) {
+    return 'cute farm animals, baby rooster, rabbit, friendly water buffalo in sunny meadow';
+  }
+
+  // Phong cảnh
+  if (/hoàng\s*hôn|bình\s*minh|biển|sóng/i.test(text)) {
+    return 'peaceful ocean beach sunset with warm orange and pink sky, gentle waves, coconut palm trees';
+  }
+  if (/làng\s*quê|đồng\s*lúa|cánh\s*đồng|cây\s*đa|bến\s*nước|dòng\s*sông/i.test(text)) {
+    return 'peaceful Vietnamese countryside village, yellow ripe rice fields, river and thatched cottage';
+  }
+  if (/ngôi\s*nhà|nhà\s*của\s*em|mái\s*nhà/i.test(text)) {
+    return 'sweet colorful dream house with red roof, chimney, sunny garden with blooming flowers and rainbow';
+  }
+  if (/trường|sân\s*trường|lớp\s*học|giờ\s*ra\s*chơi/i.test(text)) {
+    return 'lively elementary school yard during recess, children playing jump rope under shady trees';
+  }
+
+  // Tĩnh vật & Hoa quả
+  if (/hoa|quả|trái\s*cây|lọ\s*hoa|tĩnh\s*vật|đĩa\s*quả/i.test(text)) {
+    return 'still life of fresh fruits like watermelon, red apple, yellow banana and colorful flower vase on table';
+  }
+
+  // Thủ công & Đồ họa
+  if (/poster|cổ\s*động|chữ\s*trang\s*trí|môi\s*trường/i.test(text)) {
+    return 'colorful hand-drawn environmental poster, planting green trees, protecting Mother Earth';
+  }
+  if (/đồ\s*chơi|robot|lâu\s*đài/i.test(text)) {
+    return 'cute handmade toy robot and fantasy fairy tale castle, playful kids craft';
+  }
+
+  // Fallback theo genre
+  if (genre === 'portrait_human') return 'happy Asian children and loving family members, cute human portrait';
+  if (genre === 'animals') return 'cute friendly animal in nature, colorful childish art';
+  if (genre === 'landscape') return 'beautiful vibrant nature landscape with sun, trees and hills';
+  if (genre === 'still_life') return 'colorful still life vase of flowers and juicy fruits';
+  if (genre === 'craft_applied') return 'colorful handmade paper collage and craft art';
+
+  return 'cheerful colorful primary school art depicting: ' + topic;
+}
+
+export async function generateAiArtwork({ topic, grade, style, genre = 'general', seed = null }, fetchImpl = globalThis.fetch, tokenProvider) {
   const cleanTopic = String(topic || '').trim().slice(0, 500);
   if (!cleanTopic) throw new Error('Vui lòng nhập hoặc chọn chủ đề trước khi tạo tranh.');
   const safeGrade = /^[1-5]$/.test(String(grade)) ? String(grade) : '1';
   const safeStyle = ['crayon', 'watercolor', 'paper', 'clay', 'recycled'].includes(style) ? style : 'crayon';
 
-  // Xây dựng prompt thị giác chuẩn mĩ thuật tiểu học bám sát nội dung đã nhập
-  const styleDescriptions = {
-    crayon: 'tranh vẽ sáp màu ngây thơ tươi sáng, nét sáp dầu đậm đà của học sinh tiểu học Việt Nam',
-    watercolor: 'tranh vẽ màu nước trong trẻo, mảng màu mềm mại nghệ thuật, loang màu nhẹ nhàng',
-    paper: 'tranh xé dán giấy màu thủ công, các mảng giấy ghép nhiều lớp, phong cách cắt dán sinh động',
-    clay: 'tác phẩm tạo hình đất nặn sinh động, khối 3D thủ công đắp nổi trên nền giấy',
-    recycled: 'tranh ghép sáng tạo từ vật liệu tự nhiên lá cây, que kem, vỏ hộp tái chế an toàn'
+  // Xây dựng mô tả thị giác chuyên sâu bằng tiếng Anh kết hợp phong cách chất liệu thiếu nhi
+  const englishSubject = buildEnglishArtSubject(cleanTopic, genre);
+
+  const stylePrompts = {
+    crayon: 'authentic naive child crayon drawing on white paper, vibrant wax pastel strokes, hand-drawn by Vietnamese elementary student, paper texture visible',
+    watercolor: 'whimsical child watercolor painting on rough paper, soft translucent colorful watercolor washes, naive primary school art',
+    paper: 'colorful handmade paper collage art, layered cut construction paper craft, naive shapes, charming scissors craft for kids',
+    clay: 'cute handcrafted plasticine modeling clay art, 3D clay figures on paper background, colorful playdough creation by child',
+    recycled: 'creative eco-friendly collage art made from autumn leaves, paper cups, buttons and recycled crafts by kid',
   };
-  const stylePrompt = styleDescriptions[safeStyle] || 'tranh vẽ mĩ thuật học sinh tiểu học Việt Nam';
-  const imagePrompt = `Tranh vẽ mĩ thuật học sinh tiểu học Việt Nam lớp ${safeGrade}: ${cleanTopic}, chất liệu ${stylePrompt}, khung cảnh sinh động ấm áp, hình vẽ rõ ràng ở trung tâm, màu sắc tươi sáng, tỉ lệ 16:9, không chữ, không số, không watermark, tranh vẽ tay hồn nhiên`;
+
+  const stylePrefix = stylePrompts[safeStyle] || stylePrompts.crayon;
+
+  // Prompt kết hợp chặt chẽ chủ đề tiếng Việt và đặc tả thị giác tiếng Anh, loại trừ tuyệt đối ảnh thực tế và xe cộ
+  const imagePrompt = `${stylePrefix}, cute naive artwork of ${cleanTopic} (${englishSubject}), vibrant cheerful colors, centered composition, charming innocence of children art, masterpiece primary school artwork, no realistic photography, no 3D computer render, no cars, no automobiles, no modern vehicles, no adult style, no text, no watermark`;
 
   const randomSeed = seed !== null ? seed : Math.floor(Math.random() * 1000000);
   const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=576&nologo=true&seed=${randomSeed}`;

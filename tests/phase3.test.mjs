@@ -362,5 +362,14 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
     assert.equal(p3.grade, 3);
     assert.equal(p3.genre, 'portrait_human');
     assert.match(p3.topic.toLowerCase(), /gia đình/i);
+
+    // 4. Ánh xạ trực tiếp Chủ đề chuẩn SGK Kết nối tri thức (Ví dụ người dùng: "chủ đề 3 lớp 5")
+    const p4 = parseNaturalIdeaPrompt('chủ đề 3 lớp 5');
+    assert.equal(p4.grade, 5);
+    assert.equal(p4.genre, 'portrait_human');
+    assert.match(p4.topic.toLowerCase(), /gia đình/i);
+    assert.ok(p4.curriculumRef && p4.curriculumRef.includes('Gia đình'));
+    const plan4 = buildLocalPedagogyPlan(p4);
+    assert.match(plan4.teachingProcess[1].fourSteps[0], /trục|nhân vật|dáng/i);
   });
 });
