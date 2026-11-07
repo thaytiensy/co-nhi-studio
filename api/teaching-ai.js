@@ -394,6 +394,16 @@ export default async function handler(req, res) {
   const { GEMINI_API_KEY, VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID } = process.env;
   const effectiveApiKey = (typeof input?.apiKey === 'string' && input.apiKey.startsWith('AIzaSy')) ? input.apiKey.trim() : GEMINI_API_KEY;
   if (!effectiveApiKey || !VITE_FIREBASE_API_KEY || !VITE_FIREBASE_PROJECT_ID) return json(res, 503, { error: CONFIG_ERROR });
+
+  if (input?.mode === 'debug_models') {
+    try {
+      const resModels = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(effectiveApiKey)}`);
+      const data = await resModels.json();
+      return json(res, 200, { models: data.models?.map(m => m.name) || data });
+    } catch (e) {
+      return json(res, 500, { error: e.message });
+    }
+  }
   const validTextRequest = ['lesson', 'text'].includes(input?.mode)
     && typeof input.prompt === 'string' && input.prompt.trim().length > 0 && input.prompt.length <= 8000;
   const validImageRequest = input?.mode === 'image'
