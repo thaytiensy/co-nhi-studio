@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { generateAiArtwork, generateAiLesson } from '../../utils/aiLessonGenerator';
+import { generateNaturalIdeaLesson, parseNaturalIdeaPrompt } from '../../utils/aiNaturalLanguageService';
 
 const MATERIALS = [
   { id: 'crayon', name: 'Sáp màu / Chì màu', icon: '🖍️' },
@@ -315,6 +316,12 @@ export default function IdeaWorkshop({
   const [selectedMaterial, setSelectedMaterial] = useState('crayon');
   const [selectedDuration, setSelectedDuration] = useState(35);
 
+  // Chế độ câu lệnh tự nhiên AI (Giai đoạn 3)
+  const [workshopMode, setWorkshopMode] = useState('natural'); // 'natural' | 'form'
+  const [naturalPrompt, setNaturalPrompt] = useState('Tạo kế hoạch dạy vẽ ngôi nhà cho lớp 2, thời lượng 35 phút, dùng sáp màu, có phần khởi động vui.');
+  const [naturalAnalysis, setNaturalAnalysis] = useState(null);
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
+
   const [ideaResult, setIdeaResult] = useState(null);
   const [generatedArtworkUrl, setGeneratedArtworkUrl] = useState('');
   const [artworkGallery, setArtworkGallery] = useState([]);
@@ -593,6 +600,78 @@ export default function IdeaWorkshop({
     }
   };
 
+  // Xử lý tạo kế hoạch bài dạy bằng Câu lệnh tự nhiên AI (Giai đoạn 3)
+  const handleGenerateNaturalPrompt = async (promptOverride = null) => {
+    const promptText = promptOverride || naturalPrompt;
+    if (!promptText.trim()) return;
+    setIsAiGenerating(true);
+    setAiGeneratingStatus('Đang phân tích câu lệnh & thiết kế bài dạy GDPT 2018...');
+    try {
+      const result = await generateNaturalIdeaLesson({
+        prompt: promptText,
+        isOnline: navigator.onLine
+      });
+      setNaturalAnalysis(result.parsedParams);
+      setSelectedGrade(result.parsedParams.grade);
+      setSelectedMaterial(result.parsedParams.materialKey);
+      
+      const plan = result.plan;
+      const newIdea = {
+        id: `idea-nat-${Date.now()}`,
+        grade: result.parsedParams.grade,
+        themeTitle: result.parsedParams.topic,
+        lessonTitle: plan.lessonTitle,
+        material: result.parsedParams.material,
+        materialKey: result.parsedParams.materialKey,
+        duration: result.parsedParams.duration,
+        studentLevel: result.parsedParams.studentLevel,
+        specialConditions: result.parsedParams.specialConditions,
+        safetyAlert: result.parsedParams.safetyAlert,
+        assumptions: result.parsedParams.assumptions,
+        objectives: plan.objectives,
+        materialsNeeded: plan.materialsNeeded,
+        teachingProcess: plan.teachingProcess,
+        rubricCriteria: plan.rubricCriteria,
+        isCustom: true,
+        sourceDescription: result.source
+      };
+      setIdeaResult(newIdea);
+      ideaResultRef.current = newIdea;
+
+      // Tự động tạo tranh minh họa
+      void generateArtworkForContext({
+        topic: result.parsedParams.topic,
+        grade: result.parsedParams.grade,
+        materialKey: result.parsedParams.materialKey,
+        ideaId: newIdea.id
+      });
+    } catch (err) {
+      alert('Không thể tạo kế hoạch: ' + err.message);
+    } finally {
+      setIsAiGenerating(false);
+      setAiGeneratingStatus('');
+    }
+  };
+
+  // Cập nhật trường nội dung khi giáo viên chỉnh sửa kế hoạch
+  const handleUpdatePlanField = (field, value, subfield = null) => {
+    if (!ideaResult) return;
+    if (subfield) {
+      setIdeaResult(prev => ({
+        ...prev,
+        [field]: {
+          ...prev[field],
+          [subfield]: value
+        }
+      }));
+    } else {
+      setIdeaResult(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+
   // Tự động khởi tạo ngay khi mở Xưởng Ý Tưởng để không bao giờ bị trống
   useEffect(() => {
     handleGenerateIdea(null, null, { generateArtwork: false, generatePlan: false });
@@ -695,11 +774,142 @@ export default function IdeaWorkshop({
             <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-1.5">
               <Info className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-900 leading-tight">
-                Khi bấm tạo ý tưởng, chủ đề, khối lớp, chất liệu và thời lượng được gửi tới Gemini để soạn kế hoạch và tranh minh họa. Không gửi ảnh tải lên hoặc dữ liệu cá nhân; thao tác AI dùng hạn mức Gemini của ứng dụng.
+                Khi bấm tạo ý tưởng, chủ đề, khối lớp, chất liệu và thời lượng được phân tích để soạn kế hoạch và tranh minh họa. Thao tác an toàn, không gửi ảnh học sinh.
               </p>
+            </div>
+
+            {/* BỘ CHỌN CHẾ ĐỘ: CÂU LỆNH TỰ NHIÊN AI (GIAI ĐOẠN 3) VS BIỂU MẪU NHANH */}
+            <div className="mt-3 flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setWorkshopMode('natural')}
+                className={`flex-1 py-1.5 text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  workshopMode === 'natural'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>💬 Câu Lệnh Tự Nhiên AI</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkshopMode('form')}
+                className={`flex-1 py-1.5 text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  workshopMode === 'form'
+                    ? 'bg-white text-slate-800 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>📋 Biểu Mẫu Nhanh</span>
+              </button>
             </div>
           </div>
 
+          {/* CHẾ ĐỘ 1: NHẬP CÂU LỆNH TỰ NHIÊN BẰNG AI */}
+          {workshopMode === 'natural' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div>
+                <label className="text-xs font-black text-slate-700 block mb-1.5 flex items-center justify-between">
+                  <span>Nhập Yêu Cầu Bài Học Bằng Tiếng Việt Tự Do:</span>
+                  <span className="text-[10px] text-amber-700 font-bold">✨ AI Tự Hiểu Ngữ Nghĩa</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={naturalPrompt}
+                  onChange={(e) => setNaturalPrompt(e.target.value)}
+                  placeholder="Ví dụ: Tạo kế hoạch dạy vẽ ngôi nhà cho lớp 2, thời lượng 35 phút, dùng sáp màu, có phần khởi động vui..."
+                  className="w-full p-3 text-xs text-slate-800 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium leading-relaxed shadow-2xs"
+                />
+
+                {/* Các Câu Lệnh Mẫu 1 Chạm */}
+                <div className="mt-2 space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-500 block">Ví dụ gợi ý (Bấm 1 chạm để thử ngay):</span>
+                  <div className="flex flex-col gap-1.5">
+                    {[
+                      { icon: '🏠', text: 'Tạo kế hoạch dạy vẽ ngôi nhà cho lớp 2, thời lượng 35 phút, dùng sáp màu, có phần khởi động vui.' },
+                      { icon: '🌸', text: 'Tạo bài học xé dán vườn hoa cho lớp 3, phù hợp học sinh yếu, gồm 4 bước thực hành.' },
+                      { icon: '🐾', text: 'Tạo giáo án 2 tiết về con vật quanh em, có trò chơi khởi động và hoạt động trưng bày.' },
+                      { icon: '✂️', text: 'Tạo một hoạt động đơn giản cho lớp 1, không dùng kéo và không dùng vật liệu nguy hiểm.' },
+                      { icon: '🚀', text: 'Biến ý tưởng vũ trụ tương lai thành 5 slide cho lớp 5, mỗi slide có lời giảng ngắn và câu hỏi gợi mở.' }
+                    ].map((sug, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setNaturalPrompt(sug.text);
+                          handleGenerateNaturalPrompt(sug.text);
+                        }}
+                        className="text-left px-2.5 py-1.5 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 border border-slate-200 rounded-lg text-[11px] text-slate-700 flex items-start gap-1.5 transition-all cursor-pointer active:scale-98"
+                      >
+                        <span className="shrink-0">{sug.icon}</span>
+                        <span className="line-clamp-2">{sug.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleGenerateNaturalPrompt()}
+                  disabled={isAiGenerating || !naturalPrompt.trim()}
+                  className="mt-3.5 w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md shadow-amber-200 flex items-center justify-center gap-2 transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 fill-white" />
+                  <span>{isAiGenerating ? 'Đang phân tích & thiết kế...' : '⚡ Tạo Kế Hoạch & Tranh AI Theo Câu Lệnh'}</span>
+                </button>
+              </div>
+
+              {/* BẢNG PHÂN TÍCH THAM SỐ ĐÃ NHẬN DIỆN */}
+              {naturalAnalysis && (
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2 text-xs animate-in fade-in">
+                  <div className="font-bold text-amber-900 flex items-center gap-1.5 pb-1 border-b border-amber-200/60">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Kết Quả Nhận Diện Yêu Cầu Của Thầy/Cô:</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <div className="bg-white p-1.5 rounded-md border border-amber-100">
+                      <span className="text-slate-400 block text-[9px] font-bold">KHỐI LỚP</span>
+                      <span className="font-extrabold text-amber-900">Lớp {naturalAnalysis.grade}</span>
+                    </div>
+                    <div className="bg-white p-1.5 rounded-md border border-amber-100">
+                      <span className="text-slate-400 block text-[9px] font-bold">THỜI LƯỢNG</span>
+                      <span className="font-extrabold text-amber-900">{naturalAnalysis.duration}</span>
+                    </div>
+                    <div className="bg-white p-1.5 rounded-md border border-amber-100 col-span-2">
+                      <span className="text-slate-400 block text-[9px] font-bold">CHỦ ĐỀ CHÍNH</span>
+                      <span className="font-bold text-slate-800">{naturalAnalysis.topic}</span>
+                    </div>
+                    <div className="bg-white p-1.5 rounded-md border border-amber-100">
+                      <span className="text-slate-400 block text-[9px] font-bold">CHẤT LIỆU</span>
+                      <span className="font-bold text-slate-800">{naturalAnalysis.material}</span>
+                    </div>
+                    <div className="bg-white p-1.5 rounded-md border border-amber-100">
+                      <span className="text-slate-400 block text-[9px] font-bold">ĐỐI TƯỢNG</span>
+                      <span className="font-bold text-slate-800">{naturalAnalysis.studentLevel}</span>
+                    </div>
+                  </div>
+
+                  {/* Cảnh Báo An Toàn (Nếu có vật liệu nguy hiểm trong câu lệnh) */}
+                  {naturalAnalysis.safetyAlert && (
+                    <div className="p-2 bg-rose-50 border border-rose-300 rounded-lg text-rose-800 text-[11px] font-medium leading-tight">
+                      ⚠️ {naturalAnalysis.safetyAlert}
+                    </div>
+                  )}
+
+                  {/* Giả định mặc định */}
+                  {naturalAnalysis.assumptions?.length > 0 && (
+                    <div className="text-[10px] text-amber-800/80 pt-1">
+                      ℹ️ Giả định tự động: {naturalAnalysis.assumptions.join(' • ')}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CHẾ ĐỘ 2: BIỂU MẪU NHANH (GIỮ NGUYÊN) */}
+          {workshopMode === 'form' && (
+            <div className="space-y-4 animate-in fade-in">
           {/* 1. Select Grade */}
           <div>
             <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -922,6 +1132,8 @@ export default function IdeaWorkshop({
               </div>
             )}
           </div>
+            </div>
+          )}
         </div>
 
         {/* Active Context Banner & Generate Button */}

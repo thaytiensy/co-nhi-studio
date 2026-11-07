@@ -1,0 +1,232 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  parseNaturalIdeaPrompt,
+  parseNaturalGamePrompt,
+  validateAiLessonPlan,
+  validateAiGamePackage,
+  generateNaturalIdeaLesson,
+  generateNaturalArtGame
+} from '../src/utils/aiNaturalLanguageService.js';
+
+describe('Giai đoạn 3 - Phân tích Câu Lệnh Tự Nhiên & Kiểm soát An Toàn (AI Prompt Parsing)', () => {
+  it('1. Trích xuất chính xác tham số từ các câu lệnh tự nhiên trong Xưởng Ý Tưởng', () => {
+    // Trường hợp 1: Lớp 2, sáp màu, 35 phút, khởi động vui
+    const p1 = parseNaturalIdeaPrompt('Tạo kế hoạch dạy vẽ ngôi nhà cho lớp 2, thời lượng 35 phút, dùng sáp màu, có phần khởi động vui.');
+    assert.equal(p1.grade, 2);
+    assert.equal(p1.duration, '35 phút (1 tiết)');
+    assert.equal(p1.materialKey, 'crayon');
+    assert.match(p1.topic.toLowerCase(), /ngôi nhà/);
+    assert.ok(p1.specialConditions.some(c => c.includes('khởi động')));
+
+    // Trường hợp 2: Lớp 3, xé dán, học sinh yếu, 4 bước
+    const p2 = parseNaturalIdeaPrompt('Tạo bài học xé dán vườn hoa cho lớp 3, phù hợp học sinh yếu, gồm 4 bước thực hành.');
+    assert.equal(p2.grade, 3);
+    assert.equal(p2.materialKey, 'paper');
+    assert.match(p2.studentLevel, /trợ giúp|dễ hiểu/i);
+    assert.match(p2.topic.toLowerCase(), /vườn hoa/);
+
+    // Trường hợp 3: 2 tiết, con vật quanh em, có trưng bày
+    const p3 = parseNaturalIdeaPrompt('Tạo giáo án 2 tiết về con vật quanh em, có trò chơi khởi động và hoạt động trưng bày.');
+    assert.equal(p3.periods, 2);
+    assert.equal(p3.duration, '70 phút (2 tiết)');
+    assert.match(p3.topic.toLowerCase(), /con vật/);
+    assert.ok(p3.specialConditions.some(c => c.includes('trưng bày')));
+
+    // Trường hợp 4: Lớp 1, không dùng kéo
+    const p4 = parseNaturalIdeaPrompt('Tạo một hoạt động đơn giản cho lớp 1, không dùng kéo và không dùng vật liệu nguy hiểm.');
+    assert.equal(p4.grade, 1);
+    assert.ok(p4.specialConditions.some(c => c.includes('Không dùng kéo')));
+  });
+
+  it('2. Phát hiện và cảnh báo vật liệu nguy hiểm trong câu lệnh tự nhiên', () => {
+    const dangerousPrompt = 'Dạy làm mô hình lớp 4 dùng dao rọc giấy và súng bắn keo nóng';
+    const parsed = parseNaturalIdeaPrompt(dangerousPrompt);
+    assert.ok(parsed.safetyAlert.length > 0, 'Phải có cảnh báo an toàn');
+    assert.match(parsed.safetyAlert, /CẢNH BÁO AN TOÀN TIỂU HỌC/);
+    assert.match(parsed.safetyAlert, /dao rọc giấy/);
+    assert.match(parsed.safetyAlert, /súng bắn keo/);
+  });
+
+  it('3. Trích xuất chính xác tham số từ các câu lệnh tự nhiên trong Trò Chơi Mĩ Thuật', () => {
+    // Trường hợp 1: Màu nóng lạnh lớp 2, 5 phút
+    const g1 = parseNaturalGamePrompt('Tạo trò chơi 5 phút về màu nóng và màu lạnh cho lớp 2.');
+    assert.equal(g1.grade, 2);
+    assert.equal(g1.duration, '5 phút');
+    assert.equal(g1.gameType, 'color');
+    assert.match(g1.topic.toLowerCase(), /màu nóng|màu lạnh/);
+
+    // Trường hợp 2: Đoán hình khối lớp 1, 8 câu
+    const g2 = parseNaturalGamePrompt('Tạo trò chơi đoán hình khối cho lớp 1, gồm 8 câu hỏi.');
+    assert.equal(g2.grade, 1);
+    assert.equal(g2.questionCount, 8);
+    assert.equal(g2.gameType, 'shape');
+
+    // Trường hợp 3: Tranh Đông Hồ lớp 4
+    const g3 = parseNaturalGamePrompt('Tạo trò chơi theo chủ đề tranh Đông Hồ cho lớp 4.');
+    assert.equal(g3.grade, 4);
+    assert.equal(g3.gameType, 'detail');
+    assert.match(g3.topic.toLowerCase(), /đông hồ/);
+
+    // Trường hợp 4: Chơi theo nhóm
+    const g4 = parseNaturalGamePrompt('Tạo trò chơi nhóm, không cần đăng nhập học sinh, có tính điểm.');
+    assert.match(g4.playMode, /tổ|nhóm/i);
+  });
+});
+
+describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò chơi (Validation & Engine)', () => {
+  it('4. Schema Validator kế hoạch bài dạy từ chối dữ liệu thiếu trường cốt lõi', () => {
+    const validPlan = {
+      lessonTitle: 'Bài Học: Vẽ Ngôi Nhà Của Em',
+      objectives: {
+        knowledge: 'Nhận biết hình tam giác, hình vuông',
+        skills: 'Phác nét và tô màu đều tay',
+        qualities: 'Yêu thương gia đình'
+      },
+      materialsNeeded: {
+        teacher: 'Tranh mẫu',
+        student: 'Sáp màu, giấy A4'
+      },
+      teachingProcess: [
+        { name: 'Khởi động', activity: 'Hát bài hát ngôi nhà' },
+        { name: 'Khám phá', activity: 'Quan sát các kiểu nhà' },
+        { name: 'Thực hành', activity: 'Vẽ ngôi nhà mơ ước' },
+        { name: 'Trưng bày', activity: 'Chia sẻ cảm nhận' }
+      ],
+      rubricCriteria: [
+        'Đúng chủ đề',
+        'Hình khối rõ ràng',
+        'Màu sắc tươi sáng'
+      ]
+    };
+
+    assert.equal(validateAiLessonPlan(validPlan), true);
+
+    // Thiếu mục tiêu kĩ năng -> bị từ chối
+    assert.throws(() => {
+      validateAiLessonPlan({
+        ...validPlan,
+        objectives: { knowledge: 'Biết hình khối', qualities: 'Chăm chỉ' }
+      });
+    }, /Mục tiêu bài dạy phải có đủ/);
+
+    // Chỉ có 3 hoạt động -> bị từ chối vì GDPT 2018 yêu cầu đủ 4 hoạt động
+    assert.throws(() => {
+      validateAiLessonPlan({
+        ...validPlan,
+        teachingProcess: validPlan.teachingProcess.slice(0, 3)
+      });
+    }, /phải có đủ ít nhất 4 hoạt động/);
+  });
+
+  it('5. Schema Validator trò chơi từ chối câu hỏi thiếu phương án hoặc sai đáp án', () => {
+    const validGame = {
+      gameTitle: 'Trò Chơi Sắc Màu Lớp 1',
+      grade: 1,
+      durationMinutes: 5,
+      objectives: 'Phân biệt màu cơ bản',
+      questions: [
+        {
+          id: 'q1',
+          question: 'Màu nào sau đây là màu cơ bản?',
+          options: ['Đỏ', 'Cam', 'Tím', 'Nâu'],
+          correctAnswer: 0,
+          explanation: 'Đỏ là màu cơ bản.'
+        },
+        {
+          id: 'q2',
+          question: 'Pha Đỏ với Vàng tạo thành màu gì?',
+          options: ['Cam', 'Tím', 'Xanh', 'Nâu'],
+          correctAnswer: 0,
+          explanation: 'Tạo thành màu cam.'
+        }
+      ]
+    };
+
+    assert.equal(validateAiGamePackage(validGame), true);
+
+    // Câu hỏi chỉ có 3 phương án -> từ chối
+    assert.throws(() => {
+      validateAiGamePackage({
+        ...validGame,
+        questions: [
+          {
+            id: 'bad-q',
+            question: 'Câu hỏi lỗi?',
+            options: ['A', 'B', 'C'],
+            correctAnswer: 0,
+            explanation: 'Giải thích'
+          },
+          validGame.questions[1]
+        ]
+      });
+    }, /chính xác 4 phương án lựa chọn/);
+
+    // Đáp án đúng ngoài dải [0, 3] -> từ chối
+    assert.throws(() => {
+      validateAiGamePackage({
+        ...validGame,
+        questions: [
+          {
+            ...validGame.questions[0],
+            correctAnswer: 5
+          },
+          validGame.questions[1]
+        ]
+      });
+    }, /nằm trong dải \[0, 3\]/);
+  });
+
+  it('6. Sinh kế hoạch tự nhiên ở chế độ ngoại tuyến trả về bản xem trước GDPT 2018 đầy đủ', async () => {
+    const result = await generateNaturalIdeaLesson({
+      prompt: 'Tạo bài học vẽ ngôi nhà cho lớp 2 dùng sáp màu 35 phút',
+      isOnline: false
+    });
+
+    assert.equal(result.isAiGenerated, false);
+    assert.ok(result.plan);
+    assert.match(result.plan.lessonTitle, /NGÔI NHÀ/i);
+    assert.equal(result.plan.teachingProcess.length, 4);
+    assert.equal(result.parsedParams.grade, 2);
+    assert.equal(validateAiLessonPlan(result.plan), true);
+  });
+
+  it('7. Sinh trò chơi tự nhiên trả về bộ câu hỏi hợp lệ có thể chơi hoặc chèn vào slide', async () => {
+    const result = await generateNaturalArtGame({
+      prompt: 'Tạo trò chơi 5 phút về màu nóng màu lạnh cho lớp 2',
+      isOnline: false
+    });
+
+    assert.ok(result.gamePackage);
+    assert.equal(result.gamePackage.grade, 2);
+    assert.ok(result.gamePackage.questions.length >= 2);
+    assert.equal(validateAiGamePackage(result.gamePackage), true);
+  });
+
+  it('8. Xử lý an toàn khi API AI lỗi: Tự động dự phòng về ngân hàng sư phạm mà không crash app', async () => {
+    // Giả lập fetch ném lỗi mạng 502 Bad Gateway
+    const failingFetch = async () => {
+      throw new Error('Dịch vụ AI tạm thời gián đoạn (502 Bad Gateway)');
+    };
+
+    const mockTokenProvider = async () => 'mock-jwt-token';
+
+    const result = await generateNaturalIdeaLesson(
+      {
+        prompt: 'Tạo bài học xé dán con cá cho lớp 1',
+        isOnline: true
+      },
+      {
+        fetchImpl: failingFetch,
+        tokenProvider: mockTokenProvider
+      }
+    );
+
+    // Hệ thống tự động kích hoạt fallback cục bộ, bảo vệ trải nghiệm của giáo viên
+    assert.equal(result.isAiGenerated, false);
+    assert.ok(result.plan);
+    assert.match(result.plan.lessonTitle, /CON CÁ/i);
+    assert.match(result.source, /Dự phòng tự động/);
+    assert.equal(validateAiLessonPlan(result.plan), true);
+  });
+});

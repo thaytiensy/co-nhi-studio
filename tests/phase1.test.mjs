@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import {
   validateSlideElement,
   validateSlide,
-  validateProjectData,
   parseAndValidateProjectJson,
   saveProjectToLocal,
   loadProjectFromLocal,

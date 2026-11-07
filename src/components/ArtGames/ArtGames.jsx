@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ART_CURRICULUM_THEMES, generateGameQuestionsByTheme } from '../../data/artGamesCurriculumBank';
+import { generateNaturalArtGame, parseNaturalGamePrompt } from '../../utils/aiNaturalLanguageService';
 
 const DEFAULT_GAMES = {
   // Game 1: Color Mixing & Matching
@@ -254,6 +255,33 @@ export default function ArtGames({
       setSelectedCurriculumTheme('');
     } else {
       setCustomThemeInput('Sắc Màu Quanh Em');
+    }
+  };
+
+  // Xử lý tạo trò chơi bằng câu lệnh tự nhiên AI (Giai đoạn 3)
+  const handleGenerateNaturalGame = async (promptOverride = null) => {
+    const promptText = promptOverride || naturalGamePrompt;
+    if (!promptText.trim()) return;
+    setIsAiGeneratingGame(true);
+    try {
+      const result = await generateNaturalArtGame({
+        prompt: promptText,
+        isOnline: navigator.onLine
+      });
+      setNaturalGameAnalysis(result.parsedParams);
+      setCustomQuestions(result.gamePackage.questions);
+      setCustomGameTitle(result.gamePackage.gameTitle);
+      setGenGrade(result.parsedParams.grade);
+      setActiveGameTab('custom');
+      setIsEditingQuestions(true); // Tự động mở khung chỉnh sửa để giáo viên xem trước & duyệt từng câu
+      setIsGeneratorOpen(false);
+      handleRestart();
+      setGenerationToast(`🎉 Đã tạo thành công "${result.gamePackage.gameTitle}"! Thầy/Cô có thể xem trước & chỉnh sửa bên dưới.`);
+      setTimeout(() => setGenerationToast(''), 5000);
+    } catch (err) {
+      alert('Không thể tạo trò chơi: ' + err.message);
+    } finally {
+      setIsAiGeneratingGame(false);
     }
   };
 
@@ -728,6 +756,90 @@ export default function ArtGames({
 
             {/* Modal Body */}
             <div className="py-4 space-y-4">
+              {/* BỘ CHỌN CHẾ ĐỘ: CÂU LỆNH TỰ NHIÊN AI VS CHỌN NHANH SGK */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setGameGeneratorMode('natural')}
+                  className={`flex-1 py-1.5 text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    gameGeneratorMode === 'natural'
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>💬 Câu Lệnh Tự Nhiên AI</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGameGeneratorMode('form')}
+                  className={`flex-1 py-1.5 text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    gameGeneratorMode === 'form'
+                      ? 'bg-white text-slate-800 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>📋 Chọn Nhanh Theo SGK</span>
+                </button>
+              </div>
+
+              {/* CHẾ ĐỘ 1: NHẬP CÂU LỆNH TỰ NHIÊN */}
+              {gameGeneratorMode === 'natural' && (
+                <div className="space-y-3.5 animate-in fade-in">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 mb-1">
+                      Nhập Yêu Cầu Trò Chơi (Tự Do Bằng Tiếng Việt):
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={naturalGamePrompt}
+                      onChange={(e) => setNaturalGamePrompt(e.target.value)}
+                      placeholder="Ví dụ: Tạo trò chơi 5 phút về màu nóng và màu lạnh cho lớp 2..."
+                      className="w-full p-2.5 text-xs text-slate-800 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium leading-relaxed"
+                    />
+
+                    {/* Ví Dụ Câu Lệnh Mẫu 1 Chạm */}
+                    <div className="mt-2 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-500 block">Ví dụ gợi ý (Bấm để thử ngay):</span>
+                      <div className="flex flex-col gap-1">
+                        {[
+                          { icon: '🎨', text: 'Tạo trò chơi 5 phút về màu nóng và màu lạnh cho lớp 2.' },
+                          { icon: '🔺', text: 'Tạo trò chơi đoán hình khối cho lớp 1, gồm 8 câu hỏi.' },
+                          { icon: '🏛️', text: 'Tạo trò chơi theo chủ đề tranh Đông Hồ cho lớp 4.' },
+                          { icon: '🏆', text: 'Tạo trò chơi nhóm, không cần đăng nhập học sinh, có tính điểm.' },
+                          { icon: '👶', text: 'Tạo trò chơi đơn giản cho học sinh lớp 1, chữ ít, hình ảnh nhiều.' }
+                        ].map((sug, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setNaturalGamePrompt(sug.text);
+                              handleGenerateNaturalGame(sug.text);
+                            }}
+                            className="text-left px-2 py-1 bg-slate-50 hover:bg-amber-50 hover:border-amber-300 border border-slate-200 rounded-lg text-[11px] text-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
+                          >
+                            <span>{sug.icon}</span>
+                            <span className="truncate">{sug.text}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateNaturalGame()}
+                      disabled={isAiGeneratingGame || !naturalGamePrompt.trim()}
+                      className="mt-3 w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-95 cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 fill-white" />
+                      <span>{isAiGeneratingGame ? 'Đang phân tích & tạo câu hỏi...' : '⚡ Tạo Trò Chơi AI Theo Câu Lệnh'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* CHẾ ĐỘ 2: CHỌN THEO BIỂU MẪU SGK */}
+              {gameGeneratorMode === 'form' && (
+                <div className="space-y-4 animate-in fade-in">
               {/* 1. Chọn Khối Lớp */}
               <div>
                 <label className="block text-xs font-black text-slate-700 mb-1.5">
@@ -902,6 +1014,8 @@ export default function ArtGames({
                   </label>
                 </div>
               </div>
+                </div>
+              )}
             </div>
 
             {/* Modal Actions */}
