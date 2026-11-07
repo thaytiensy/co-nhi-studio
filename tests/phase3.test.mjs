@@ -10,6 +10,8 @@ import {
   generateSlidePedagogyTips
 } from '../src/utils/aiNaturalLanguageService.js';
 import { classroomAudio } from '../src/utils/classroomAudioService.js';
+import { STEP_DRAWING_TOPICS } from '../src/data/stepDrawingBank.js';
+import { ART_PERSONAS } from '../src/data/artPersonas.js';
 
 describe('Giai đoạn 3 - Phân tích Câu Lệnh Tự Nhiên & Kiểm soát An Toàn (AI Prompt Parsing)', () => {
   it('1. Trích xuất chính xác tham số từ các câu lệnh tự nhiên trong Xưởng Ý Tưởng', () => {
@@ -261,6 +263,42 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
       classroomAudio.stopClassroomMusic();
       const state = classroomAudio.toggleMusic();
       assert.equal(typeof state, 'boolean');
+    });
+  });
+  it('11. Kiểm tra ngân hàng thị phạm 4 bước (Step Drawing Bank) có đầy đủ chủ đề và hàm vẽ', () => {
+    assert.ok(Array.isArray(STEP_DRAWING_TOPICS) && STEP_DRAWING_TOPICS.length >= 4);
+    STEP_DRAWING_TOPICS.forEach((topic) => {
+      assert.ok(topic.id && topic.name && topic.icon);
+      assert.equal(topic.steps.length, 4);
+      topic.steps.forEach((st, idx) => {
+        assert.equal(st.step, idx + 1);
+        assert.ok(typeof st.title === 'string' && st.title.length > 5);
+        assert.ok(typeof st.instruction === 'string' && st.instruction.length > 10);
+        assert.equal(typeof st.draw, 'function');
+      });
+    });
+  });
+
+  it('12. Kế hoạch bài dạy sinh ra phải chứa đủ 3 mức độ thử thách phân hóa năng lực (TT27)', async () => {
+    const res = await generateNaturalIdeaLesson({
+      prompt: 'Soạn bài vẽ con chim bằng màu sáp cho lớp 2',
+      isOnline: false
+    });
+
+    assert.ok(res.plan);
+    assert.ok(res.plan.differentiatedMissions);
+    assert.ok(res.plan.differentiatedMissions.tier1_basic.includes('Thử thách 1'));
+    assert.ok(res.plan.differentiatedMissions.tier2_standard.includes('Thử thách 2'));
+    assert.ok(res.plan.differentiatedMissions.tier3_advanced.includes('Thử thách 3'));
+  });
+
+  it('13. Danh mục Nhân vật Lịch sử Nghệ thuật (Art Personas) có đủ 4 nhân vật với vai trò và avatar', () => {
+    assert.ok(Array.isArray(ART_PERSONAS) && ART_PERSONAS.length === 4);
+    const expectedIds = ['conhi', 'dongho', 'tongocvan', 'vangogh'];
+    expectedIds.forEach(id => {
+      const p = ART_PERSONAS.find(item => item.id === id);
+      assert.ok(p, `Thiếu nhân vật ${id}`);
+      assert.ok(p.name && p.avatar && p.role && p.systemPrompt);
     });
   });
 });

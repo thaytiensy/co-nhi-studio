@@ -51,6 +51,12 @@ export default function DrawingBoard({
   const [snapshot, setSnapshot] = useState(null);
   const [notice, setNotice] = useState('');
 
+  // Thị phạm vẽ từng bước 4 giai đoạn chuẩn GDPT 2018 (Animated Step-by-Step Drawing)
+  const [showStepModal, setShowStepModal] = useState(false);
+  const [activeTopic, setActiveTopic] = useState(STEP_DRAWING_TOPICS[0]);
+  const [currentStepNum, setCurrentStepNum] = useState(1);
+  const stepCanvasRef = useRef(null);
+
   // Art Palette
   const artColors = [
     '#000000', '#475569', '#ffffff',

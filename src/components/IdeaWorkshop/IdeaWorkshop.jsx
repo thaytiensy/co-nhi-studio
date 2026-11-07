@@ -1552,6 +1552,43 @@ export default function IdeaWorkshop({
                 ))}
               </div>
             </div>
+
+            {/* V. Differentiated Art Missions (Thử Thách Phân Hóa Năng Lực Học Sinh - TT27) */}
+            {ideaResult.differentiatedMissions && (
+              <div>
+                <h3 className="text-xs font-black text-amber-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <span>🎯</span> V. Thử Thách Sáng Tạo Phân Hóa Năng Lực (Thông tư 27)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs space-y-1">
+                    <span className="font-extrabold text-amber-900 flex items-center gap-1">
+                      <span>🌱</span> Mức 1: Khám Phá Cơ Bản
+                    </span>
+                    <p className="text-amber-950 text-[11px] leading-relaxed">
+                      {ideaResult.differentiatedMissions.tier1_basic}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-xl text-xs space-y-1">
+                    <span className="font-extrabold text-sky-900 flex items-center gap-1">
+                      <span>⭐</span> Mức 2: Thành Thạo (Chuẩn SGK)
+                    </span>
+                    <p className="text-sky-950 text-[11px] leading-relaxed">
+                      {ideaResult.differentiatedMissions.tier2_standard}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl text-xs space-y-1">
+                    <span className="font-extrabold text-purple-900 flex items-center gap-1">
+                      <span>🚀</span> Mức 3: Tài Năng Nhí (Vượt Trội)
+                    </span>
+                    <p className="text-purple-950 text-[11px] leading-relaxed">
+                      {ideaResult.differentiatedMissions.tier3_advanced}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">

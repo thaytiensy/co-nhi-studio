@@ -49,6 +49,13 @@ export default function ArtCameraRubric({
   const [isCopied, setIsCopied] = useState(false);
   const [insertedNotice, setInsertedNotice] = useState(false);
 
+  // Mắt thần chiếu lưới bố cục 1/3 & Cảm biến bánh xe màu sắc (Giai đoạn nâng cấp AI)
+  const [showGridOverlay, setShowGridOverlay] = useState(false);
+  const [showColorSensor, setShowColorSensor] = useState(true);
+  const [colorStats, setColorStats] = useState({ warmPercent: 48, coolPercent: 36, neutralPercent: 16, contrast: 72 });
+  const [focalPoint, setFocalPoint] = useState({ x: 0.5, y: 0.45 });
+  const [isFullscreenInspection, setIsFullscreenInspection] = useState(false);
+
   // Phân tích cục bộ độ sáng/tông màu; mức rubric do giáo viên tự chọn.
   const handleAnalyzeArtwork = () => {
     if (!capturedImage) {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ART_PERSONAS } from '../../data/artPersonas';
 import { 
   Sparkles, 
   Send, 
@@ -30,6 +31,7 @@ export default function OfflinePedagogyAssistant({
 }) {
   const [selectedGrade, setSelectedGrade] = useState(currentGrade);
   const [selectedThemeId, setSelectedThemeId] = useState(PEDAGOGY_BANK.themes[selectedGrade]?.[0]?.id || '');
+  const [selectedPersonaId, setSelectedPersonaId] = useState('conhi');
   const [userQuery, setUserQuery] = useState('');
   const [copiedId, setCopiedId] = useState(null);
   const streamingIntervalRef = React.useRef(null);
@@ -192,7 +194,8 @@ export default function OfflinePedagogyAssistant({
     const themeContext = currentTheme
       ? `\nBài tham chiếu: ${currentTheme.title}. Mục tiêu: ${currentTheme.objectives.knowledge} ${currentTheme.objectives.skills} Gợi ý/lời dẫn trong ngân hàng: ${currentTheme.teacherScript}`
       : '';
-    const systemPrompt = `Bạn là trợ giảng Mĩ thuật tiểu học, hỗ trợ giáo viên lớp ${selectedGrade}. Trả lời bằng tiếng Việt tự nhiên, ấm áp và đúng lứa tuổi. Hãy bám sát câu hỏi cùng chủ đề và ngữ cảnh bài học; tạo ý tưởng cụ thể, đa dạng, có thể dùng ngay trong lớp, không lặp lời mẫu chung chung. Với yêu cầu viết lời giảng, viết đúng lời giáo viên có thể nói thành tiếng: mở đầu gợi tò mò, liên hệ chi tiết riêng của bài, đặt một câu hỏi mở và dẫn tự nhiên sang hoạt động; không dùng sáo ngữ. Không tự bịa số trang, nội dung sách hay quy định chính thức. Mọi nội dung là gợi ý dự thảo để giáo viên xem lại.${themeContext}`;
+    const activePersona = ART_PERSONAS.find(p => p.id === selectedPersonaId) || ART_PERSONAS[0];
+    const systemPrompt = `${activePersona.systemPrompt} Bạn đang trò chuyện và hỗ trợ giáo viên và học sinh lớp ${selectedGrade}. Trả lời bằng tiếng Việt tự nhiên, ấm áp, đúng phong cách của ${activePersona.name}. Hãy bám sát câu hỏi cùng chủ đề và ngữ cảnh bài học; tạo ý tưởng cụ thể, đa dạng, có thể dùng ngay trong lớp, không lặp lời mẫu chung chung. Không tự bịa số trang hay quy định sai sự thật. Mọi nội dung là gợi ý dự thảo để giáo viên xem lại.${themeContext}`;
 
     if (aiProvider === 'gemini') {
       if (!geminiApiKey.trim()) {

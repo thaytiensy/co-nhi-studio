@@ -473,6 +473,11 @@ function buildLocalPedagogyPlan(parsed) {
       'Tiêu chí 3: Có ý tưởng sáng tạo độc đáo, thể hiện cảm xúc hồn nhiên.',
       'Tiêu chí 4: Tự tin giới thiệu bài vẽ và biết chia sẻ cảm nhận trước lớp.'
     ],
+    differentiatedMissions: {
+      tier1_basic: `Thử thách 1 (Khám phá): Nhận diện và vẽ nét cơ bản thể hiện hình dáng chính của ${topic}, tô màu kín mảng.`,
+      tier2_standard: `Thử thách 2 (Thành thạo - Chuẩn SGK): Bố cục hình vẽ ${topic} cân đối theo quy tắc 1/3, phối hợp màu sắc hài hòa và vẽ thêm 2 chi tiết phụ.`,
+      tier3_advanced: `Thử thách 3 (Tài năng nhí): Mở rộng bối cảnh, phối hợp chất liệu (sáp màu, xé dán hoặc tạo hình 3D) thể hiện cảm xúc và phong cách riêng.`
+    },
     safetyAlert: safetyAlert || ''
   };
 }
