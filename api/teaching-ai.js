@@ -1,6 +1,6 @@
 const AUTH_LOOKUP_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup';
 const FIRESTORE_BASE_URL = 'https://firestore.googleapis.com/v1';
-const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
 const GEMINI_MODEL = GEMINI_MODELS[0];
 const NETWORK_TIMEOUT_MS = 30000;
 const GEMINI_IMAGE_MODEL = 'gemini-nano-banana-2.1';
