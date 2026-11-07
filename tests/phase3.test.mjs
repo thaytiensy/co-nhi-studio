@@ -12,6 +12,7 @@ import {
 import { classroomAudio } from '../src/utils/classroomAudioService.js';
 import { STEP_DRAWING_TOPICS } from '../src/data/stepDrawingBank.js';
 import { ART_PERSONAS } from '../src/data/artPersonas.js';
+import { generateAiArtwork } from '../src/utils/aiLessonGenerator.js';
 
 describe('Giai đoạn 3 - Phân tích Câu Lệnh Tự Nhiên & Kiểm soát An Toàn (AI Prompt Parsing)', () => {
   it('1. Trích xuất chính xác tham số từ các câu lệnh tự nhiên trong Xưởng Ý Tưởng', () => {
@@ -300,5 +301,40 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
       assert.ok(p, `Thiếu nhân vật ${id}`);
       assert.ok(p.name && p.avatar && p.role && p.systemPrompt);
     });
+  });
+
+  it('14. Sinh tranh mẫu AI (generateAiArtwork) bám sát nội dung và chất liệu đã nhập', async () => {
+    // 1. Phải từ chối nếu topic rỗng
+    await assert.rejects(
+      async () => generateAiArtwork({ topic: '', grade: 3, style: 'crayon' }),
+      /Vui lòng nhập hoặc chọn chủ đề trước khi tạo tranh/
+    );
+
+    // 2. Chế độ mock fetch trả về blob ảnh thành công -> tạo Data URL
+    const mockBlob = new Blob([Buffer.from('fake-pixel-data')], { type: 'image/jpeg' });
+    const mockFetch = async (url) => {
+      assert.ok(url.includes('image.pollinations.ai'));
+      assert.ok(url.includes(encodeURIComponent('con mèo')));
+      return {
+        ok: true,
+        blob: async () => mockBlob,
+      };
+    };
+
+    const dataUrl = await generateAiArtwork(
+      { topic: 'con mèo', grade: 2, style: 'crayon', seed: 42 },
+      mockFetch
+    );
+    assert.ok(dataUrl.startsWith('data:image/jpeg;base64,'));
+
+    // 3. Chế độ không có fetch / lỗi fetch -> fallback trả về Pollinations URL hợp lệ
+    const failFetch = async () => { throw new Error('Network error'); };
+    const directUrl = await generateAiArtwork(
+      { topic: 'bông hoa', grade: 1, style: 'watercolor', seed: 99 },
+      failFetch
+    );
+    assert.ok(directUrl.startsWith('https://image.pollinations.ai/prompt/'));
+    assert.ok(directUrl.includes('width=1024'));
+    assert.ok(directUrl.includes('nologo=true'));
   });
 });

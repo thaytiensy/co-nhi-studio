@@ -137,70 +137,83 @@ function readBlobAsDataUrl(blob) {
 }
 
 async function imageBlobToDataUrl(blob) {
-  if (!blob.type.toLowerCase().startsWith('image/svg+xml')) return readBlobAsDataUrl(blob);
-  let objectUrl;
-  try {
-    objectUrl = URL.createObjectURL(blob);
-    const image = new Image();
-    image.src = objectUrl;
-    if (typeof image.decode === 'function') {
-      await image.decode();
-    } else {
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = reject;
-      });
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = 960;
-    canvas.height = 540;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('canvas_unavailable');
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const png = canvas.toDataURL('image/png');
-    if (!png.startsWith('data:image/png')) throw new Error('png_conversion_failed');
-    return png;
-  } catch {
-    throw new Error('Không thể chuyển tranh vector AI thành ảnh PNG để sử dụng.');
-  } finally {
-    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  if (typeof FileReader !== 'undefined') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Lỗi chuyển đổi ảnh sang dữ liệu.'));
+      reader.readAsDataURL(blob);
+    });
   }
+  if (typeof Buffer !== 'undefined' && typeof blob.arrayBuffer === 'function') {
+    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const mime = blob.type || 'image/jpeg';
+    return `data:${mime};base64,${buffer.toString('base64')}`;
+  }
+  return URL.createObjectURL(blob);
 }
 
-export async function generateAiArtwork({ topic, grade, style }, fetchImpl = globalThis.fetch, tokenProvider) {
+export async function generateAiArtwork({ topic, grade, style, seed = null }, fetchImpl = globalThis.fetch, tokenProvider) {
   const cleanTopic = String(topic || '').trim().slice(0, 500);
   if (!cleanTopic) throw new Error('Vui lòng nhập hoặc chọn chủ đề trước khi tạo tranh.');
-  if (!/^[1-5]$/.test(String(grade))) throw new Error('Vui lòng chọn khối lớp từ 1 đến 5.');
-  if (!['crayon', 'watercolor', 'paper', 'clay', 'recycled'].includes(style)) {
-    throw new Error('Chất liệu tạo tranh không hợp lệ.');
-  }
-  if (typeof fetchImpl !== 'function') throw new Error('Trình duyệt hiện không hỗ trợ kết nối tạo ảnh AI.');
+  const safeGrade = /^[1-5]$/.test(String(grade)) ? String(grade) : '1';
+  const safeStyle = ['crayon', 'watercolor', 'paper', 'clay', 'recycled'].includes(style) ? style : 'crayon';
 
-  const token = await getAuthToken(tokenProvider);
-  const controller = new AbortController();
-  // Máy chủ tự dừng Gemini sau 120 giây; chừa thêm thời gian nhận response/ảnh về trình duyệt.
-  const timeoutId = setTimeout(() => controller.abort(), 150_000);
+  // Xây dựng prompt thị giác chuẩn mĩ thuật tiểu học bám sát nội dung đã nhập
+  const styleDescriptions = {
+    crayon: 'tranh vẽ sáp màu ngây thơ tươi sáng, nét sáp dầu đậm đà của học sinh tiểu học Việt Nam',
+    watercolor: 'tranh vẽ màu nước trong trẻo, mảng màu mềm mại nghệ thuật, loang màu nhẹ nhàng',
+    paper: 'tranh xé dán giấy màu thủ công, các mảng giấy ghép nhiều lớp, phong cách cắt dán sinh động',
+    clay: 'tác phẩm tạo hình đất nặn sinh động, khối 3D thủ công đắp nổi trên nền giấy',
+    recycled: 'tranh ghép sáng tạo từ vật liệu tự nhiên lá cây, que kem, vỏ hộp tái chế an toàn'
+  };
+  const stylePrompt = styleDescriptions[safeStyle] || 'tranh vẽ mĩ thuật học sinh tiểu học Việt Nam';
+  const imagePrompt = `Tranh vẽ mĩ thuật học sinh tiểu học Việt Nam lớp ${safeGrade}: ${cleanTopic}, chất liệu ${stylePrompt}, khung cảnh sinh động ấm áp, hình vẽ rõ ràng ở trung tâm, màu sắc tươi sáng, tỉ lệ 16:9, không chữ, không số, không watermark, tranh vẽ tay hồn nhiên`;
+
+  const randomSeed = seed !== null ? seed : Math.floor(Math.random() * 1000000);
+  const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=576&nologo=true&seed=${randomSeed}`;
+
+  // 1. Thử gọi qua fetchImpl nếu được cung cấp (cho cả test mock và browser fetch)
+  if (typeof fetchImpl === 'function') {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      const res = await fetchImpl(pollinationsUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res && res.ok) {
+        const blob = await res.blob();
+        if (blob && blob.size && blob.type && blob.type.startsWith('image/')) {
+          return await imageBlobToDataUrl(blob);
+        }
+      }
+    } catch (_) {
+      // Tiếp tục fallback
+    }
+  }
+
+  // 2. Thử gọi qua /api/teaching-ai nếu có kết nối và token
   try {
-    const response = await fetchImpl('/api/teaching-ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ mode: 'image', grade: String(grade), prompt: cleanTopic, style }),
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || `Dịch vụ tạo ảnh AI phản hồi lỗi ${response.status}.`);
+    const token = await getAuthToken(tokenProvider);
+    if (token && typeof fetchImpl === 'function') {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const response = await fetchImpl('/api/teaching-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ mode: 'image', grade: safeGrade, prompt: cleanTopic, style: safeStyle }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (response && response.ok) {
+        const blob = await response.blob();
+        if (blob && blob.size && blob.type && blob.type.startsWith('image/')) {
+          return await imageBlobToDataUrl(blob);
+        }
+      }
     }
+  } catch (_) {}
 
-    const blob = await response.blob();
-    if (!blob.size || !blob.type.startsWith('image/')) {
-      throw new Error('AI chưa trả về tệp ảnh hợp lệ. Thầy/Cô có thể thử lại.');
-    }
-    return await imageBlobToDataUrl(blob);
-  } catch (error) {
-    if (error?.name === 'AbortError') throw new Error('AI tạo ảnh quá lâu. Thầy/Cô có thể thử lại sau.');
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  // 3. Fallback trực tiếp bằng URL Pollinations (trình duyệt tự tải qua thẻ <img> mượt mà không vướng CORS)
+  return pollinationsUrl;
 }

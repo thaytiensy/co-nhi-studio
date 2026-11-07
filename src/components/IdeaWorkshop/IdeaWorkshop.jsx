@@ -372,9 +372,7 @@ export default function IdeaWorkshop({
     try {
       for (let index = 0; index < safeCount; index++) {
         const latestBeforeRequest = ideaResultRef.current;
-        if (!latestBeforeRequest || latestBeforeRequest.id !== ideaId
-          || latestBeforeRequest.themeTitle !== topic || latestBeforeRequest.grade !== grade
-          || latestBeforeRequest.materialKey !== materialKey) break;
+        if (!latestBeforeRequest || latestBeforeRequest.id !== ideaId) break;
         setAiGeneratingStatus(safeCount > 1
           ? `Gemini đang tạo tranh ${index + 1}/${safeCount} theo yêu cầu...`
           : `Gemini đang tạo tranh cho “${topic}”...`);
@@ -397,9 +395,7 @@ export default function IdeaWorkshop({
       }
 
       const currentIdea = ideaResultRef.current;
-      const stillCurrent = currentIdea && currentIdea.id === ideaId
-        && currentIdea.themeTitle === topic && currentIdea.grade === grade && currentIdea.materialKey === materialKey;
-      if (!stillCurrent) return;
+      if (!currentIdea || currentIdea.id !== ideaId) return;
 
       if (generatedItems.length > 0) {
         setArtworkGallery(previous => append ? [...previous, ...generatedItems] : generatedItems);

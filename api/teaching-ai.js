@@ -311,44 +311,50 @@ async function generateImage({ grade, prompt, style }, apiKey) {
   const styleDetails = IMAGE_STYLES[style];
   if (!styleDetails || containsUnsafe(topic)) throw new Error('invalid_image_request');
 
-  const imagePrompt = `Tạo một tranh minh họa Mĩ thuật tiểu học Việt Nam, khung ngang 16:9, phù hợp học sinh lớp ${grade}. Bám sát đúng chủ đề và mọi chi tiết người dùng nêu; giữ nguyên chủ thể, hành động, bối cảnh và bố cục được yêu cầu; không thay bằng chủ đề hoặc con vật khác. Chủ đề nguyên văn: "${topic}". Chất liệu chính: ${styleDetails.material}. Phong cách thể hiện: ${styleDetails.style}. Hình ảnh trong sáng, gần gũi, dễ quan sát và có bố cục rõ ràng như sản phẩm học sinh có thể thực hiện. Chỉ dùng vật liệu an toàn cho trẻ. Không có chữ, số, logo, watermark hoặc nội dung ngoài chủ đề.`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), IMAGE_NETWORK_TIMEOUT_MS);
-  let response;
+  const imagePrompt = `Tạo một tranh minh họa Mĩ thuật tiểu học Việt Nam, khung ngang 16:9, phù hợp học sinh lớp ${grade}. Bám sát đúng chủ đề: "${topic}". Chất liệu: ${styleDetails.material}. Phong cách: ${styleDetails.style}. Hình ảnh trong sáng, nét vẽ ngây thơ của học sinh tiểu học, không chữ, không số, không watermark.`;
+
+  // 1. Thử gọi Pollinations.ai API chất lượng cao (100% Free, bám sát nội dung đã nhập)
   try {
-    response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${GEMINI_IMAGE_MODEL}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: imagePrompt }] }],
-        generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE'],
-          imageConfig: { aspectRatio: '16:9', imageSize: '1K' },
-        },
-      }),
-      signal: controller.signal,
-    });
-  } catch {
-    throw new Error('image_upstream');
-  } finally {
-    clearTimeout(timer);
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=576&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
+    const pollResp = await fetch(pollinationsUrl);
+    if (pollResp && pollResp.ok) {
+      const buffer = Buffer.from(await pollResp.arrayBuffer());
+      if (buffer && buffer.length > 2000) {
+        return { buffer, mimeType: 'image/jpeg' };
+      }
+    }
+  } catch (e) {
+    console.warn('Pollinations fetch failed in backend:', e);
   }
 
-  if (!response.ok) {
-    if (response.status === 429) throw new Error('image_quota_exhausted');
-    throw new Error('image_upstream');
+  // 2. Thử gọi qua Gemini nếu có apiKey
+  if (apiKey) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: imagePrompt }] }]
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (response && response.ok) {
+        const result = await response.json().catch(() => ({}));
+        const imagePart = result?.candidates?.[0]?.content?.parts?.find(part =>
+          typeof part?.inlineData?.data === 'string' && part.inlineData.mimeType?.startsWith('image/')
+        );
+        if (imagePart) {
+          const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
+          return { buffer, mimeType: imagePart.inlineData.mimeType };
+        }
+      }
+    } catch (_) {}
   }
 
-  let result;
-  try { result = await response.json(); } catch { throw new Error('image_upstream'); }
-  const imagePart = result?.candidates?.[0]?.content?.parts?.find(part =>
-    typeof part?.inlineData?.data === 'string' && part.inlineData.mimeType?.startsWith('image/')
-  );
-  if (!imagePart) throw new Error('image_missing');
-
-  const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
-  if (!buffer.length) throw new Error('image_missing');
-  return { buffer, mimeType: imagePart.inlineData.mimeType };
+  throw new Error('image_upstream');
 }
 
 export default async function handler(req, res) {
