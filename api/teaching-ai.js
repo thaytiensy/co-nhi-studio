@@ -389,11 +389,11 @@ async function generateImage({ grade, prompt, style }, apiKey) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Phương thức không được hỗ trợ.' });
+  let input;
+  try { input = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; } catch { return json(res, 400, { error: 'Dữ liệu yêu cầu không hợp lệ.' }); }
   const { GEMINI_API_KEY, VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID } = process.env;
   const effectiveApiKey = (typeof input?.apiKey === 'string' && input.apiKey.startsWith('AIzaSy')) ? input.apiKey.trim() : GEMINI_API_KEY;
   if (!effectiveApiKey || !VITE_FIREBASE_API_KEY || !VITE_FIREBASE_PROJECT_ID) return json(res, 503, { error: CONFIG_ERROR });
-  let input;
-  try { input = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; } catch { return json(res, 400, { error: 'Dữ liệu yêu cầu không hợp lệ.' }); }
   const validTextRequest = ['lesson', 'text'].includes(input?.mode)
     && typeof input.prompt === 'string' && input.prompt.trim().length > 0 && input.prompt.length <= 8000;
   const validImageRequest = input?.mode === 'image'
