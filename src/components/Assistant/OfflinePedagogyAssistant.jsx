@@ -331,35 +331,85 @@ export default function OfflinePedagogyAssistant({
 
     if (aiProvider === 'offline') {
       const qLower = query.toLowerCase();
-      let foundResults = [];
+      const activePersona = ART_PERSONAS.find(p => p.id === selectedPersonaId) || ART_PERSONAS[0];
 
+      // 1. Phân loại ý định sư phạm
+      const isDrawing = /cách vẽ|làm sao|vẽ thế nào|hướng dẫn vẽ|thị phạm|bước vẽ|dựng hình|méo|vẽ/i.test(qLower);
+      const isColor = /màu|phối màu|gam màu|sáp màu|màu nước|pha màu|nóng|lạnh|tương phản/i.test(qLower);
+      const isComp = /bố cục|sắp xếp|quy tắc 1\/3|gần xa|xa gần|chân trời|giữa giấy|không gian/i.test(qLower);
+      const isPsych = /hiếu động|sợ|sợ sai|chậm|lúng túng|khích lệ|chán|ngại vẽ|kém tự tin/i.test(qLower);
+      const isGame = /trò chơi|khởi động|đố vui|khuấy động|hứng thú|đố/i.test(qLower);
+      const isRubric = /nhận xét|đánh giá|rubric|thông tư 27|xếp loại|tiêu chí/i.test(qLower);
+
+      // 2. Tìm chủ đề tương đồng nhất trong ngân hàng bài dạy SGK
+      let bestMatch = null;
+      let maxScore = 0;
       Object.keys(PEDAGOGY_BANK.themes).forEach(grade => {
         PEDAGOGY_BANK.themes[grade].forEach(theme => {
-          const text = `${theme.title} ${theme.objectives.knowledge} ${theme.objectives.skills} ${theme.teacherScript} ${theme.questions.join(' ')}`.toLowerCase();
-          if (text.includes(qLower)) {
-            foundResults.push({ grade, theme });
+          let score = 0;
+          const cleanTitle = theme.title.toLowerCase().replace(/chủ đề \d+:\s*/, '');
+          const words = cleanTitle.split(/\s+/);
+          words.forEach(w => {
+            if (w.length > 2 && qLower.includes(w)) score += 3;
+          });
+          if (qLower.includes(cleanTitle)) score += 10;
+          if (score > maxScore) {
+            maxScore = score;
+            bestMatch = { grade, theme };
           }
         });
       });
 
-      let content = '';
-      let title = `Gợi ý sư phạm cho: "${query}"`;
+      let contentStr = '';
+      const title = `Gợi ý sư phạm: "${query}"`;
 
-      if (foundResults.length > 0) {
-        const match = foundResults[0].theme;
-        content = `Gợi ý theo bộ sách Kết nối tri thức (Lớp ${foundResults[0].grade} - ${match.title}):\n\n` +
-                  `• Lời giảng mở đầu: "${match.teacherScript}"\n\n` +
-                  `• Câu hỏi gợi mở: ${match.questions[0]}\n\n` +
-                  `• Tiến trình vẽ: ${match.fourSteps[0]} -> ${match.fourSteps[1]}`;
+      if (isPsych) {
+        contentStr = `Thầy Cọ Nhí xin chia sẻ bí quyết sư phạm với Thầy/Cô:\n\n` +
+          `💖 "Trong mĩ thuật tiểu học không có nét vẽ sai, chỉ có nét vẽ mang cảm xúc riêng!"\n\n` +
+          `1. Khích lệ ngay từ nét vẽ đầu tiên: Khen ngợi sự dũng cảm hạ bút của bé thay vì so sánh với bài mẫu tả thực.\n` +
+          `2. Biến "lỗi" thành sáng tạo: Nếu bé vẽ nét bị lệch hoặc vấy màu, hãy gợi ý bé biến nét đó thành chiếc lá rơi, đám mây bay hoặc bóng đổ sinh động.\n` +
+          `3. Không dùng tẩy gôm quá nhiều: Hạn chế để học sinh tiểu học phụ thuộc vào tẩy gôm, khuyến khích các em tự tin đi nét dứt khoát.\n` +
+          `4. Lời dặn dò học trò: "Bức tranh của con là duy nhất trên đời, thầy/cô yêu từng nét vẽ tự nhiên của con!"`;
+      } else if (isColor) {
+        contentStr = `Bí quyết phối màu thẩm mĩ chuẩn GDPT 2018:\n\n` +
+          `🎨 1. Nguyên tắc tương phản nóng - lạnh: Đặt chi tiết chính mang gam màu nóng (đỏ, vàng, cam) trên nền màu lạnh (xanh lam, xanh lá, tím) để chủ thể nổi bật rực rỡ.\n\n` +
+          `🌈 2. Kĩ thuật dùng sáp màu cho học sinh: Hướng dẫn bé tô màu theo một chiều (ngang hoặc dọc), viền mép hình trước rồi tô kín lòng bên trong để không bị lem.\n\n` +
+          `✨ 3. Tạo độ bóng và mảng đậm nhạt: Thêm một chút sáp trắng ở phần đón sáng hoặc nhấn chút sáp nâu/tím ở phần khuất sáng để bức tranh có chiều sâu sinh động.`;
+      } else if (isComp) {
+        contentStr = `Hướng dẫn Bố cục & Không gian mĩ thuật trực quan cho bé:\n\n` +
+          `📐 1. Quy tắc 1/3 cân đối: Tránh đặt đối tượng chính dính sát mép giấy; đặt lệch nhẹ sang điểm vàng 1/3 để tạo cảm giác tự nhiên, thoáng đãng.\n\n` +
+          `🏞️ 2. Luật gần lớn - xa nhỏ: Vật ở gần vẽ to rõ nét và đậm màu; vật ở xa vẽ nhỏ hơn, nét thanh và màu nhạt hơn để mở rộng không gian.\n\n` +
+          `⚖️ 3. Cân bằng chính - phụ: Luôn có 1-2 hình ảnh trung tâm làm điểm nhấn, xung quanh điểm xuyết 3-4 chi tiết phụ làm nền sinh động.`;
+      } else if (isGame) {
+        contentStr = `Gợi ý Hoạt động khởi động vui nhộn (5 phút):\n\n` +
+          `🎯 Trò chơi "Mảnh ghép kì diệu & Thám tử mĩ thuật":\n` +
+          `• Thầy/Cô chiếu một góc nhỏ hoặc nét vẽ đặc trưng của bài học, đố các tổ nhanh tay đoán xem đó là hình ảnh gì.\n` +
+          `• Cả lớp cùng làm động tác mô phỏng cử chỉ, âm thanh hoặc hát một câu hát vui nhộn về chủ đề.\n` +
+          `• Tạo tâm thế hào hứng, kích thích sự tò mò của học sinh trước khi bước vào phần khám phá và thị phạm.`;
+      } else if (isRubric) {
+        contentStr = `Bộ tiêu chí đánh giá mĩ thuật theo Thông tư 27/2020/TT-BGDĐT:\n\n` +
+          `⭐ Mức T (Hoàn thành tốt): Thực hiện đúng chủ đề, bố cục cân đối, phối màu có sắc độ đậm nhạt và có sáng tạo độc đáo riêng biệt.\n` +
+          `⭐ Mức H (Hoàn thành): Vẽ được hình ảnh chính rõ ràng, tô màu kín mảng, hoàn thành sản phẩm đúng thời lượng.\n` +
+          `⭐ Mức C (Chưa hoàn thành): Còn lúng túng trong tạo hình, cần giáo viên hỗ trợ thêm về nét phác cơ bản.\n\n` +
+          `💡 Lời nhận xét SMAS mẫu: "Em có nét vẽ tự nhiên, biết phối màu hài hòa; bức tranh thể hiện cảm xúc hồn nhiên và tích cực chia sẻ cùng bạn bè."`;
+      } else if (bestMatch) {
+        const match = bestMatch.theme;
+        contentStr = `Gợi ý sư phạm theo SGK Kết nối tri thức (Lớp ${bestMatch.grade} - ${match.title}):\n\n` +
+                  `🗣️ Lời giảng mở đầu của Thầy: "${match.teacherScript}"\n\n` +
+                  `❓ Câu hỏi gợi mở khám phá: ${match.questions.join(' • ')}\n\n` +
+                  `🎨 4 Bước thị phạm tạo hình:\n` +
+                  match.fourSteps.map((st, i) => `  ${i + 1}. ${st}`).join('\n') + `\n\n` +
+                  `💡 Lời dặn học sinh: "Hãy quan sát thật kĩ vẻ đẹp của sự vật trước khi vẽ, và tự tin thể hiện nét cọ của chính mình!"`;
       } else {
-        content = `Gợi ý sư phạm mĩ thuật chung cho Thầy/Cô:\n` +
-                  `• Đối với lớp 1-2: Chú trọng chấm, nét cơ bản, nhận diện màu nóng - lạnh và hình vuông, tròn, tam giác.\n` +
-                  `• Đối với lớp 3-5: Rèn luyện luật xa - gần, ánh sáng và ứng dụng vật liệu tái chế, đất nặn.`;
+        contentStr = `Gợi ý sư phạm thực tế từ Thầy Cọ Nhí:\n\n` +
+                  `1. Dựng hình cơ bản: Mọi đồ vật và con vật đều bắt đầu từ các hình học đơn giản (tròn, vuông, tam giác, bầu dục). Hướng dẫn bé phác nhẹ tay trước khi tô nét chính.\n\n` +
+                  `2. Phối màu ngây thơ: Khuyến khích học sinh chọn màu theo cảm xúc yêu thích, phối hợp màu sáng cạnh màu tối để hình vẽ rạng rỡ.\n\n` +
+                  `3. Tuyên dương cá tính: Tôn trọng phong cách biểu cảm tự do của từng học sinh, giúp các con luôn yêu thích và tự hào về tác phẩm của mình.`;
       }
 
       setIsLoading(true);
       setTimeout(() => {
-        streamAssistantMessage(title, content, 'Ngân hàng sư phạm cục bộ');
+        streamAssistantMessage(title, contentStr, `Trợ giảng AI · ${activePersona.name}`);
       }, 150);
       return;
     }

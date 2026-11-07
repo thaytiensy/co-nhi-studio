@@ -7,7 +7,8 @@ import {
   validateAiGamePackage,
   generateNaturalIdeaLesson,
   generateNaturalArtGame,
-  generateSlidePedagogyTips
+  generateSlidePedagogyTips,
+  buildLocalPedagogyPlan
 } from '../src/utils/aiNaturalLanguageService.js';
 import { classroomAudio } from '../src/utils/classroomAudioService.js';
 import { STEP_DRAWING_TOPICS } from '../src/data/stepDrawingBank.js';
@@ -336,5 +337,30 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
     assert.ok(directUrl.startsWith('https://image.pollinations.ai/prompt/'));
     assert.ok(directUrl.includes('width=1024'));
     assert.ok(directUrl.includes('nologo=true'));
+  });
+
+  it('15. Phân tích ngữ cảnh sâu sắc (Deep Contextual Understanding): Thể loại, Chủ đề tinh gọn và 4 bước thị phạm chuyên biệt', () => {
+    // 1. Tĩnh vật
+    const p1 = parseNaturalIdeaPrompt('Tôi muốn dạy bài vẽ tĩnh vật lọ hoa và quả táo đỏ trên bàn cho học sinh lớp 4');
+    assert.equal(p1.grade, 4);
+    assert.equal(p1.genre, 'still_life');
+    assert.match(p1.topic.toLowerCase(), /tĩnh vật|lọ hoa/i);
+    const plan1 = buildLocalPedagogyPlan(p1);
+    assert.match(plan1.teachingProcess[1].fourSteps[0], /mặt bàn|khung hình chung/i);
+    assert.match(plan1.teachingProcess[1].fourSteps[3], /đón sáng|bóng đổ/i);
+
+    // 2. Chân dung nhân vật
+    const p2 = parseNaturalIdeaPrompt('Hãy cho tôi một bài vẽ chú bộ đội hải quân đứng gác ngoài đảo xa');
+    assert.equal(p2.genre, 'portrait_human');
+    assert.match(p2.topic.toLowerCase(), /chú bộ đội/i);
+    const plan2 = buildLocalPedagogyPlan(p2);
+    assert.match(plan2.teachingProcess[1].fourSteps[0], /trục|nhân vật/i);
+    assert.match(plan2.teachingProcess[1].fourSteps[1], /mắt|mũi|miệng|trang phục/i);
+
+    // 3. Đời sống gia đình ngày Tết
+    const p3 = parseNaturalIdeaPrompt('Gợi ý bài vẽ gia đình ăn cơm tất niên ngày tết ấm cúng lớp 3');
+    assert.equal(p3.grade, 3);
+    assert.equal(p3.genre, 'portrait_human');
+    assert.match(p3.topic.toLowerCase(), /gia đình/i);
   });
 });
