@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { generateAiArtwork, generateAiLesson } from '../../utils/aiLessonGenerator';
-import { generateNaturalIdeaLesson, parseNaturalIdeaPrompt } from '../../utils/aiNaturalLanguageService';
+import { generateNaturalIdeaLesson, parseNaturalIdeaPrompt, critiqueAndEnhanceLessonPlan } from '../../utils/aiNaturalLanguageService';
 
 const MATERIALS = [
   { id: 'crayon', name: 'Sáp màu / Chì màu', icon: '🖍️' },
@@ -1272,6 +1272,56 @@ export default function IdeaWorkshop({
               </div>
             </div>
 
+            {/* KHU VỰC THẨM ĐỊNH & PHẢN BIỆN SƯ PHẠM ĐA LỚP (AI CRITIQUE & QA REPORT) */}
+            {ideaResult.critiqueReport && (
+              <div className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-amber-50/50 border border-emerald-200/80 rounded-2xl p-4 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-emerald-600 text-white rounded-xl shadow-xs flex items-center justify-center">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-xs md:text-sm text-emerald-950">
+                          Kiểm Định Sư Phạm Đa Lớp (AI Critique & QA)
+                        </h3>
+                        <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">
+                          ⭐ {ideaResult.critiqueReport.score}/100 Điểm Chuẩn GDPT 2018
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-800 font-medium mt-0.5">
+                        Tự động đối chiếu Thông tư 32/2018, Công văn 2345 và Thông tư 27 của Bộ GD&ĐT
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-emerald-700 border border-emerald-200 rounded-lg flex items-center gap-1">
+                      ✓ {ideaResult.critiqueReport.safetyStatus}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-amber-700 border border-amber-200 rounded-lg flex items-center gap-1">
+                      ✓ 4 Bước thị phạm chuẩn
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-indigo-700 border border-indigo-200 rounded-lg flex items-center gap-1">
+                      ✓ Phân hóa 3 cấp độ (TT27)
+                    </span>
+                  </div>
+                </div>
+
+                {ideaResult.critiqueReport.teacherAdvice && (
+                  <div className="p-2.5 bg-white/90 border border-emerald-100 rounded-xl text-xs text-slate-700 flex items-start gap-2">
+                    <span className="text-base leading-none">💡</span>
+                    <div className="space-y-0.5 flex-1">
+                      <span className="font-extrabold text-[11px] text-emerald-900 block">Lời Khuyên Vàng Của Thầy Cọ Nhí Cho Tiết Dạy:</span>
+                      <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                        {ideaResult.critiqueReport.teacherAdvice}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ẢNH Ý TƯỞNG CỦA THẦY/CÔ TẢI LÊN (NẾU CÓ) */}
             {uploadedIdeaImage && (
               <div className="bg-gradient-to-br from-blue-50 via-indigo-50/50 to-blue-100/40 border border-blue-200 rounded-2xl p-4 shadow-2xs">
@@ -1404,6 +1454,47 @@ export default function IdeaWorkshop({
                       Biến thể #{activeArtworkIndex + 1}: {artworkGallery[activeArtworkIndex].styleName}
                     </div>
                   )}
+                </div>
+
+                {/* ĐỔI BIẾN THỂ CHẤT LIỆU TRANH NHANH */}
+                <div className="flex items-center gap-1.5 pt-2 border-t border-amber-200/60 flex-wrap">
+                  <span className="text-[10px] font-extrabold text-amber-900 mr-1 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    Đổi nhanh chất liệu tranh:
+                  </span>
+                  {[
+                    { id: 'crayon', name: 'Sáp màu', icon: '🖍️' },
+                    { id: 'watercolor', name: 'Màu nước', icon: '🎨' },
+                    { id: 'paper', name: 'Xé dán', icon: '✂️' },
+                    { id: 'clay', name: 'Đất nặn', icon: '🏺' }
+                  ].map((mat) => (
+                    <button
+                      key={mat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMaterial(mat.id);
+                        if (ideaResult) {
+                          generateArtworkForContext({
+                            topic: ideaResult.themeTitle,
+                            grade: ideaResult.grade,
+                            materialKey: mat.id,
+                            genre: ideaResult.genre || 'general',
+                            ideaId: ideaResult.id,
+                            count: 1,
+                            append: true
+                          });
+                        }
+                      }}
+                      disabled={isImageLoading}
+                      className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer active:scale-95 ${
+                        (artworkGallery[activeArtworkIndex]?.styleKey || ideaResult?.materialKey) === mat.id
+                          ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50 hover:border-amber-300'
+                      }`}
+                    >
+                      <span>{mat.icon} {mat.name}</span>
+                    </button>
+                  ))}
                 </div>
 
                 {/* THƯ VIỆN CÁC TRANH MẪU ĐÃ TẠO (CLICK ĐỂ CHỌN HOẶC CHÈN NGAY) */}

@@ -8,7 +8,8 @@ import {
   generateNaturalIdeaLesson,
   generateNaturalArtGame,
   generateSlidePedagogyTips,
-  buildLocalPedagogyPlan
+  buildLocalPedagogyPlan,
+  critiqueAndEnhanceLessonPlan
 } from '../src/utils/aiNaturalLanguageService.js';
 import { classroomAudio } from '../src/utils/classroomAudioService.js';
 import { STEP_DRAWING_TOPICS } from '../src/data/stepDrawingBank.js';
@@ -371,5 +372,27 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
     assert.ok(p4.curriculumRef && p4.curriculumRef.includes('Gia đình'));
     const plan4 = buildLocalPedagogyPlan(p4);
     assert.match(plan4.teachingProcess[1].fourSteps[0], /trục|nhân vật|dáng/i);
+  });
+  it('16. Hệ thống Tự Phản Biện & Kiểm Định Sư Phạm Đa Lớp (critiqueAndEnhanceLessonPlan)', () => {
+    // 1. Kế hoạch chuẩn đầy đủ đạt điểm cao (>= 95)
+    const p1 = parseNaturalIdeaPrompt('Vẽ đàn cá dưới đại dương bằng màu nước lớp 2');
+    const plan1 = buildLocalPedagogyPlan(p1);
+    assert.ok(plan1.critiqueReport, 'Phải có báo cáo kiểm định sư phạm');
+    assert.ok(plan1.critiqueReport.score >= 95, `Điểm phải >= 95, thực tế: ${plan1.critiqueReport.score}`);
+    assert.ok(plan1.critiqueReport.safetyStatus.includes('PASS'));
+    assert.ok(plan1.critiqueReport.teacherAdvice.includes('Lớp 2'));
+    assert.ok(Array.isArray(plan1.critiqueReport.pedagogicalHighlights));
+
+    // 2. Phát hiện vật liệu nguy hiểm và cảnh báo
+    const dangerousPlan = {
+      ...plan1,
+      materialsNeeded: { student: 'dao rọc giấy, súng bắn keo nến nóng' }
+    };
+    const critique2 = critiqueAndEnhanceLessonPlan(dangerousPlan, { grade: 2, material: 'dao rọc giấy' });
+    assert.equal(critique2.safetyCheck.isSafe, false);
+    assert.ok(critique2.safetyStatus.includes('CẢNH BÁO'));
+    assert.ok(critique2.safetyCheck.warnings.length >= 1);
+    assert.ok(critique2.safetyCheck.substitutions.length >= 1);
+    assert.ok(critique2.score < 90);
   });
 });
