@@ -189,5 +189,31 @@ export default defineConfig({
   server: {
     port: 3100,
     host: true
+  },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('pptxgenjs') || id.includes('jszip') || id.includes('@xmldom')) {
+              return 'vendor-pptx';
+            }
+            if (id.includes('xlsx')) {
+              return 'vendor-xlsx';
+            }
+            if (id.includes('firebase')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+          }
+        }
+      }
+    }
   }
 })

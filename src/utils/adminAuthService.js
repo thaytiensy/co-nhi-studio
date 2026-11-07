@@ -9,7 +9,7 @@ import {
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
-import { auth, db, firebaseConfigured } from './firebaseClient';
+import { auth, db, firebaseConfigured } from './firebaseClient.js';
 
 export const ROLES = {
   SUPER_ADMIN: 'super_admin',

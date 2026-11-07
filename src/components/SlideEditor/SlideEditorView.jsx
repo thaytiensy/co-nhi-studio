@@ -3,9 +3,9 @@ import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
 import SpeakerNotes from './SpeakerNotes';
-import OfflinePedagogyAssistant from '../Assistant/OfflinePedagogyAssistant';
-import PresentationModal from './PresentationModal';
-import MediaYouTubeModal from '../Media/MediaYouTubeModal';
+const OfflinePedagogyAssistant = React.lazy(() => import('../Assistant/OfflinePedagogyAssistant'));
+const PresentationModal = React.lazy(() => import('./PresentationModal'));
+const MediaYouTubeModal = React.lazy(() => import('../Media/MediaYouTubeModal'));
 import { SLIDE_TEMPLATES } from '../../data/slideTemplates';
 
 export default function SlideEditorView({
@@ -462,32 +462,38 @@ export default function SlideEditorView({
       {/* 3. Right Collapsible Offline Assistant Sidebar */}
       {showAssistant && (
         <div className="w-80 shrink-0 h-full">
-          <OfflinePedagogyAssistant
-            currentSlide={currentSlide}
-            currentGrade={1}
-            onInsertToNotes={handleInsertToNotes}
-            onClose={() => setShowAssistant(false)}
-          />
+          <React.Suspense fallback={<div className="p-6 text-sm text-slate-400 text-center">Đang tải Trợ giảng...</div>}>
+            <OfflinePedagogyAssistant
+              currentSlide={currentSlide}
+              currentGrade={1}
+              onInsertToNotes={handleInsertToNotes}
+              onClose={() => setShowAssistant(false)}
+            />
+          </React.Suspense>
         </div>
       )}
 
       {/* 4. Fullscreen Presentation Modal */}
       {isPresentationOpen && (
-        <PresentationModal
-          slides={slides}
-          initialSlideIndex={currentSlideIndex}
-          onClose={() => setIsPresentationOpen(false)}
-        />
+        <React.Suspense fallback={null}>
+          <PresentationModal
+            slides={slides}
+            initialSlideIndex={currentSlideIndex}
+            onClose={() => setIsPresentationOpen(false)}
+          />
+        </React.Suspense>
       )}
       {/* 5. Media & YouTube Modal */}
       {showMediaModal && (
-        <MediaYouTubeModal
-          currentThemeTitle={currentSlide?.elements?.find(e => e.type === 'text')?.text || 'Mĩ Thuật'}
-          onInsertAudio={handleAddAudio}
-          onInsertVideo={handleAddVideo}
-          onInsertYouTube={handleAddYouTube}
-          onClose={() => setShowMediaModal(false)}
-        />
+        <React.Suspense fallback={null}>
+          <MediaYouTubeModal
+            currentThemeTitle={currentSlide?.elements?.find(e => e.type === 'text')?.text || 'Mĩ Thuật'}
+            onInsertAudio={handleAddAudio}
+            onInsertVideo={handleAddVideo}
+            onInsertYouTube={handleAddYouTube}
+            onClose={() => setShowMediaModal(false)}
+          />
+        </React.Suspense>
       )}
     </div>
   );

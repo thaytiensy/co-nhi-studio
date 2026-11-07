@@ -1,5 +1,5 @@
 // Cọ Nhí Studio - Service Worker phục vụ Offline & Cài đặt App (PWA)
-const CACHE_NAME = 'co-nhi-studio-cache-v2';
+const CACHE_NAME = 'co-nhi-studio-cache-v3';
 const APP_ROOT_URL = new URL('/', self.location.origin).href;
 const CACHEABLE_SHELL_ASSETS = ['/manifest.json', '/favicon.svg', '/icons.svg'];
 

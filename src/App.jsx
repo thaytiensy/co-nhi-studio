@@ -2,21 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import Header from './components/Header';
 import SlideEditorView from './components/SlideEditor/SlideEditorView';
-import IdeaWorkshop from './components/IdeaWorkshop/IdeaWorkshop';
-import DrawingBoard from './components/DrawingBoard/DrawingBoard';
-import ArtGames from './components/ArtGames/ArtGames';
-import ArtCameraRubric from './components/ArtCamera/ArtCameraRubric';
-import StudentEvaluationSMAS from './components/Evaluation/StudentEvaluationSMAS';
-import OfflinePedagogyAssistant from './components/Assistant/OfflinePedagogyAssistant';
-import PPTXPreviewModal from './components/SlideEditor/PPTXPreviewModal';
-import VideoGuideModal from './components/VideoGuide/VideoGuideModal';
-import AdminModal from './components/Admin/AdminModal';
 import LoginGateModal from './components/Admin/LoginGateModal';
-import InstallAppModal from './components/Install/InstallAppModal';
 import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
-import { exportToPPTX } from './utils/pptxExportService';
-import { parsePPTXFile } from './utils/pptxImportService';
+
+// Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
+const IdeaWorkshop = React.lazy(() => import('./components/IdeaWorkshop/IdeaWorkshop'));
+const DrawingBoard = React.lazy(() => import('./components/DrawingBoard/DrawingBoard'));
+const ArtGames = React.lazy(() => import('./components/ArtGames/ArtGames'));
+const ArtCameraRubric = React.lazy(() => import('./components/ArtCamera/ArtCameraRubric'));
+const StudentEvaluationSMAS = React.lazy(() => import('./components/Evaluation/StudentEvaluationSMAS'));
+const OfflinePedagogyAssistant = React.lazy(() => import('./components/Assistant/OfflinePedagogyAssistant'));
+const PPTXPreviewModal = React.lazy(() => import('./components/SlideEditor/PPTXPreviewModal'));
+const VideoGuideModal = React.lazy(() => import('./components/VideoGuide/VideoGuideModal'));
+const AdminModal = React.lazy(() => import('./components/Admin/AdminModal'));
+const InstallAppModal = React.lazy(() => import('./components/Install/InstallAppModal'));
 import { getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
 import { Sparkles, MessageCircle } from 'lucide-react';
@@ -291,6 +291,7 @@ export default function App() {
 
     setIsImportingPPTX(true);
     try {
+      const { parsePPTXFile } = await import('./utils/pptxImportService');
       const result = await parsePPTXFile(file);
       setPptxPreviewData(result);
     } catch (err) {
@@ -519,11 +520,16 @@ export default function App() {
 
   // Export to Real PowerPoint (.pptx)
   const handleExportPPTX = async () => {
-    const res = await exportToPPTX(projectTitle, slides);
-    if (res.success) {
-      alert(`${res.message}\n\n✓ ${res.details.supportedElements}\n\nℹ️ ${res.details.limitations}`);
-    } else {
-      alert('Lỗi xuất PowerPoint: ' + res.error);
+    try {
+      const { exportToPPTX } = await import('./utils/pptxExportService');
+      const res = await exportToPPTX(projectTitle, slides);
+      if (res.success) {
+        alert(`${res.message}\n\n✓ ${res.details.supportedElements}\n\nℹ️ ${res.details.limitations}`);
+      } else {
+        alert('Lỗi xuất PowerPoint: ' + res.error);
+      }
+    } catch (err) {
+      alert('Không thể tải dịch vụ xuất PowerPoint: ' + err.message);
     }
   };
 
@@ -600,60 +606,62 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'ideas' && (
-          <IdeaWorkshop
-            onGenerateSlidesFromIdea={handleGenerateSlidesFromIdea}
-            onInsertDrawingToSlide={handleInsertDrawingToSlide}
-            onNavigateToEditor={() => setActiveTab('editor')}
-          />
-        )}
-
-        {activeTab === 'drawing' && (
-          <DrawingBoard
-            onInsertDrawingToSlide={handleInsertDrawingToSlide}
-            onNavigateToEditor={() => setActiveTab('editor')}
-          />
-        )}
-
-        {activeTab === 'games' && (
-          <ArtGames 
-            projectTitle={projectTitle}
-            currentSlide={slides[currentSlideIndex]}
-            onInsertGameToSlide={handleInsertGameToSlide}
-            onCreateGameSlide={handleCreateGameSlide}
-          />
-        )}
-
-        {activeTab === 'camera' && (
-          <ArtCameraRubric
-            onInsertGradedArtworkToSlide={handleInsertGradedArtworkToSlide}
-            onNavigateToEditor={() => setActiveTab('editor')}
-          />
-        )}
-
-        {activeTab === 'evaluation' && (
-          <StudentEvaluationSMAS />
-        )}
-
-        {/* Slide-over Assistant Drawer for non-editor screens */}
-        {isAssistantOpen && activeTab !== 'editor' && !isPresentationOpen && (
-          <div className="fixed inset-y-0 right-0 w-80 md:w-96 bg-white shadow-2xl z-40 border-l border-slate-200 animate-in slide-in-from-right duration-200">
-            <OfflinePedagogyAssistant
-              currentSlide={activeSlide}
-              currentGrade={activeSlideGrade}
-              onInsertToNotes={(text) => {
-                const currentSlide = slides[currentSlideIndex] || slides[0];
-                if (!currentSlide) return;
-                const existing = currentSlide.notes || '';
-                const newNotes = existing ? `${existing}\n\n${text}` : text;
-                const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
-                handleSlidesChange(updated);
-                alert('Đã chèn nội dung vào ghi chú slide hiện tại!');
-              }}
-              onClose={() => setIsAssistantOpen(false)}
+        <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
+          {activeTab === 'ideas' && (
+            <IdeaWorkshop
+              onGenerateSlidesFromIdea={handleGenerateSlidesFromIdea}
+              onInsertDrawingToSlide={handleInsertDrawingToSlide}
+              onNavigateToEditor={() => setActiveTab('editor')}
             />
-          </div>
-        )}
+          )}
+
+          {activeTab === 'drawing' && (
+            <DrawingBoard
+              onInsertDrawingToSlide={handleInsertDrawingToSlide}
+              onNavigateToEditor={() => setActiveTab('editor')}
+            />
+          )}
+
+          {activeTab === 'games' && (
+            <ArtGames 
+              projectTitle={projectTitle}
+              currentSlide={slides[currentSlideIndex]}
+              onInsertGameToSlide={handleInsertGameToSlide}
+              onCreateGameSlide={handleCreateGameSlide}
+            />
+          )}
+
+          {activeTab === 'camera' && (
+            <ArtCameraRubric
+              onInsertGradedArtworkToSlide={handleInsertGradedArtworkToSlide}
+              onNavigateToEditor={() => setActiveTab('editor')}
+            />
+          )}
+
+          {activeTab === 'evaluation' && (
+            <StudentEvaluationSMAS />
+          )}
+
+          {/* Slide-over Assistant Drawer for non-editor screens */}
+          {isAssistantOpen && activeTab !== 'editor' && !isPresentationOpen && (
+            <div className="fixed inset-y-0 right-0 w-80 md:w-96 bg-white shadow-2xl z-40 border-l border-slate-200 animate-in slide-in-from-right duration-200">
+              <OfflinePedagogyAssistant
+                currentSlide={activeSlide}
+                currentGrade={activeSlideGrade}
+                onInsertToNotes={(text) => {
+                  const currentSlide = slides[currentSlideIndex] || slides[0];
+                  if (!currentSlide) return;
+                  const existing = currentSlide.notes || '';
+                  const newNotes = existing ? `${existing}\n\n${text}` : text;
+                  const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
+                  handleSlidesChange(updated);
+                  alert('Đã chèn nội dung vào ghi chú slide hiện tại!');
+                }}
+                onClose={() => setIsAssistantOpen(false)}
+              />
+            </div>
+          )}
+        </React.Suspense>
       </main>
 
       {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) */}
@@ -677,36 +685,38 @@ export default function App() {
         </button>
       )}
 
-      {/* 4. PPTX Import Preview Modal */}
-      {pptxPreviewData && (
-        <PPTXPreviewModal
-          importResult={pptxPreviewData}
-          onConfirmOpen={handleConfirmOpenPPTX}
-          onClose={() => setPptxPreviewData(null)}
+      <React.Suspense fallback={null}>
+        {/* 4. PPTX Import Preview Modal */}
+        {pptxPreviewData && (
+          <PPTXPreviewModal
+            importResult={pptxPreviewData}
+            onConfirmOpen={handleConfirmOpenPPTX}
+            onClose={() => setPptxPreviewData(null)}
+          />
+        )}
+
+        {/* 5. Video Guide (7-Minute Presentation) Modal */}
+        <VideoGuideModal
+          isOpen={isVideoGuideOpen}
+          onClose={() => setIsVideoGuideOpen(false)}
         />
-      )}
 
-      {/* 5. Video Guide (7-Minute Presentation) Modal */}
-      <VideoGuideModal
-        isOpen={isVideoGuideOpen}
-        onClose={() => setIsVideoGuideOpen(false)}
-      />
+        {/* 6. Admin Authentication & Management Modal */}
+        <AdminModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          onLogout={handleLogout}
+          session={currentUserSession}
+        />
 
-      {/* 6. Admin Authentication & Management Modal */}
-      <AdminModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        onLogout={handleLogout}
-        session={currentUserSession}
-      />
-
-      {/* 7. Install Application Modal */}
-      <InstallAppModal
-        isOpen={isInstallModalOpen}
-        onClose={() => setIsInstallModalOpen(false)}
-        installPrompt={installPrompt}
-        isInstalled={isAppInstalled}
-      />
+        {/* 7. Install Application Modal */}
+        <InstallAppModal
+          isOpen={isInstallModalOpen}
+          onClose={() => setIsInstallModalOpen(false)}
+          installPrompt={installPrompt}
+          isInstalled={isAppInstalled}
+        />
+      </React.Suspense>
     </div>
   );
 }

@@ -14,7 +14,12 @@ export const validateSlideElement = (el, index, slideIndex) => {
   if (!validTypes.includes(el.type)) {
     throw new Error(`Slide ${slideIndex + 1}: Loại phần tử "${el.type}" không được hỗ trợ.`);
   }
-  if (typeof el.x !== 'number' || typeof el.y !== 'number' || typeof el.width !== 'number' || typeof el.height !== 'number') {
+  if (
+    typeof el.x !== 'number' || !Number.isFinite(el.x) ||
+    typeof el.y !== 'number' || !Number.isFinite(el.y) ||
+    typeof el.width !== 'number' || !Number.isFinite(el.width) || el.width <= 0 ||
+    typeof el.height !== 'number' || !Number.isFinite(el.height) || el.height <= 0
+  ) {
     throw new Error(`Slide ${slideIndex + 1}: Phần tử ${el.id || index + 1} thiếu tọa độ hoặc kích thước hợp lệ.`);
   }
   return true;

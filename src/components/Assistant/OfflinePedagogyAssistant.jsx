@@ -32,6 +32,7 @@ export default function OfflinePedagogyAssistant({
   const [selectedThemeId, setSelectedThemeId] = useState(PEDAGOGY_BANK.themes[selectedGrade]?.[0]?.id || '');
   const [userQuery, setUserQuery] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const streamingIntervalRef = React.useRef(null);
 
   const [currentGender, setCurrentGender] = useState(() => speechService.gender || 'male');
 
@@ -39,7 +40,14 @@ export default function OfflinePedagogyAssistant({
     const unsub = speechService.subscribe((state) => {
       setCurrentGender(state.gender);
     });
-    return () => unsub();
+    return () => {
+      unsub();
+      if (streamingIntervalRef.current) {
+        clearInterval(streamingIntervalRef.current);
+        streamingIntervalRef.current = null;
+      }
+      speechService.stop();
+    };
   }, []);
 
   // Đọc toàn bộ chữ trên slide hiện tại (loại bỏ watermark bản quyền mẫu)
@@ -131,13 +139,19 @@ export default function OfflinePedagogyAssistant({
     let currentIdx = 0;
     let accumulated = '';
 
-    const interval = setInterval(() => {
+    if (streamingIntervalRef.current) {
+      clearInterval(streamingIntervalRef.current);
+    }
+    streamingIntervalRef.current = setInterval(() => {
       if (currentIdx < words.length) {
         accumulated += (currentIdx > 0 ? ' ' : '') + words[currentIdx];
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: accumulated } : m));
         currentIdx++;
       } else {
-        clearInterval(interval);
+        if (streamingIntervalRef.current) {
+          clearInterval(streamingIntervalRef.current);
+          streamingIntervalRef.current = null;
+        }
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStreaming: false } : m));
         setIsLoading(false);
       }

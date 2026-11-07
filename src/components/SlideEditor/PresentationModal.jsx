@@ -56,6 +56,10 @@ export default function PresentationModal({
     return () => {
       unsubscribe();
       speechService.stop();
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+      }
     };
   }, []);
 

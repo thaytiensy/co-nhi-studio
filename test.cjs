@@ -1,12 +1,17 @@
 const { run } = require('node:test');
 const { spec } = require('node:test/reporters');
 const path = require('node:path');
+const fs = require('node:fs');
 
-const testFile = path.resolve(__dirname, 'tests/phase1.test.mjs');
+const testDir = path.resolve(__dirname, 'tests');
+const testFiles = fs.readdirSync(testDir)
+  .filter(f => f.endsWith('.test.mjs'))
+  .sort()
+  .map(f => path.resolve(testDir, f));
 
 let hasFailed = false;
 
-const testStream = run({ files: [testFile] });
+const testStream = run({ files: testFiles });
 testStream.compose(new spec()).pipe(process.stdout);
 
 testStream.on('test:fail', () => {
