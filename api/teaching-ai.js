@@ -201,6 +201,7 @@ async function generate(mode, grade, prompt, apiKey) {
     },
   };
 
+  let lastErrorDetail = '';
   for (const model of GEMINI_MODELS) {
     const timeout = withTimeout();
     try {
@@ -226,16 +227,18 @@ async function generate(mode, grade, prompt, apiKey) {
         }
       } else {
         const errText = await response.text().catch(() => '');
+        lastErrorDetail = `${model} HTTP ${response.status}: ${errText.slice(0, 200)}`;
         console.warn(`Gemini model ${model} returned ${response.status}:`, errText.slice(0, 200));
       }
     } catch (err) {
+      lastErrorDetail = `${model} network error: ${err?.message}`;
       console.warn(`Gemini model ${model} network error:`, err?.message);
     } finally {
       timeout.clear();
     }
   }
 
-  throw new Error('upstream');
+  throw new Error(lastErrorDetail || 'upstream');
 }
 
 function boundedNumber(value, min, max) {
@@ -387,7 +390,8 @@ async function generateImage({ grade, prompt, style }, apiKey) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Phương thức không được hỗ trợ.' });
   const { GEMINI_API_KEY, VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID } = process.env;
-  if (!GEMINI_API_KEY || !VITE_FIREBASE_API_KEY || !VITE_FIREBASE_PROJECT_ID) return json(res, 503, { error: CONFIG_ERROR });
+  const effectiveApiKey = (typeof input?.apiKey === 'string' && input.apiKey.startsWith('AIzaSy')) ? input.apiKey.trim() : GEMINI_API_KEY;
+  if (!effectiveApiKey || !VITE_FIREBASE_API_KEY || !VITE_FIREBASE_PROJECT_ID) return json(res, 503, { error: CONFIG_ERROR });
   let input;
   try { input = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; } catch { return json(res, 400, { error: 'Dữ liệu yêu cầu không hợp lệ.' }); }
   const validTextRequest = ['lesson', 'text'].includes(input?.mode)
@@ -449,7 +453,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const text = await generate(input.mode, input.grade, input.prompt.trim(), GEMINI_API_KEY);
+    const text = await generate(input.mode, input.grade, input.prompt.trim(), effectiveApiKey);
     return json(res, 200, { text });
-  } catch { return json(res, 502, { error: UPSTREAM_ERROR }); }
+  } catch (err) { return json(res, 502, { error: UPSTREAM_ERROR, detail: err?.message }); }
 }
