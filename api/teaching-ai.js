@@ -1,6 +1,6 @@
 const AUTH_LOOKUP_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup';
 const FIRESTORE_BASE_URL = 'https://firestore.googleapis.com/v1';
-const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
 const GEMINI_MODEL = GEMINI_MODELS[0];
 const NETWORK_TIMEOUT_MS = 30000;
 const GEMINI_IMAGE_MODEL = 'gemini-nano-banana-2.1';
@@ -227,11 +227,11 @@ async function generate(mode, grade, prompt, apiKey) {
         }
       } else {
         const errText = await response.text().catch(() => '');
-        lastErrorDetail = `${model} HTTP ${response.status}: ${errText.slice(0, 200)}`;
+        lastErrorDetail += ` [${model} HTTP ${response.status}: ${errText.slice(0, 150)}]`;
         console.warn(`Gemini model ${model} returned ${response.status}:`, errText.slice(0, 200));
       }
     } catch (err) {
-      lastErrorDetail = `${model} network error: ${err?.message}`;
+      lastErrorDetail += ` [${model} network: ${err?.message}]`;
       console.warn(`Gemini model ${model} network error:`, err?.message);
     } finally {
       timeout.clear();
