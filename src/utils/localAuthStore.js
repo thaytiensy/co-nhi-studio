@@ -4,6 +4,11 @@ export const STORAGE_KEY_SHARED = 'conhi_shared_gmails_v1';
 export const STORAGE_KEY_SUB_ADMINS = 'conhi_sub_admins_v1';
 export const STORAGE_KEY_SESSION = 'conhi_active_session_v1';
 
+// Migration: xóa session cũ khỏi localStorage (tránh auto-login từ các phiên trước)
+if (typeof window !== 'undefined') {
+  try { localStorage.removeItem(STORAGE_KEY_SESSION); } catch {}
+}
+
 export const MASTER_ADMINS = [ADMIN_1_EMAIL];
 
 export const INITIAL_SUB_ADMINS = [
@@ -51,12 +56,12 @@ export function saveLocalSharedGmails(list) {
 }
 
 export function getCurrentSession() {
+  // Chỉ đọc sessionStorage (tab-only) — không đọc localStorage để tránh auto-login
   if (typeof window === 'undefined') return null;
-  const isExplicit = localStorage.getItem('conhi_explicit_logout') === 'true'
-    || sessionStorage.getItem('conhi_explicit_logout') === 'true';
+  const isExplicit = sessionStorage.getItem('conhi_explicit_logout') === 'true';
   if (isExplicit) return null;
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY_SESSION) || localStorage.getItem(STORAGE_KEY_SESSION);
+    const raw = sessionStorage.getItem(STORAGE_KEY_SESSION);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
@@ -64,12 +69,15 @@ export function getCurrentSession() {
 export function saveCurrentSession(session) {
   if (typeof window === 'undefined') return;
   try {
+    // Xóa cờ logout cũ
     localStorage.removeItem('conhi_explicit_logout');
     sessionStorage.removeItem('conhi_explicit_logout');
+    // Chỉ lưu vào sessionStorage — session sẽ hết khi đóng tab (không auto-login lần sau)
     if (session) {
       const serialized = JSON.stringify(session);
       sessionStorage.setItem(STORAGE_KEY_SESSION, serialized);
-      localStorage.setItem(STORAGE_KEY_SESSION, serialized);
+      // Xóa bản cũ trong localStorage nếu còn
+      localStorage.removeItem(STORAGE_KEY_SESSION);
     } else {
       sessionStorage.removeItem(STORAGE_KEY_SESSION);
       localStorage.removeItem(STORAGE_KEY_SESSION);

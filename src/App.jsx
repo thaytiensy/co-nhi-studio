@@ -41,8 +41,9 @@ export default function App() {
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const [currentUserSession, setCurrentUserSession] = useState(() => getCurrentSession());
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getCurrentSession()));
+  // Luôn yêu cầu đăng nhập khi mở app — không tự khôi phục session cũ từ localStorage
+  const [currentUserSession, setCurrentUserSession] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(!auth);
   const [authError, setAuthError] = useState('');
   const authVersionRef = useRef(0);
@@ -93,14 +94,6 @@ export default function App() {
       const isExplicitLogout = typeof window !== 'undefined'
         && (localStorage.getItem('conhi_explicit_logout') === 'true' || sessionStorage.getItem('conhi_explicit_logout') === 'true');
       if (!user || isExplicitLogout) {
-        const existingSession = getCurrentSession();
-        if (existingSession && !isExplicitLogout) {
-          setIsAuthenticated(true);
-          setCurrentUserSession(existingSession);
-          setIsAdminModalOpen(false);
-          setIsAuthReady(true);
-          return;
-        }
         setIsAuthenticated(false);
         setCurrentUserSession(null);
         setIsAdminModalOpen(false);
