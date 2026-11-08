@@ -41,10 +41,10 @@ export default function App() {
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  // Chỉ duy trì phiên trong tab hiện tại qua sessionStorage — mở tab mới luôn yêu cầu đăng nhập
-  const [currentUserSession, setCurrentUserSession] = useState(() => getCurrentSession());
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getCurrentSession()));
-  const [isAuthReady, setIsAuthReady] = useState(!auth);
+  // Mặc định luôn yêu cầu đăng nhập qua LoginGateModal khi mở ứng dụng (chống auto-login)
+  const [currentUserSession, setCurrentUserSession] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(true);
   const [authError, setAuthError] = useState('');
   const authVersionRef = useRef(0);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
@@ -62,7 +62,7 @@ export default function App() {
       }
       await logoutAdmin();
     } catch (_) {
-      setAuthError('Không thể hoàn tất đăng xuất Google. Vui lòng thử lại.');
+      setAuthError('Không thể hoàn tất đăng xuất. Vui lòng thử lại.');
     }
     setCurrentUserSession(null);
     setIsAdminModalOpen(false);
@@ -70,77 +70,17 @@ export default function App() {
     setAuthError('');
   };
 
-  // Khôi phục phiên Google và xác thực quyền truy cập từ Firestore.
+  // Lắng nghe đăng xuất từ Firebase khi có thay đổi
   useEffect(() => {
-    if (!auth) {
-      return undefined;
-    }
-
-    let isActive = true;
-    let receivedInitialAuthState = false;
-    const authReadyTimeout = window.setTimeout(() => {
-      if (isActive && !receivedInitialAuthState) setIsAuthReady(true);
-    }, 2000);
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!receivedInitialAuthState) {
-        receivedInitialAuthState = true;
-        clearTimeout(authReadyTimeout);
-      }
-      const requestVersion = ++authVersionRef.current;
-      const isCurrentRequest = () => isActive
-        && requestVersion === authVersionRef.current
-        && auth.currentUser?.uid === user?.uid;
-      if (!isActive) return;
-      const isExplicitLogout = typeof window !== 'undefined'
-        && (localStorage.getItem('conhi_explicit_logout') === 'true' || sessionStorage.getItem('conhi_explicit_logout') === 'true');
-      if (!user || isExplicitLogout) {
-        const existingSession = getCurrentSession();
-        if (existingSession && !isExplicitLogout) {
-          setIsAuthenticated(true);
-          setCurrentUserSession(existingSession);
-          setIsAdminModalOpen(false);
-          setIsAuthReady(true);
-          return;
-        }
+    if (!auth) return undefined;
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
         setIsAuthenticated(false);
         setCurrentUserSession(null);
         setIsAdminModalOpen(false);
-        setIsAuthReady(true);
-        return;
-      }
-
-      setIsAuthReady(false);
-      setIsAuthenticated(false);
-      setCurrentUserSession(null);
-      setIsAdminModalOpen(false);
-      try {
-        const session = await resolveCurrentSession(user);
-        if (!isCurrentRequest()) return;
-        if (!session) {
-          const email = (user.email || '').trim().toLowerCase();
-          throw new Error(`Tài khoản Google ${email || 'đang chọn'} chưa có quyền hoạt động trong Cọ Nhí Studio. Quản trị viên cần cấp đúng địa chỉ này.`);
-        }
-        setAuthError('');
-        setCurrentUserSession(session);
-        setIsAuthenticated(true);
-        setIsAuthReady(true);
-        // Không tự động bật AdminModal để tránh che khuất màn hình của giáo viên
-      } catch (error) {
-        if (!isCurrentRequest()) return;
-        setAuthError(getAccessErrorMessage(error));
-        setCurrentUserSession(null);
-        setIsAuthenticated(false);
-        setIsAuthReady(true);
-        await logoutAdmin().catch(() => {});
       }
     });
-
-    return () => {
-      isActive = false;
-      clearTimeout(authReadyTimeout);
-      authVersionRef.current += 1;
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   // Unified Assistant Open State across all screens

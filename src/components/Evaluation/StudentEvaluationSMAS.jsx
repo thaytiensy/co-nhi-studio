@@ -10,7 +10,7 @@ import {
   Info
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { parseSmasWorkbook, exportSmasExcel } from '../../utils/smasExcelService';
+import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments } from '../../utils/smasExcelService';
 
 // Ngân hàng nhận xét môn Mĩ thuật chuẩn Thông tư 27/2020/TT-BGDĐT
 const TT27_COMMENTS_BANK = {
@@ -51,11 +51,24 @@ const INITIAL_STUDENTS = [
 export default function StudentEvaluationSMAS() {
   const [className, setClassName] = useState('Lớp 1A');
   const [classOptions, setClassOptions] = useState([]);
+  const [selectedClassFilter, setSelectedClassFilter] = useState('all');
   const [semester, setSemester] = useState('Học kì I');
   const [students, setStudents] = useState(INITIAL_STUDENTS);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [exportNotice, setExportNotice] = useState('');
   const fileInputRef = useRef(null);
+
+  // Danh sách các lớp được trích xuất
+  const allClasses = Array.from(new Set([
+    className,
+    ...classOptions,
+    ...students.map(s => s.className).filter(Boolean)
+  ])).filter(Boolean);
+
+  // Danh sách học sinh hiển thị theo bộ lọc lớp
+  const displayedStudents = selectedClassFilter === 'all'
+    ? students
+    : students.filter(s => (s.className || className || '').trim() === selectedClassFilter.trim());
 
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteInputText, setPasteInputText] = useState('');
@@ -277,32 +290,33 @@ export default function StudentEvaluationSMAS() {
   };
 
   // Handle changing evaluation level (T, H, C) -> auto suggest corresponding TT27 comment
-  const handleLevelChange = (index, newLevel) => {
-    const updated = [...students];
-    const student = updated[index];
-    updated[index] = { ...student, level: newLevel };
-    if (!student.comment?.trim() || student.commentSource === 'generated') {
+  const handleLevelChange = (id, newLevel) => {
+    setStudents(prev => prev.map(student => {
+      if (student.id !== id) return student;
       const bank = TT27_COMMENTS_BANK[newLevel] || TT27_COMMENTS_BANK.H;
-      updated[index].comment = bank[0];
-      updated[index].commentSource = 'generated';
-    }
-    setStudents(updated);
+      const comment = (!student.comment?.trim() || student.commentSource === 'generated') ? bank[0] : student.comment;
+      return { ...student, level: newLevel, comment, commentSource: student.commentSource || 'generated' };
+    }));
   };
 
   // Handle comment text edit
-  const handleCommentChange = (index, newComment) => {
-    const updated = [...students];
-    updated[index] = { ...updated[index], comment: newComment, commentSource: 'custom' };
-    setStudents(updated);
+  const handleCommentChange = (id, newComment) => {
+    setStudents(prev => prev.map(student => student.id === id ? { ...student, comment: newComment, commentSource: 'custom' } : student));
+  };
+
+  // Update student field (name, class)
+  const handleUpdateStudent = (id, field, value) => {
+    setStudents(prev => prev.map(student => student.id === id ? { ...student, [field]: value } : student));
   };
 
   // Add new student
   const handleAddStudent = () => {
     const newId = `HS${(students.length + 1).toString().padStart(3, '0')}`;
+    const targetClass = selectedClassFilter === 'all' ? (className || '1A') : selectedClassFilter;
     const newStudent = {
       id: newId,
       name: `Học sinh mới ${students.length + 1}`,
-      className: '',
+      className: targetClass,
       level: 'H',
       comment: TT27_COMMENTS_BANK.H[0],
       commentSource: 'generated',
@@ -311,9 +325,9 @@ export default function StudentEvaluationSMAS() {
   };
 
   // Delete student
-  const handleDeleteStudent = (index) => {
+  const handleDeleteStudent = (id) => {
     if (students.length <= 1) return;
-    setStudents(students.filter((_, idx) => idx !== index));
+    setStudents(prev => prev.filter(student => student.id !== id));
   };
 
   // Copy single comment for quick pasting into SMAS Web
@@ -323,17 +337,45 @@ export default function StudentEvaluationSMAS() {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
+  // Trộn và đa dạng hóa nhận xét cho lớp đang chọn
+  const handleShuffleComments = () => {
+    const updated = shuffleClassComments(students, selectedClassFilter);
+    setStudents(updated);
+    setExportNotice('🎲 Đã tạo mới gợi ý nhận xét đa dạng cho học sinh!');
+    setTimeout(() => setExportNotice(''), 3000);
+  };
+
+  // Gán nhanh mức T, H, C cho lớp đang chọn
+  const handleBatchSetLevel = (lvl) => {
+    const bank = TT27_COMMENTS_BANK[lvl] || TT27_COMMENTS_BANK.H;
+    const updated = students.map((st, idx) => {
+      if (selectedClassFilter !== 'all' && (st.className || className || '').trim() !== selectedClassFilter.trim()) {
+        return st;
+      }
+      return {
+        ...st,
+        level: lvl,
+        comment: bank[idx % bank.length],
+        commentSource: 'generated'
+      };
+    });
+    setStudents(updated);
+    setExportNotice(`⚡ Đã gán nhanh mức ${lvl} cho danh sách!`);
+    setTimeout(() => setExportNotice(''), 3000);
+  };
+
   // Export to Excel (.xlsx) compatible with SMAS import structure
-  const handleExportExcel = () => {
+  const handleExportExcel = (multiSheet = false) => {
     if (students.some(student => !(student.className?.trim() || className.trim()))) {
       alert('Vui lòng nhập lớp mặc định ở phía trên hoặc điền lớp cho từng học sinh trước khi xuất.');
       return;
     }
 
     try {
-      const fileName = exportSmasExcel({ students, className, semester });
+      const targetClass = selectedClassFilter === 'all' ? (className || '1A') : selectedClassFilter;
+      const fileName = exportSmasExcel({ students, className: targetClass, semester, multiSheet });
       setExportNotice(`Đã xuất tệp Excel: ${fileName}`);
-      setTimeout(() => setExportNotice(''), 3000);
+      setTimeout(() => setExportNotice(''), 4000);
     } catch (err) {
       alert('Lỗi xuất Excel: ' + err.message);
     }
@@ -428,15 +470,25 @@ export default function StudentEvaluationSMAS() {
             <span>Thêm Em</span>
           </button>
 
-          {/* Export Excel Button */}
-          <button
-            onClick={handleExportExcel}
-            className="px-4 py-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm flex items-center gap-1.5 transition-all"
-            title="Xuất bảng nhận xét ra tệp Excel (.xlsx) chuẩn nhập liệu SMAS"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>{exportNotice || 'Xuất File Excel Cho SMAS'}</span>
-          </button>
+          {/* Export Excel Buttons */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handleExportExcel(false)}
+              className="px-3 py-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Xuất bảng nhận xét của lớp đang chọn ra tệp Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>{exportNotice || `Xuất ${selectedClassFilter === 'all' ? 'Excel SMAS' : selectedClassFilter}`}</span>
+            </button>
+            <button
+              onClick={() => handleExportExcel(true)}
+              className="px-3 py-1.5 text-xs font-black text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
+              title="Xuất toàn bộ các lớp vào các trang tính (Sheet) riêng biệt trong cùng 1 tệp Excel"
+            >
+              <span>📑</span>
+              <span>Xuất Tất Cả Lớp</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -507,6 +559,96 @@ export default function StudentEvaluationSMAS() {
         </div>
       </div>
 
+      {/* Thanh Chọn Lớp & Công Cụ Đổi Nhận Xét Hàng Loạt */}
+      <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+        {/* Bộ nút chọn từng lớp */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mr-1">
+            Lớp:
+          </span>
+          <button
+            onClick={() => setSelectedClassFilter('all')}
+            className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+              selectedClassFilter === 'all'
+                ? 'bg-purple-600 text-white border-purple-700 shadow-xs font-black'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            Tất Cả ({students.length})
+          </button>
+          {allClasses.map((cls) => {
+            const count = students.filter(s => (s.className || className || '').trim() === cls.trim()).length;
+            return (
+              <button
+                key={cls}
+                onClick={() => {
+                  setSelectedClassFilter(cls);
+                  setClassName(cls);
+                }}
+                className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedClassFilter === cls
+                    ? 'bg-purple-600 text-white border-purple-700 shadow-xs font-black'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>{cls}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  selectedClassFilter === cls ? 'bg-purple-800 text-purple-200' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => {
+              const newCls = prompt('Nhập tên lớp mới (ví dụ: Lớp 2B, 3C):');
+              if (newCls && newCls.trim()) {
+                const clean = newCls.trim();
+                setClassOptions(prev => Array.from(new Set([...prev, clean])));
+                setSelectedClassFilter(clean);
+                setClassName(clean);
+              }
+            }}
+            className="px-2 py-1 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg flex items-center gap-1 cursor-pointer"
+            title="Thêm một lớp học mới vào danh sách"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Thêm Lớp</span>
+          </button>
+        </div>
+
+        {/* Công cụ thao tác nhanh cho lớp đang chọn */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleShuffleComments}
+            className="px-2.5 py-1 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+            title="Tự động đổi nhận xét phong phú tránh trùng lặp giữa các học sinh"
+          >
+            <span>🎲</span>
+            <span>Đổi Nhận Xét Tránh Trùng</span>
+          </button>
+          <div className="flex items-center gap-1 border-l border-slate-200 pl-2">
+            <span className="text-[10px] font-bold text-slate-400">Gán nhanh:</span>
+            <button
+              onClick={() => handleBatchSetLevel('T')}
+              className="px-2 py-0.5 text-[11px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded cursor-pointer"
+              title="Gán tất cả học sinh đang hiển thị đạt mức T"
+            >
+              Mức T
+            </button>
+            <button
+              onClick={() => handleBatchSetLevel('H')}
+              className="px-2 py-0.5 text-[11px] font-black text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded cursor-pointer"
+              title="Gán tất cả học sinh đang hiển thị đạt mức H"
+            >
+              Mức H
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Main Student List Table */}
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -523,7 +665,7 @@ export default function StudentEvaluationSMAS() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-              {students.map((st, idx) => (
+              {displayedStudents.map((st, idx) => (
                 <tr key={st.id || idx} className="hover:bg-slate-50/70 transition-colors">
                   <td className="py-3 px-4 text-center font-bold text-slate-400">
                     {idx + 1}
@@ -535,11 +677,7 @@ export default function StudentEvaluationSMAS() {
                     <input
                       type="text"
                       value={st.name}
-                      onChange={(e) => {
-                        const updated = [...students];
-                        updated[idx].name = e.target.value;
-                        setStudents(updated);
-                      }}
+                      onChange={(e) => handleUpdateStudent(st.id, 'name', e.target.value)}
                       className="w-full px-2 py-1 font-bold text-slate-800 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
                     />
                   </td>
@@ -548,11 +686,7 @@ export default function StudentEvaluationSMAS() {
                       type="text"
                       list="student-class-options"
                       value={st.className || className}
-                      onChange={(e) => {
-                        const updated = [...students];
-                        updated[idx].className = e.target.value;
-                        setStudents(updated);
-                      }}
+                      onChange={(e) => handleUpdateStudent(st.id, 'className', e.target.value)}
                       className="w-full min-w-16 px-2 py-1 text-slate-700 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
                       title="Để trống để dùng lớp mặc định ở phía trên"
                     />
@@ -567,8 +701,8 @@ export default function StudentEvaluationSMAS() {
                       ].map(lvl => (
                         <button
                           key={lvl.key}
-                          onClick={() => handleLevelChange(idx, lvl.key)}
-                          className={`px-2 py-1 text-[11px] font-black rounded-lg border transition-all ${
+                          onClick={() => handleLevelChange(st.id, lvl.key)}
+                          className={`px-2 py-1 text-[11px] font-black rounded-lg border transition-all cursor-pointer ${
                             st.level === lvl.key
                               ? `${lvl.color} ring-1 ring-offset-1 ring-purple-400 font-extrabold shadow-2xs`
                               : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
@@ -583,7 +717,7 @@ export default function StudentEvaluationSMAS() {
                   <td className="py-3 px-4">
                     <textarea
                       value={st.comment}
-                      onChange={(e) => handleCommentChange(idx, e.target.value)}
+                      onChange={(e) => handleCommentChange(st.id, e.target.value)}
                       rows={2}
                       className="w-full p-2 text-xs text-slate-700 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y font-sans leading-relaxed"
                     />
@@ -606,7 +740,7 @@ export default function StudentEvaluationSMAS() {
                       {/* Delete */}
                       {students.length > 1 && (
                         <button
-                          onClick={() => handleDeleteStudent(idx)}
+                          onClick={() => handleDeleteStudent(st.id)}
                           className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all"
                           title="Xóa học sinh này"
                         >

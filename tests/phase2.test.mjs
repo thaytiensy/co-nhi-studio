@@ -5,7 +5,7 @@ import { generateGameQuestionsByTheme, detectTopicMatch } from '../src/data/artG
 import { ROLES, getAccessErrorMessage, loginAccess } from '../src/utils/adminAuthService.js';
 import { validateEmail, isValidAccessGrant, isValidUserSession, AUTH_ROLES, ADMIN_1_EMAIL, ADMIN_1_PASSWORD } from '../src/contracts/authContract.js';
 import { validateSlideElement } from '../src/utils/storageService.js';
-import { parseSmasWorkbook } from '../src/utils/smasExcelService.js';
+import { parseSmasWorkbook, shuffleClassComments } from '../src/utils/smasExcelService.js';
 
 describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements, Games & Rubric)', () => {
   it('1. Tạo, đổi tên, thêm, nhân bản, xóa và sắp xếp slide', () => {
@@ -208,6 +208,25 @@ describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements
     assert.equal(result.students[0].className, '1A', 'Phải nhận diện lớp 1A từ tiêu đề');
     assert.equal(result.students[2].name, 'Lê Hoàng Cường');
     assert.ok(result.detectedClasses.includes('1A') && result.detectedClasses.includes('1B'));
+  });
+
+  it('5c. Tự động đổi nhận xét Thông tư 27 không trùng lặp và hỗ trợ phân tách nhiều lớp', () => {
+    const mockStudents = [
+      { id: '1', name: 'Học sinh 1', className: '1A', level: 'T', comment: '' },
+      { id: '2', name: 'Học sinh 2', className: '1A', level: 'H', comment: '' },
+      { id: '3', name: 'Học sinh 3', className: '1B', level: 'T', comment: 'Cũ' }
+    ];
+
+    // Chỉ đổi nhận xét cho lớp 1A
+    const updated = shuffleClassComments(mockStudents, '1A');
+    assert.equal(updated.length, 3);
+    assert.ok(updated[0].comment.length > 10, 'Học sinh 1A phải có nhận xét mới');
+    assert.ok(updated[1].comment.length > 10, 'Học sinh 1A phải có nhận xét mới');
+    assert.equal(updated[2].comment, 'Cũ', 'Lớp 1B không bị ảnh hưởng khi lọc theo 1A');
+
+    // Đổi cho tất cả các lớp
+    const updatedAll = shuffleClassComments(mockStudents, null);
+    assert.ok(updatedAll[2].comment.length > 10 && updatedAll[2].comment !== 'Cũ');
   });
 });
 

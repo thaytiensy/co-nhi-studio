@@ -129,9 +129,54 @@ export function parseSmasWorkbook(workbook) {
   return { students: allStudents, detectedClasses: Array.from(detectedClasses) };
 }
 
-export function exportSmasExcel({ students = [], className = '1A', semester = 'Học kì I' }) {
+export function shuffleClassComments(students = [], targetClass = '') {
+  return students.map((st, idx) => {
+    if (targetClass && targetClass !== 'all' && (st.className || '').trim() !== targetClass.trim()) {
+      return st;
+    }
+    const bank = TT27_COMMENTS_BANK[st.level] || TT27_COMMENTS_BANK.H;
+    const comment = bank[(idx + Math.floor(Math.random() * bank.length)) % bank.length];
+    return { ...st, comment, commentSource: 'generated' };
+  });
+}
+
+export function exportSmasExcel({ students = [], className = '1A', semester = 'Học kì I', multiSheet = false }) {
   if (!Array.isArray(students) || students.length === 0) throw new Error('Danh sách học sinh rỗng.');
-  const excelData = students.map((st, idx) => ({
+  const workbook = XLSX.utils.book_new();
+  const safeSem = String(semester || 'HK1').replace(/\s+/g, '_');
+
+  if (multiSheet) {
+    const classMap = new Map();
+    students.forEach((st) => {
+      const cls = st.className?.trim() || className || 'Chung';
+      if (!classMap.has(cls)) classMap.set(cls, []);
+      classMap.get(cls).push(st);
+    });
+
+    for (const [clsName, classStudents] of classMap.entries()) {
+      const excelData = classStudents.map((st, idx) => ({
+        'STT': idx + 1,
+        'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và Tên': st.name,
+        'Lớp': clsName,
+        'Mức Đạt Được': st.level || 'H',
+        'Nhận Xét Mĩ Thuật (TT27)': st.comment || ''
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      worksheet['!cols'] = [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 14 }, { wch: 70 }];
+      const safeSheetName = clsName.replace(/[:\\/?*[\]]/g, '_').slice(0, 31) || 'Lop';
+      XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
+    }
+    const fileName = `Bang_Nhan_Xet_Mi_Thuat_Tat_Ca_Cac_Lop_${safeSem}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    return fileName;
+  }
+
+  const filtered = (className && className !== 'all')
+    ? students.filter(st => (st.className || '').trim() === className.trim())
+    : students;
+  const dataToExport = filtered.length > 0 ? filtered : students;
+  const excelData = dataToExport.map((st, idx) => ({
     'STT': idx + 1,
     'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
     'Họ và Tên': st.name,
@@ -142,10 +187,8 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
 
   const worksheet = XLSX.utils.json_to_sheet(excelData);
   worksheet['!cols'] = [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 14 }, { wch: 70 }];
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Bang_Nhan_Xet_Mi_Thuat');
   const safeClass = String(className || 'Lop').replace(/\s+/g, '_');
-  const safeSem = String(semester || 'HK1').replace(/\s+/g, '_');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Bang_Nhan_Xet_Mi_Thuat');
   const fileName = `Bang_Nhan_Xet_Mi_Thuat_${safeClass}_${safeSem}.xlsx`;
   XLSX.writeFile(workbook, fileName);
   return fileName;

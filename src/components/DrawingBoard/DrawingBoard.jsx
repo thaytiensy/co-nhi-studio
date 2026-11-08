@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { STEP_DRAWING_TOPICS } from '../../data/stepDrawingBank';
 import { 
   Brush, 
   Eraser, 
@@ -87,6 +88,33 @@ export default function DrawingBoard({
     newHistory.push(dataUrl);
     setHistory(newHistory);
     setHistoryStep(newHistory.length - 1);
+  };
+
+  // Vẽ tích lũy các bước thị phạm lên canvas xem trước
+  useEffect(() => {
+    if (!showStepModal || !stepCanvasRef.current || !activeTopic) return;
+    const canvas = stepCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let s = 0; s < currentStepNum; s++) {
+      if (activeTopic.steps && activeTopic.steps[s]?.draw) {
+        activeTopic.steps[s].draw(ctx, canvas.width, canvas.height);
+      }
+    }
+  }, [showStepModal, activeTopic, currentStepNum]);
+
+  const handleApplyStepToMainCanvas = () => {
+    const stepCanvas = stepCanvasRef.current;
+    const mainCanvas = canvasRef.current;
+    if (!stepCanvas || !mainCanvas) return;
+    const mainCtx = mainCanvas.getContext('2d');
+    mainCtx.drawImage(stepCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+    saveState();
+    setShowStepModal(false);
+    setNotice('Đã chèn mẫu thị phạm vào bảng vẽ!');
+    setTimeout(() => setNotice(''), 3000);
   };
 
   const handleUndo = () => {
@@ -501,6 +529,18 @@ export default function DrawingBoard({
           </button>
         </div>
 
+        {/* Step-by-step Demonstration Button */}
+        <div className="flex items-center border-r border-slate-200 pr-3">
+          <button
+            onClick={() => setShowStepModal(true)}
+            className="px-3 py-1.5 text-xs font-black text-amber-900 bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 hover:from-amber-300 hover:to-amber-400 border border-amber-400 rounded-lg flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+            title="Mở hướng dẫn thị phạm 4 bước vẽ chuẩn GDPT 2018 (Mèo, Hoa hướng dương, Nhà, Gà Đông Hồ...)"
+          >
+            <span className="text-sm leading-none">🐾</span>
+            <span>Thị Phạm 4 Bước</span>
+          </button>
+        </div>
+
         {/* Right Action: Insert to Slide & Download */}
         <div className="flex items-center gap-2">
           <button
@@ -539,6 +579,131 @@ export default function DrawingBoard({
           />
         </div>
       </div>
+      {/* Modal Thị Phạm 4 Bước GDPT 2018 */}
+      {showStepModal && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setShowStepModal(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 flex flex-col gap-4 animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-amber-100 text-amber-800 rounded-xl text-base">🎨</span>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-800">
+                    Thị Phạm Vẽ 4 Bước Chuẩn Sư Phạm GDPT 2018
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Hướng dẫn học sinh tạo hình từ khung hình học cơ bản đến hoàn thiện màu sắc
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowStepModal(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Danh sách chủ đề thị phạm */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {STEP_DRAWING_TOPICS.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={() => { setActiveTopic(topic); setCurrentStepNum(1); }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl border flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    activeTopic?.id === topic.id
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>{topic.icon}</span>
+                  <span>{topic.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Các bước 1 -> 4 */}
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setCurrentStepNum(s)}
+                  className={`py-2 text-xs font-black rounded-xl border transition-all cursor-pointer ${
+                    currentStepNum === s
+                      ? 'bg-purple-600 text-white border-purple-700 shadow-xs ring-2 ring-purple-300'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  Bước {s}
+                </button>
+              ))}
+            </div>
+
+            {/* Thông tin bước vẽ */}
+            <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-1">
+              <h4 className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                <span>📌</span>
+                <span>{activeTopic?.steps?.[currentStepNum - 1]?.title}</span>
+              </h4>
+              <p className="text-xs text-amber-900 leading-relaxed">
+                {activeTopic?.steps?.[currentStepNum - 1]?.instruction}
+              </p>
+            </div>
+
+            {/* Khung Canvas Thị Phạm */}
+            <div className="flex items-center justify-center p-2 bg-slate-100 rounded-2xl border border-slate-200">
+              <canvas
+                ref={stepCanvasRef}
+                width={480}
+                height={300}
+                className="bg-white rounded-xl shadow-xs border border-slate-300"
+                style={{ width: '480px', height: '300px' }}
+              />
+            </div>
+
+            {/* Nút hành động */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentStepNum <= 1}
+                  onClick={() => setCurrentStepNum(prev => Math.max(1, prev - 1))}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg cursor-pointer"
+                >
+                  ◀ Bước Trước
+                </button>
+                <button
+                  disabled={currentStepNum >= 4}
+                  onClick={() => setCurrentStepNum(prev => Math.min(4, prev + 1))}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-40 rounded-lg cursor-pointer"
+                >
+                  Bước Kế Tiếp ▶
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowStepModal(false)}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={handleApplyStepToMainCanvas}
+                  className="px-4 py-1.5 text-xs font-black text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>🖌️</span>
+                  <span>Chép Lên Bảng Vẽ Chính</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
