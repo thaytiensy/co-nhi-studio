@@ -59,7 +59,6 @@ npm run build
 
 ## III. CẤU TRÚC PHÂN HỆ CHÍNH
 - `src/components/SlideEditor/`: Soạn thảo slide 16:9, chèn text/shape/ảnh, ghi chú sư phạm, xuất/nhập PPTX.
-- `src/components/IdeaWorkshop/`: Xưởng ý tưởng bài dạy (hỗ trợ chế độ cục bộ và AI trực tuyến).
 - `src/components/DrawingBoard/`: Bảng vẽ thị phạm 2D và dựng hình khối 3D trực quan.
 - `src/components/ArtGames/`: Trò chơi mĩ thuật tương tác (pha màu, hình khối, tranh dân gian).
 - `src/components/ArtCamera/`: Camera chấm tranh & bộ Rubric đánh giá năng lực học sinh.

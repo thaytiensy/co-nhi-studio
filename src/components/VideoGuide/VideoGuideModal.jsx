@@ -23,7 +23,7 @@ export default function VideoGuideModal({ isOpen, onClose }) {
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Toàn diện 7 phần: Soạn slide 16:9, Trợ giảng AI, Xưởng ý tưởng, Bảng vẽ 11 khối 3D, Chấm tranh TT27 & F5
+                Toàn diện: Soạn slide 16:9, Trợ giảng AI, Bảng vẽ 11 khối 3D, Chấm tranh TT27 & SMAS
               </p>
             </div>
           </div>

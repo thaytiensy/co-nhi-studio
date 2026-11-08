@@ -64,11 +64,17 @@ export async function generateAiArtwork({ topic, grade, style, genre = 'general'
   const stylePrefix = STYLE_PROMPTS[safeStyle] || STYLE_PROMPTS.crayon;
 
   let negativeExclusions = 'no realistic photography, no 3D computer render, no adult style, no text, no watermark';
+  const styleEmphasis = safeStyle === 'crayon'
+    ? 'The entire image must be unmistakably a child’s wax-crayon drawing, with visible grainy wax strokes and uneven hand-colored areas, not a smooth digital painting.'
+    : '';
+  if (safeStyle === 'crayon') {
+    negativeExclusions += ', no watercolor washes, no smooth digital airbrush, no vector-flat finish';
+  }
   if ((effectiveGenre === 'landscape' || effectiveGenre === 'still_life' || effectiveGenre === 'animals') && !/người|bé|bạn|gia đình|bố|mẹ|ông|bà|cô|thầy/i.test(cleanTopic)) {
     negativeExclusions += ', strictly no people, no human face, no portraits, no girl, no boy, no person, no human drawing';
   }
 
-  const imagePrompt = `${stylePrefix}, wide artwork of ${cleanTopic}: ${englishSubject}, vibrant cheerful colors, centered composition, charming artwork by a Vietnamese primary school student in grade ${safeGrade}, ${negativeExclusions}`;
+  const imagePrompt = `${stylePrefix}, ${styleEmphasis} wide artwork of ${cleanTopic}: ${englishSubject}, vibrant cheerful colors, centered composition, charming artwork by a Vietnamese primary school student in grade ${safeGrade}, ${negativeExclusions}`;
   const randomSeed = seed !== null ? seed : Math.floor(Math.random() * 1000000);
   const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1024&height=576&nologo=true&seed=${randomSeed}`;
 

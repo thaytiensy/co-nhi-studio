@@ -51,37 +51,32 @@
 - Nút "Chèn vào ghi chú", "Nghe đọc thử", "Sao chép".
 - **Minh bạch:** Không tự nhận là Gemini/AI trực tuyến; giáo viên xem và duyệt trước khi dùng.
 
-### 3. Xưởng Ý Tưởng Mĩ Thuật
-- Bộ lọc: Khối lớp (1-5), Chủ đề SGK, Chất liệu (Sáp màu, Màu nước, Xé dán, Đất nặn, Tái chế), Thời lượng (1 tiết 35p, 2 tiết 70p).
-- Sinh kế hoạch bài dạy chi tiết: Mục tiêu, Chuẩn bị, Tiến trình 4 bước, Câu hỏi gợi mở, Rubric đánh giá.
-- Nút "Tạo Slide Bài Giảng" tự động tạo bộ slide sang trình soạn thảo.
-
-### 4. Bảng Vẽ Thị Phạm Tương Tác
+### 3. Bảng Vẽ Thị Phạm Tương Tác
 - Dụng cụ: Bút vẽ nét mềm, Bút dạ quang trong suốt, Tẩy, Hình khối (Chữ nhật, Tròn, Đường thẳng).
 - Điều chỉnh độ dày nét (2, 6, 12, 24px) và bảng màu mĩ thuật phong phú.
 - Nút "Chèn Tranh Vào Slide" đưa ảnh phác thảo trực tiếp vào bài giảng để thị phạm.
 - Nút "Tải Ảnh (PNG)" lưu tranh về máy.
 
-### 5. Trò Chơi Mĩ Thuật Cục Bộ
+### 4. Trò Chơi Mĩ Thuật Cục Bộ
 - 3 trò chơi tương tác:
   1. *Ghép & Pha Màu Vui Nhộn:* Pha màu cơ bản và phân biệt gam màu Nóng / Lạnh.
   2. *Thám Tử Hình Khối:* Nhận diện hình học trong sự vật mĩ thuật đời sống.
   3. *Tìm Chi Tiết Tranh Mĩ Thuật:* Tranh dân gian Đông Hồ và luật xa gần.
 - Điểm số, hiệu ứng pháo hoa ăn mừng, giải thích kiến thức, không cần đăng nhập.
 
-### 6. Cam Chấm Tranh & Rubric Tự Duyệt
+### 5. Cam Chấm Tranh & Rubric Tự Duyệt
 - Mở Camera (Webcam) hoặc Chọn ảnh bài vẽ từ máy.
 - 100% xử lý trong trình duyệt, không tải ảnh lên máy chủ, bảo mật dữ liệu học sinh.
 - Rubric 4 tiêu chí chuẩn GDPT 2018: Đề tài, Kỹ thuật (Nét-Hình-Màu), Sáng tạo riêng, Khả năng trình bày ý tưởng.
 - Giáo viên tự tay tick chọn mức độ và sửa nội dung nhận xét.
 - Nút "Đưa Vào Slide Trưng Bày" chèn cả ảnh bài vẽ và nhận xét vào slide.
 
-### 7. Media & Tìm Kiếm YouTube An Toàn
+### 6. Media & Tìm Kiếm YouTube An Toàn
 - Chèn tệp nhạc (MP3) và video (MP4) từ máy vào slide, điều khiển phát an toàn, KHÔNG tự động phát.
 - Hộp thoại tìm video YouTube mở trang kết quả YouTube trên tab mới (không cần API key).
 - Hỗ trợ dán link video YouTube để nhúng iframe chính thức.
 
-### 8. Xuất Tệp PPTX Thực Tế & Nhận Xét SMAS Chuẩn Thông Tư 27
+### 7. Xuất Tệp PPTX Thực Tế & Nhận Xét SMAS Chuẩn Thông Tư 27
 - **Xuất PPTX:** Dùng `PptxGenJS` xuất tệp `.pptx` chuẩn 16:9, giữ nguyên văn bản, định dạng font, hình khối, ảnh và toàn bộ ghi chú lời giảng sư phạm.
 - **Nhận xét học sinh:** Căn cứ Thông tư 27/2020/TT-BGDĐT ngày 04/9/2020 (Nguồn moet.gov.vn, kiểm tra ngày 02/11/2026).
 - Phân loại 3 mức T (Hoàn thành tốt), H (Hoàn thành), C (Chưa hoàn thành).

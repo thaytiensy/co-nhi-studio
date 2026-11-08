@@ -21,6 +21,7 @@ import {
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { speechService } from '../../utils/speechService';
 import { requestGroqChat } from '../../utils/groqChatService';
+import { findRelevantPedagogyTheme } from '../../utils/offlineAssistantMatchService';
 
 export default function OfflinePedagogyAssistant({
   currentSlide = null,
@@ -352,24 +353,8 @@ export default function OfflinePedagogyAssistant({
       const isGame = /trò chơi|khởi động|đố vui|khuấy động|hứng thú|đố/i.test(qLower);
       const isRubric = /nhận xét|đánh giá|rubric|thông tư 27|xếp loại|tiêu chí/i.test(qLower);
 
-      // 2. Tìm chủ đề tương đồng nhất trong ngân hàng bài dạy SGK
-      let bestMatch = null;
-      let maxScore = 0;
-      Object.keys(PEDAGOGY_BANK.themes).forEach(grade => {
-        PEDAGOGY_BANK.themes[grade].forEach(theme => {
-          let score = 0;
-          const cleanTitle = theme.title.toLowerCase().replace(/chủ đề \d+:\s*/, '');
-          const words = cleanTitle.split(/\s+/);
-          words.forEach(w => {
-            if (w.length > 2 && qLower.includes(w)) score += 3;
-          });
-          if (qLower.includes(cleanTitle)) score += 10;
-          if (score > maxScore) {
-            maxScore = score;
-            bestMatch = { grade, theme };
-          }
-        });
-      });
+      // 2. Chỉ dùng một chủ đề ngân hàng khi câu hỏi có từ khóa đặc trưng đủ rõ.
+      const bestMatch = findRelevantPedagogyTheme(query, PEDAGOGY_BANK.themes, selectedGrade);
 
       let contentStr = '';
       const title = `Gợi ý sư phạm: "${query}"`;
@@ -412,10 +397,9 @@ export default function OfflinePedagogyAssistant({
                   match.fourSteps.map((st, i) => `  ${i + 1}. ${st}`).join('\n') + `\n\n` +
                   `💡 Lời dặn học sinh: "Hãy quan sát thật kĩ vẻ đẹp của sự vật trước khi vẽ, và tự tin thể hiện nét cọ của chính mình!"`;
       } else {
-        contentStr = `Gợi ý sư phạm thực tế từ Thầy Cọ Nhí:\n\n` +
-                  `1. Dựng hình cơ bản: Mọi đồ vật và con vật đều bắt đầu từ các hình học đơn giản (tròn, vuông, tam giác, bầu dục). Hướng dẫn bé phác nhẹ tay trước khi tô nét chính.\n\n` +
-                  `2. Phối màu ngây thơ: Khuyến khích học sinh chọn màu theo cảm xúc yêu thích, phối hợp màu sáng cạnh màu tối để hình vẽ rạng rỡ.\n\n` +
-                  `3. Tuyên dương cá tính: Tôn trọng phong cách biểu cảm tự do của từng học sinh, giúp các con luôn yêu thích và tự hào về tác phẩm của mình.`;
+        contentStr = `Em đã nhận câu hỏi: “${query}”.\n\n` +
+                  `Trong chế độ Cục Bộ Offline, em chưa tìm thấy chủ đề trong ngân hàng phù hợp đủ rõ, nên không đoán theo lớp hoặc chủ đề đang chọn.\n\n` +
+                  `Thầy/Cô có thể nêu thêm đối tượng tạo hình, chất liệu hoặc thao tác cần tư vấn để em gợi ý sát hơn.`;
       }
 
       setIsLoading(true);

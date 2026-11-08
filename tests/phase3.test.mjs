@@ -17,7 +17,7 @@ import { ART_PERSONAS } from '../src/data/artPersonas.js';
 import { generateAiArtwork } from '../src/utils/aiLessonGenerator.js';
 
 describe('Giai đoạn 3 - Phân tích Câu Lệnh Tự Nhiên & Kiểm soát An Toàn (AI Prompt Parsing)', () => {
-  it('1. Trích xuất chính xác tham số từ các câu lệnh tự nhiên trong Xưởng Ý Tưởng', () => {
+  it('1. Trích xuất chính xác tham số từ các câu lệnh bài dạy tự nhiên', () => {
     // Trường hợp 1: Lớp 2, sáp màu, 35 phút, khởi động vui
     const p1 = parseNaturalIdeaPrompt('Tạo kế hoạch dạy vẽ ngôi nhà cho lớp 2, thời lượng 35 phút, dùng sáp màu, có phần khởi động vui.');
     assert.equal(p1.grade, 2);

@@ -222,9 +222,6 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('pptxgenjs') || id.includes('jszip') || id.includes('@xmldom')) {
-              return 'vendor-pptx';
-            }
             if (id.includes('xlsx')) {
               return 'vendor-xlsx';
             }

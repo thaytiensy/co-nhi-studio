@@ -21,6 +21,7 @@ import {
 import confetti from 'canvas-confetti';
 import { ART_CURRICULUM_THEMES, generateGameQuestionsByTheme } from '../../data/artGamesCurriculumBank';
 import { generateNaturalArtGame, parseNaturalGamePrompt } from '../../utils/aiNaturalLanguageService';
+import { buildAnswerFeedback } from '../../utils/gameFeedbackService';
 
 const DEFAULT_GAMES = {
   // Game 1: Color Mixing & Matching
@@ -601,7 +602,7 @@ export default function ArtGames({
                 {isAnswered && (
                   <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl animate-in fade-in flex items-center justify-between gap-4">
                     <p className="text-xs text-amber-950 font-semibold leading-relaxed">
-                      💡 <strong>Lời Thầy/Cô:</strong> {currentQ.explanation}
+                      💡 <strong>Lời Thầy/Cô:</strong> {buildAnswerFeedback(currentQ, selectedOption)}
                     </p>
                     <button
                       onClick={handleNextQuestion}

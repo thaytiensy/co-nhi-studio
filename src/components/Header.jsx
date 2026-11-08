@@ -5,7 +5,6 @@ import {
   Download, 
   Upload, 
   Palette, 
-  Lightbulb, 
   Brush, 
   Gamepad2, 
   Camera, 
@@ -48,7 +47,6 @@ export default function Header({
 
   const tabs = [
     { id: 'editor', name: 'Soạn Slide', icon: Presentation, color: 'text-amber-600' },
-    { id: 'ideas', name: 'Xưởng Ý Tưởng', icon: Lightbulb, color: 'text-yellow-600' },
     { id: 'drawing', name: 'Bảng Vẽ Thị Phạm', icon: Brush, color: 'text-emerald-600' },
     { id: 'games', name: 'Trò Chơi Mĩ Thuật', icon: Gamepad2, color: 'text-indigo-600' },
     { id: 'camera', name: 'Cam Chấm Tranh', icon: Camera, color: 'text-rose-600' },

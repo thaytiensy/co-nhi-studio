@@ -1,3 +1,9 @@
 # Keep local-only environment files out of Vercel deployments.
 .env.local
 .env.*.local
+.work/
+dist/
+outputs/
+co-nhi-audit.zip
+build.log
+test.log

@@ -79,7 +79,7 @@ export function extractCleanArtTopic(prompt) {
 }
 
 /**
- * 1. Phân tích câu lệnh tự nhiên trong Xưởng Ý Tưởng (Hiểu sâu sắc toàn bộ ngữ cảnh)
+ * 1. Phân tích câu lệnh bài dạy tự nhiên (Hiểu sâu sắc toàn bộ ngữ cảnh)
  */
 
 /**

@@ -6,7 +6,6 @@ import LoginGateModal from './components/Admin/LoginGateModal';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 
 // Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
-const IdeaWorkshop = React.lazy(() => import('./components/IdeaWorkshop/IdeaWorkshop'));
 const DrawingBoard = React.lazy(() => import('./components/DrawingBoard/DrawingBoard'));
 const ArtGames = React.lazy(() => import('./components/ArtGames/ArtGames'));
 const ArtCameraRubric = React.lazy(() => import('./components/ArtCamera/ArtCameraRubric'));
@@ -31,16 +30,47 @@ const BLANK_INITIAL_SLIDE = {
 
 const INITIAL_SLIDES = [BLANK_INITIAL_SLIDE];
 
+class AdminModalErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      if (!this.props.isOpen) return null;
+      return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60" role="alert">
+          <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-6 shadow-2xl">
+            <h3 className="font-extrabold text-slate-800">Không thể tải khu vực quản trị</h3>
+            <p className="mt-2 text-sm text-slate-600">Ứng dụng vẫn hoạt động. Thầy/Cô có thể đóng hộp thoại hoặc tải lại trang để thử lại.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={this.props.onClose} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700">Đóng</button>
+              <button type="button" onClick={() => window.location.reload()} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-bold text-white">Tải lại trang</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [projectTitle, setProjectTitle] = useState('Bài Giảng Mĩ Thuật');
   const [slides, setSlides] = useState(INITIAL_SLIDES);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [slideEditorResetKey, setSlideEditorResetKey] = useState(0);
-  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'ideas', 'drawing', 'games', 'camera', 'evaluation'
+  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'drawing', 'games', 'camera', 'evaluation'
   const [isSaved, setIsSaved] = useState(true);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [hasOpenedAdminModal, setHasOpenedAdminModal] = useState(false);
   // Mặc định luôn yêu cầu đăng nhập qua LoginGateModal khi mở ứng dụng (chống auto-login)
   const [currentUserSession, setCurrentUserSession] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -48,6 +78,7 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const authVersionRef = useRef(0);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [hasOpenedInstallModal, setHasOpenedInstallModal] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   const isInitialLoadedRef = useRef(false);
@@ -114,7 +145,9 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')
         && (currentUserSession?.role === ROLES.SUB_ADMIN || currentUserSession?.role === ROLES.SUPER_ADMIN)) {
         e.preventDefault();
-        setIsAdminModalOpen(prev => !prev);
+        const nextIsOpen = !isAdminModalOpen;
+        if (nextIsOpen) setHasOpenedAdminModal(true);
+        setIsAdminModalOpen(nextIsOpen);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -124,7 +157,7 @@ export default function App() {
       window.removeEventListener('appinstalled', handleAppInstalled);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentUserSession?.role]);
+  }, [currentUserSession?.role, isAdminModalOpen]);
 
   // Load from local storage on initial mount (loại bỏ dữ liệu mẫu cũ nếu có để app luôn trắng)
   useEffect(() => {
@@ -279,116 +312,6 @@ export default function App() {
     setProjectTitle(cleanTitle);
     setActiveTab('editor');
     setPptxPreviewData(null);
-    setIsSaved(false);
-  };
-
-  // Generate slides from Idea Workshop
-  const handleGenerateSlidesFromIdea = (idea) => {
-    const newSlide1 = {
-      id: 'slide-idea-1-' + Date.now(),
-      background: '#fffbeb',
-      elements: [
-        {
-          id: 't-1',
-          type: 'text',
-          x: 80,
-          y: 120,
-          width: 800,
-          height: 90,
-          text: idea.lessonTitle.toUpperCase(),
-          fontSize: 34,
-          fontWeight: 'bold',
-          color: '#92400e',
-          textAlign: 'center'
-        },
-        {
-          id: 't-2',
-          type: 'text',
-          x: 100,
-          y: 230,
-          width: 760,
-          height: 50,
-          text: `Mĩ Thuật Lớp ${idea.grade} • Thời lượng: ${idea.duration} • Vật liệu: ${idea.material}`,
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: '#b45309',
-          textAlign: 'center'
-        }
-      ],
-      notes: idea.teachingProcess[0]?.teacherNote || 'Khởi động tiết học vui tươi!',
-    };
-
-    const newSlide2 = {
-      id: 'slide-idea-2-' + Date.now(),
-      background: '#f0fdf4',
-      elements: [
-        {
-          id: 't-obj-h',
-          type: 'text',
-          x: 60,
-          y: 40,
-          width: 840,
-          height: 45,
-          text: 'MỤC TIÊU BÀI HỌC (GDPT 2018)',
-          fontSize: 26,
-          fontWeight: 'bold',
-          color: '#065f46',
-          textAlign: 'left'
-        },
-        {
-          id: 't-obj-b',
-          type: 'text',
-          x: 60,
-          y: 110,
-          width: 840,
-          height: 380,
-          text: `• KIẾN THỨC: ${idea.objectives.knowledge}\n\n• KĨ NĂNG: ${idea.objectives.skills}\n\n• PHẨM CHẤT: ${idea.objectives.qualities}`,
-          fontSize: 20,
-          fontWeight: 'normal',
-          color: '#1f2937',
-          textAlign: 'left'
-        }
-      ],
-      notes: 'Thầy/Cô đọc rõ yêu cầu cần đạt cho học sinh nắm rõ trước khi bắt đầu thực hành.'
-    };
-
-    const newSlide3 = {
-      id: 'slide-idea-3-' + Date.now(),
-      background: '#faf5ff',
-      elements: [
-        {
-          id: 't-proc-h',
-          type: 'text',
-          x: 60,
-          y: 40,
-          width: 840,
-          height: 45,
-          text: 'TIẾN TRÌNH THỰC HÀNH SÁNG TẠO',
-          fontSize: 26,
-          fontWeight: 'bold',
-          color: '#581c87',
-          textAlign: 'left'
-        },
-        {
-          id: 't-proc-b',
-          type: 'text',
-          x: 60,
-          y: 110,
-          width: 840,
-          height: 380,
-          text: idea.teachingProcess.map(p => `${p.name}\n${p.activity}`).join('\n\n'),
-          fontSize: 16,
-          fontWeight: 'normal',
-          color: '#334155',
-          textAlign: 'left'
-        }
-      ],
-      notes: 'Hướng dẫn các em thao tác đúng kĩ thuật với chất liệu đã chuẩn bị.'
-    };
-
-    const updated = [...slides, newSlide1, newSlide2, newSlide3];
-    setSlides(updated);
-    setCurrentSlideIndex(slides.length);
     setIsSaved(false);
   };
 
@@ -547,9 +470,15 @@ export default function App() {
         onExportPPTX={handleExportPPTX}
         onUploadPPTX={handleTriggerPPTXUpload}
         onNewProject={handleNewProject}
-                onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
-        onOpenAdminModal={() => setIsAdminModalOpen(true)}
-        onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
+        onOpenAdminModal={() => {
+          setHasOpenedAdminModal(true);
+          setIsAdminModalOpen(true);
+        }}
+        onOpenInstallModal={() => {
+          setHasOpenedInstallModal(true);
+          setIsInstallModalOpen(true);
+        }}
         installPrompt={installPrompt}
         isAppInstalled={isAppInstalled}
         userSession={currentUserSession}
@@ -574,14 +503,6 @@ export default function App() {
         )}
 
         <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
-          {activeTab === 'ideas' && (
-            <IdeaWorkshop
-              onGenerateSlidesFromIdea={handleGenerateSlidesFromIdea}
-              onInsertDrawingToSlide={handleInsertDrawingToSlide}
-              onNavigateToEditor={() => setActiveTab('editor')}
-            />
-          )}
-
           {activeTab === 'drawing' && (
             <DrawingBoard
               onInsertDrawingToSlide={handleInsertDrawingToSlide}
@@ -663,26 +584,34 @@ export default function App() {
         )}
 
         {/* 5. Video Guide (7-Minute Presentation) Modal */}
-        <VideoGuideModal
-          isOpen={isVideoGuideOpen}
-          onClose={() => setIsVideoGuideOpen(false)}
-        />
+        {isVideoGuideOpen && (
+          <VideoGuideModal
+            isOpen={isVideoGuideOpen}
+            onClose={() => setIsVideoGuideOpen(false)}
+          />
+        )}
 
         {/* 6. Admin Authentication & Management Modal */}
-        <AdminModal
-          isOpen={isAdminModalOpen}
-          onClose={() => setIsAdminModalOpen(false)}
-          onLogout={handleLogout}
-          session={currentUserSession}
-        />
+        {hasOpenedAdminModal && (
+          <AdminModalErrorBoundary isOpen={isAdminModalOpen} onClose={() => setIsAdminModalOpen(false)}>
+            <AdminModal
+              isOpen={isAdminModalOpen}
+              onClose={() => setIsAdminModalOpen(false)}
+              onLogout={handleLogout}
+              session={currentUserSession}
+            />
+          </AdminModalErrorBoundary>
+        )}
 
         {/* 7. Install Application Modal */}
-        <InstallAppModal
-          isOpen={isInstallModalOpen}
-          onClose={() => setIsInstallModalOpen(false)}
-          installPrompt={installPrompt}
-          isInstalled={isAppInstalled}
-        />
+        {hasOpenedInstallModal && (
+          <InstallAppModal
+            isOpen={isInstallModalOpen}
+            onClose={() => setIsInstallModalOpen(false)}
+            installPrompt={installPrompt}
+            isInstalled={isAppInstalled}
+          />
+        )}
       </React.Suspense>
     </div>
   );

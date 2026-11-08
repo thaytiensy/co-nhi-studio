@@ -1,13 +1,21 @@
 # BÁO CÁO TRẠNG THÁI DỰ ÁN CỌ NHÍ STUDIO (PROJECT STATE)
 
-> **Cập nhật lúc:** 2026-11-08 16:00:00 (Giờ Việt Nam)  
-> **Trạng thái:** SUCCESS - 0 LỖI BIÊN DỊCH - 70/70 TEST PASS - BẢO MẬT & ĐA LỚP HOÀN HẢO
+> **Cập nhật lúc:** 2026-11-08 17:15:00 (Giờ Việt Nam)  
+> **Trạng thái:** SUCCESS - 0 LỖI BIÊN DỊCH - 74/74 TEST PASS - ĐÃ LOẠI BỎ HOÀN TOÀN XƯỞNG Ý TƯỞNG AN TOÀN
 
 ---
 
-## 1. Kết Quả Xử Lý & Khắc Phục Lỗi Toàn Diện
+## 1. Kết Quả Xử Lý & Khắc Phục Toàn Diện
 
-### A. Khắc Phục Triệt Để Lỗi App Cứ Tự Động Đăng Nhập
+### A. Loại Bỏ Hoàn Toàn Chức Năng "Xưởng Ý Tưởng" (Không Ảnh Hưởng Tính Năng Khác)
+- **Thực hiện sạch sẽ:**
+  1. Loại bỏ tab `ideas` và icon `Lightbulb` khỏi thanh điều hướng chính trong `Header.jsx`.
+  2. Gỡ bỏ `IdeaWorkshop` (lazy component), hàm `handleGenerateSlidesFromIdea` và khối render `activeTab === 'ideas'` khỏi `App.jsx`.
+  3. Xóa hoàn toàn component `src/components/IdeaWorkshop/` (giảm 94KB mã nguồn và 61KB vendor chunk không cần thiết).
+  4. Cập nhật tài liệu `README.md`, `HUONG_DAN_SU_DUNG.md`, `VideoGuideModal.jsx` đồng bộ với cấu trúc mới gồm 5 tab trọng tâm.
+  5. Đảm bảo toàn bộ 5 phân hệ còn lại (*Soạn Slide, Bảng Vẽ Thị Phạm, Trò Chơi Mĩ Thuật, Cam Chấm Tranh, Nhận xét TT27/SMAS*) hoạt động trơn tru 100%.
+
+### B. Khắc Phục Triệt Để Lỗi App Cứ Tự Động Đăng Nhập
 - **Nguyên nhân:** Firebase Auth lưu credential vào IndexedDB (`firebaseLocalStorageDb`) trên trình duyệt, khi load trang `onAuthStateChanged` tự động kích hoạt phiên đăng nhập cũ, vượt qua cổng bảo vệ.
 - **Giải pháp xử lý:** Trong `App.jsx`, khởi tạo `currentUserSession: null`, `isAuthenticated: false`, `isAuthReady: true`. Không cho phép `onAuthStateChanged` tự động kích hoạt phiên khi vừa nạp app. Chỉ kích hoạt phiên đăng nhập khi người dùng nhập thông tin xác thực trên `LoginGateModal`.
 
@@ -44,7 +52,7 @@
    - `src/components/Admin/AdminRolesTab.jsx`: 141 dòng.
    - `src/components/Admin/AdminModal.jsx`: 190 dòng.
 3. **Kiểm thử tự động & Biên dịch:**
-   - `npm test`: **70/70 test passed 100%** qua 12 test suites.
+   - `npm test`: **74/74 test passed 100%** qua 12 test suites.
    - `npx oxlint`: **0 lỗi (0 errors)**.
-   - `npm run build`: Hoàn thành trong **3.39s** với **Exit code 0**.
+   - `npm run build`: Hoàn thành trong **~3.2s** với **Exit code 0**.
    - Dev server: Hoạt động ổn định tại `http://127.0.0.1:3100/` (HTTP 200 OK).
