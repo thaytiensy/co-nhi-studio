@@ -20,7 +20,8 @@ import {
   Lock,
   Unlock,
   Mail,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
 import { exportProjectFile } from '../utils/storageService';
 
@@ -112,9 +113,44 @@ export default function Header({
             </button>
           )}
 
-          {/* Trạng thái xác thực: Người dùng chỉ thấy Gmail, Admin chỉ thấy Ổ Khóa Mở/Đóng (Không lộ chữ Admin) */}
-          {userSession?.email && userSession?.role !== 'super_admin' && userSession?.role !== 'sub_admin' ? (
-            /* Người dùng đăng nhập: CHỈ HIỂN THỊ GMAIL ĐĂNG NHẬP */
+          {/* Phân định quyền: Admin 1 Ẩn danh (chỉ hiện ổ khóa), Admin 2/3 Không ẩn danh (hiện rõ chức danh), Giáo viên (hiện Gmail) */}
+          {userSession?.role === 'super_admin' ? (
+            /* Admin 1 (Chủ quản trị tối cao): ẨN DANH HOÀN TOÀN, chỉ hiện ổ khóa mở */
+            <button
+              onClick={onOpenAdminModal}
+              className="p-2 text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all shadow-2xs cursor-pointer"
+              title="Khu vực quản trị hệ thống (Admin 1 • Ẩn danh)"
+            >
+              <Unlock className="w-4 h-4 text-emerald-600" />
+            </button>
+          ) : userSession?.role === 'sub_admin' ? (
+            /* Admin 2, Admin 3 (do Admin 1 cấp): KHÔNG ẨN DANH, hiển thị rõ chức danh quản trị */
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-black shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <span className="truncate max-w-[190px]" title={userSession.email}>
+                {userSession.adminTitle || 'Admin 2'}: {userSession.email}
+              </span>
+              {onOpenAdminModal && (
+                <button
+                  onClick={onOpenAdminModal}
+                  className="p-1 text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100/70 rounded-lg transition-colors cursor-pointer"
+                  title="Mở khu vực quản trị"
+                >
+                  <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                </button>
+              )}
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  title="Đăng xuất quyền Admin"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : userSession?.email ? (
+            /* Giáo viên đăng nhập: Hiển thị Gmail và nút đăng xuất */
             <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs">
               <Mail className="w-3.5 h-3.5 text-slate-400" />
               <span className="truncate max-w-[200px]" title={userSession.email}>
@@ -126,19 +162,10 @@ export default function Header({
                   className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                   title="Đăng xuất tài khoản Gmail"
                 >
-                  <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                  <LogOut className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
-          ) : userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' ? (
-            /* Admin đăng nhập: CHỈ HIỂN THỊ Ổ KHÓA MỞ (Tuyệt đối không hiện chữ Admin Chính/Phụ trên giao diện) */
-            <button
-              onClick={onOpenAdminModal}
-              className="p-2 text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-all shadow-2xs cursor-pointer"
-              title="Khu vực quản trị hệ thống"
-            >
-              <Unlock className="w-4 h-4 text-emerald-600" />
-            </button>
           ) : (
             /* Khi chưa đăng nhập / Khóa đóng */
             onOpenAdminModal && (

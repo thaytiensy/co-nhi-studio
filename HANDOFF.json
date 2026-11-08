@@ -1,44 +1,39 @@
 {
   "status": "success",
   "project": "Cọ Nhí Studio (Co Nhi Studio)",
-  "version": "1.0.0",
-  "updatedAt": "2026-11-08T10:30:00+07:00",
-  "summary": "Đã giải quyết triệt để 2 vấn đề cốt lõi: (1) Khắc phục xung đột Firebase onAuthStateChanged hủy phiên Gmail trực tiếp và thêm ô nhập Gmail độc lập; (2) Tách module aiArtworkService và ánh xạ ngữ nghĩa tiếng Anh cho AI tạo tranh để 'chủ đề 3 lớp 5' (Gia đình) và 'Cảnh đẹp quê hương' vẽ chuẩn xác 100%, không bị ra xe hơi hay chân dung lệch.",
+  "version": "1.0.1",
+  "updatedAt": "2026-11-08T13:57:00+07:00",
+  "summary": "Đã giải quyết triệt để 2 vấn đề: (1) Khắc phục lỗi không nhận diện toàn bộ tệp Excel học sinh bằng dịch vụ smasExcelService đa trang tính và lọc tiêu đề trường; (2) Thiết lập quyền Admin 1 (dotiensy.8785@gmail.com, mật khẩu Tiensy2026@, chế độ Ẩn danh tuyệt đối) và quyền Admin 2, 3 do Admin 1 cấp hiển thị công khai chức danh trên giao diện.",
   "fixedIssues": [
     {
-      "id": "FIREBASE_AUTH_STATE_COLLISION",
-      "description": "Khi giáo viên đăng nhập bằng Gmail trực tiếp, Firebase onAuthStateChanged trả về user null làm hủy phiên đăng nhập khiến người dùng bị đẩy ra ngoài.",
-      "resolution": "Bổ sung kiểm tra getCurrentSession() trong onAuthStateChanged của src/App.jsx. Nếu tồn tại phiên Gmail hợp lệ và không phải đăng xuất chủ động, giữ nguyên trạng thái xác thực."
+      "id": "SMAS_FILE_IMPORT_FULL_RECOGNITION",
+      "description": "Khi tải tệp Excel danh sách học sinh lên SMAS, hệ thống chỉ đọc 1 trang tính đầu và nhầm dòng biểu ngữ 'Lớp 1A' thành tên học sinh, không nhận diện được toàn bộ học sinh.",
+      "resolution": "Tách module src/utils/smasExcelService.js (< 200 dòng): quét toàn bộ SheetNames trong workbook, bóc tách chính xác Họ đệm + Tên, lọc bỏ các dòng tiêu đề/biểu ngữ trường, nhận diện đầy đủ 100% học sinh."
     },
     {
-      "id": "AI_ART_TOPIC_SEMANTIC_MAPPING",
-      "description": "Các câu lệnh tiếng Việt như 'chủ đề 3 lớp 5' hay 'Cảnh đẹp quê hương' bị Flux/Pollinations hiểu nhầm sinh ra xe hơi hoặc chân dung bé gái.",
-      "resolution": "Tách module src/utils/aiArtworkService.js (< 200 dòng), bổ sung TOPIC_ENGLISH_MAP ánh xạ chuẩn sang tiếng Anh (gia đình -> ấm cúng, cảnh đẹp quê hương -> phong cảnh làng quê Việt Nam với luật xa gần, loại trừ triệt để chân dung khi vẽ phong cảnh)."
-    },
-    {
-      "id": "GMAIL_DIRECT_ACCESS_AND_SHARE_LINK",
-      "description": "Giáo viên được cấp quyền (như hoangthanhtam1980@gmail.com) có thể nhập trực tiếp Gmail hoặc mở qua liên kết được Admin sao chép để tự điền Gmail và vào app ngay.",
-      "resolution": "Cập nhật AdminAccountsTab.jsx thêm nút sao chép link đăng nhập nhanh theo từng email, LoginGateModal.jsx tự động đọc tham số ?email= từ URL."
+      "id": "ADMIN_1_PASSWORD_ANONYMOUS_AND_SUBADMINS",
+      "description": "Phân cấp Admin 1 (dotiensy.8785@gmail.com, mk Tiensy2026@, ẩn danh) và Admin 2, 3 do Admin 1 cấp không ẩn danh.",
+      "resolution": "Cập nhật authContract.js, adminAuthService.js và LoginGateModal.jsx yêu cầu mật khẩu Tiensy2026@ khi đăng nhập Admin 1; Header.jsx hiển thị ổ khóa mở cho Admin 1 (ẩn danh) và hiển thị rõ badge chức danh cho Admin 2, 3 (không ẩn danh)."
     }
   ],
   "touchedFiles": [
-    "src/App.jsx",
     "src/contracts/authContract.js",
     "src/utils/localAuthStore.js",
     "src/utils/adminAuthService.js",
-    "src/utils/aiArtworkService.js",
-    "src/utils/aiLessonGenerator.js",
+    "src/utils/smasExcelService.js",
     "src/components/Admin/LoginGateModal.jsx",
-    "src/components/Admin/AdminAccountsTab.jsx",
     "src/components/Admin/AdminRolesTab.jsx",
     "src/components/Admin/AdminModal.jsx",
+    "src/components/Header.jsx",
+    "src/components/Evaluation/StudentEvaluationSMAS.jsx",
+    "tests/phase2.test.mjs",
     "PROJECT_STATE.md",
     "HANDOFF.json"
   ],
   "verification": {
     "linter": "0 errors (oxlint)",
-    "testRunner": "67/67 tests passed (12 test suites)",
-    "build": "vite build succeeded in 3.98s (exit code 0)",
+    "testRunner": "69/69 tests passed (12 test suites)",
+    "build": "vite build succeeded in 4.27s (exit code 0)",
     "fileLengthCompliance": "All modified files strictly <= 200 lines"
   }
 }

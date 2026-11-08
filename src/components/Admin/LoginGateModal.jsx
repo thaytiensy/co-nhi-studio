@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react';
-import { loginAccess } from '../../utils/adminAuthService';
+import { loginAccess, ADMIN_1_EMAIL } from '../../utils/adminAuthService';
 import { firebaseConfigured } from '../../utils/firebaseClient';
 
 export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess = () => {}, onClearAuthError = () => {} }) {
@@ -11,10 +11,13 @@ export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess 
     }
     return '';
   });
+  const [passwordInput, setPasswordInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
+
+  const isAdmin1 = emailInput.trim().toLowerCase() === ADMIN_1_EMAIL;
 
   const handleGmailSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +25,7 @@ export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess 
     onClearAuthError();
     setIsSubmitting(true);
     try {
-      const res = await loginAccess(emailInput);
+      const res = await loginAccess(emailInput, passwordInput);
       if (!res.success) {
         setErrorMsg(res.message || 'Đăng nhập không thành công.');
       } else {
@@ -79,7 +82,7 @@ export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess 
               <span>Bảo Mật Gmail • Đăng Nhập Vào App</span>
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Nhập Gmail đã được cấp quyền hoặc bấm tiếp tục với Google.
+              Nhập Gmail đã được cấp quyền để vào ứng dụng mĩ thuật.
             </p>
           </div>
 
@@ -102,12 +105,32 @@ export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess 
                 className="w-full pl-10 pr-3 py-3 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
               />
             </div>
+
+            {isAdmin1 && (
+              <div className="space-y-1 animate-in fade-in">
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-amber-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => { setPasswordInput(e.target.value); setErrorMsg(''); }}
+                    placeholder="Mật khẩu bảo mật Admin 1 (Tiensy2026@)…"
+                    required
+                    className="w-full pl-10 pr-3 py-2.5 text-xs text-slate-800 bg-amber-50/60 border border-amber-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                  />
+                </div>
+                <p className="text-[10px] text-amber-800 font-bold pl-1 flex items-center gap-1">
+                  <span>🔒</span> Quyền Admin 1 • Chế độ Quản trị Ẩn danh
+                </p>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={isSubmitting || !emailInput.trim()}
+              disabled={isSubmitting || !emailInput.trim() || (isAdmin1 && !passwordInput.trim())}
               className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer"
             >
-              <span>{isSubmitting ? 'Đang xác thực Gmail…' : 'Đăng Nhập Bằng Gmail'}</span>
+              <span>{isSubmitting ? 'Đang xác thực…' : isAdmin1 ? 'Xác Thực Quyền Admin 1' : 'Đăng Nhập Bằng Gmail'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

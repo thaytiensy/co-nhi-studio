@@ -1,9 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import * as XLSX from 'xlsx';
 import { generateGameQuestionsByTheme, detectTopicMatch } from '../src/data/artGamesCurriculumBank.js';
-import { ROLES, getAccessErrorMessage } from '../src/utils/adminAuthService.js';
-import { validateEmail, isValidAccessGrant, isValidUserSession, AUTH_ROLES } from '../src/contracts/authContract.js';
+import { ROLES, getAccessErrorMessage, loginAccess } from '../src/utils/adminAuthService.js';
+import { validateEmail, isValidAccessGrant, isValidUserSession, AUTH_ROLES, ADMIN_1_EMAIL, ADMIN_1_PASSWORD } from '../src/contracts/authContract.js';
 import { validateSlideElement } from '../src/utils/storageService.js';
+import { parseSmasWorkbook } from '../src/utils/smasExcelService.js';
 
 describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements, Games & Rubric)', () => {
   it('1. Tạo, đổi tên, thêm, nhân bản, xóa và sắp xếp slide', () => {
@@ -178,6 +180,35 @@ describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements
     assert.ok(student.comment.length > 20);
     assert.ok(!student.comment.includes('chê bai') && !student.comment.includes('vẽ xấu'));
   });
+
+  it('5b. Bóc tách toàn bộ bảng điểm SMAS đa trang tính, lọc biểu ngữ trường (smasExcelService)', () => {
+    // 1. Tạo workbook mẫu có 2 trang tính với biểu ngữ và cột họ đệm + tên tách biệt
+    const wb = XLSX.utils.book_new();
+    const sheet1Data = [
+      ['PHÒNG GD&ĐT HUYỆN ĐÔNG ANH', ''],
+      ['TRƯỜNG TIỂU HỌC TÂY SƠN', ''],
+      ['Lớp: 1A', ''],
+      ['STT', 'Mã định danh', 'Họ và tên đệm', 'Tên', 'Mức', 'Nhận xét'],
+      [1, '0012345678', 'Nguyễn Văn', 'An', 'T', 'Năng khiếu phối màu rất tốt.'],
+      [2, '0012345679', 'Trần Thị', 'Bình', 'H', '']
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet1Data), 'Lop_1A');
+
+    const sheet2Data = [
+      ['STT', 'Mã HS', 'Họ và Tên', 'Lớp', 'Mức'],
+      [1, 'HS101', 'Lê Hoàng Cường', '1B', 'T'],
+      [2, 'HS102', 'Phạm Minh Đức', '1B', 'C']
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet2Data), 'Lop_1B');
+
+    // 2. Phân tích qua parseSmasWorkbook
+    const result = parseSmasWorkbook(wb);
+    assert.equal(result.students.length, 4, 'Phải nhận diện đủ toàn bộ 4 học sinh của cả 2 lớp');
+    assert.equal(result.students[0].name, 'Nguyễn Văn An', 'Phải ghép chuẩn Họ đệm và Tên');
+    assert.equal(result.students[0].className, '1A', 'Phải nhận diện lớp 1A từ tiêu đề');
+    assert.equal(result.students[2].name, 'Lê Hoàng Cường');
+    assert.ok(result.detectedClasses.includes('1A') && result.detectedClasses.includes('1B'));
+  });
 });
 
 describe('Giai đoạn 2 - Kiểm thử khả năng chịu lỗi & Ứng phó ngoại lệ (Error Resilience)', () => {
@@ -280,6 +311,26 @@ describe('Giai đoạn 2 - Kiểm thử khả năng chịu lỗi & Ứng phó ng
     assert.equal(isValidUserSession({ uid: 'u2', email: 'b@b.com', role: AUTH_ROLES.SUB_ADMIN }), true);
     assert.equal(isValidUserSession({ uid: 'u3', email: 'c@b.com', role: AUTH_ROLES.TEACHER }), true);
     assert.equal(isValidUserSession({ uid: 'u4', email: 'd@b.com', role: 'hacker' }), false);
+  });
+
+  it('9c. Kiểm tra phân quyền Admin 1 Ẩn danh (Mật khẩu Tiensy2026@) và Admin 2, 3 Không ẩn danh', async () => {
+    // 1. Admin 1 đăng nhập với mật khẩu sai -> từ chối
+    const failRes = await loginAccess(ADMIN_1_EMAIL, 'wrong-password');
+    assert.equal(failRes.success, false);
+    assert.match(failRes.message, /Mật khẩu bảo mật Admin 1 không chính xác/);
+
+    // 2. Admin 1 đăng nhập với đúng mật khẩu -> thành công và ở chế độ Ẩn danh (isAnonymous: true)
+    const successRes = await loginAccess(ADMIN_1_EMAIL, ADMIN_1_PASSWORD);
+    assert.equal(successRes.success, true);
+    assert.equal(successRes.session.role, AUTH_ROLES.SUPER_ADMIN);
+    assert.equal(successRes.session.isAnonymous, true);
+
+    // 3. Admin 2 / Admin 3 đăng nhập -> thành công và ở chế độ Không ẩn danh (isAnonymous: false)
+    const subAdminRes = await loginAccess('thaytiensy@gmail.com');
+    assert.equal(subAdminRes.success, true);
+    assert.equal(subAdminRes.session.role, AUTH_ROLES.SUB_ADMIN);
+    assert.equal(subAdminRes.session.isAnonymous, false);
+    assert.ok(subAdminRes.session.adminTitle.includes('Admin 2') || subAdminRes.session.adminTitle.includes('Admin Phụ'));
   });
 });
 

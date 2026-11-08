@@ -1,26 +1,15 @@
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-} from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db, firebaseConfigured } from './firebaseClient.js';
-import { AUTH_ROLES, validateEmail } from '../contracts/authContract.js';
+import { AUTH_ROLES, validateEmail, ADMIN_1_EMAIL, ADMIN_1_PASSWORD } from '../contracts/authContract.js';
 import {
-  getLocalSharedGmails,
-  saveLocalSharedGmails,
-  getCurrentSession,
-  saveCurrentSession,
-  MASTER_ADMINS,
+  getLocalSharedGmails, saveLocalSharedGmails,
+  getLocalSubAdmins, saveLocalSubAdmins,
+  getCurrentSession, saveCurrentSession,
 } from './localAuthStore.js';
 
 export const ROLES = AUTH_ROLES;
-export { getCurrentSession, saveCurrentSession };
+export { getCurrentSession, saveCurrentSession, ADMIN_1_EMAIL, ADMIN_1_PASSWORD };
 
 const ACCESS_COLLECTION = 'userAccess';
 const ADMIN_COLLECTION = 'adminRoles';
@@ -35,7 +24,7 @@ export function getAccessErrorMessage(error) {
   return error?.message || 'Không thể xác thực quyền truy cập.';
 }
 
-function makeSession(email, role, uid) {
+function makeSession(email, role, uid, title = '', isAnon = false) {
   const isOwner = role === ROLES.SUPER_ADMIN;
   const isSubAdmin = role === ROLES.SUB_ADMIN;
   return {
@@ -43,6 +32,8 @@ function makeSession(email, role, uid) {
     email,
     name: email,
     role,
+    adminTitle: title || (isOwner ? 'Admin 1' : isSubAdmin ? 'Admin Phụ' : ''),
+    isAnonymous: isAnon,
     canShareGmail: isOwner || isSubAdmin,
     canManageRoles: isOwner,
     canEditApp: isOwner,
@@ -52,17 +43,22 @@ function makeSession(email, role, uid) {
 export async function resolveCurrentSession(user) {
   const email = (user?.email || '').trim().toLowerCase();
   if (!user || !email) return null;
-  if (MASTER_ADMINS.includes(email)) return makeSession(email, ROLES.SUPER_ADMIN, user.uid);
+  if (email === ADMIN_1_EMAIL) return makeSession(email, ROLES.SUPER_ADMIN, user.uid, 'Admin 1', true);
+
+  const subAdmins = getLocalSubAdmins();
+  const sub = subAdmins.find(item => (item.email || '').toLowerCase() === email && item.active !== false);
+  if (sub) return makeSession(email, ROLES.SUB_ADMIN, user.uid, sub.title || 'Admin Phụ', false);
 
   if (firebaseConfigured && db) {
     try {
-      const adminSnapshot = await getDoc(doc(db, ADMIN_COLLECTION, email));
-      if (adminSnapshot.exists() && adminSnapshot.data()?.active) {
-        return makeSession(email, adminSnapshot.data().role, user.uid);
+      const adminSnap = await getDoc(doc(db, ADMIN_COLLECTION, email));
+      if (adminSnap.exists() && adminSnap.data()?.active) {
+        const d = adminSnap.data();
+        return makeSession(email, d.role, user.uid, d.title, d.role === ROLES.SUPER_ADMIN);
       }
-      const accessSnapshot = await getDoc(doc(db, ACCESS_COLLECTION, email));
-      if (accessSnapshot.exists() && accessSnapshot.data()?.active) {
-        return makeSession(email, accessSnapshot.data().role || ROLES.TEACHER, user.uid);
+      const accessSnap = await getDoc(doc(db, ACCESS_COLLECTION, email));
+      if (accessSnap.exists() && accessSnap.data()?.active) {
+        return makeSession(email, accessSnap.data().role || ROLES.TEACHER, user.uid, '', false);
       }
     } catch {}
   }
@@ -70,20 +66,25 @@ export async function resolveCurrentSession(user) {
   const localList = getLocalSharedGmails();
   const found = localList.find((item) => (item.email || '').toLowerCase() === email);
   if (found && found.active !== false) {
-    return makeSession(email, found.role || ROLES.TEACHER, user.uid);
+    return makeSession(email, found.role || ROLES.TEACHER, user.uid, '', false);
   }
   return null;
 }
 
-export async function loginAccess(credentialEmail = '') {
+export async function loginAccess(credentialEmail = '', password = '') {
   const cleanInput = (credentialEmail || '').trim().toLowerCase();
   if (cleanInput) {
     const val = validateEmail(cleanInput);
     if (!val.valid) return { success: false, message: val.error || 'Địa chỉ Gmail không đúng định dạng!' };
     const email = val.email;
+    if (email === ADMIN_1_EMAIL) {
+      if (!password || password.trim() !== ADMIN_1_PASSWORD) {
+        return { success: false, message: 'Mật khẩu bảo mật Admin 1 không chính xác!' };
+      }
+    }
     const session = await resolveCurrentSession({ email, uid: `local-${Date.now()}` });
     if (!session) {
-      return { success: false, message: `Địa chỉ ${email} chưa được cấp quyền sử dụng Cọ Nhí Studio. Quản trị viên cần cấp đúng Gmail này.` };
+      return { success: false, message: `Địa chỉ ${email} chưa được Admin 1 cấp quyền. Vui lòng liên hệ Admin 1 (${ADMIN_1_EMAIL}).` };
     }
     saveCurrentSession(session);
     return { success: true, session };
@@ -123,9 +124,7 @@ export async function getSharedGmails() {
   if (firebaseConfigured && db) {
     try {
       const snapshot = await getDocs(collection(db, ACCESS_COLLECTION));
-      if (!snapshot.empty) {
-        return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
-      }
+      if (!snapshot.empty) return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
     } catch {}
   }
   return getLocalSharedGmails();
@@ -136,12 +135,11 @@ export async function addSharedGmail(email) {
   if (!val.valid) return { success: false, message: val.error || 'Gmail không đúng định dạng!' };
   const cleanEmail = val.email;
   const currentSession = getCurrentSession();
-  const addedBy = currentSession?.email || 'admin@conhi.vn';
+  const addedBy = currentSession?.email || ADMIN_1_EMAIL;
 
   if (firebaseConfigured && db) {
     try {
-      const grantRef = doc(db, ACCESS_COLLECTION, cleanEmail);
-      await setDoc(grantRef, { email: cleanEmail, role: ROLES.TEACHER, active: true, addedBy, addedAt: serverTimestamp() });
+      await setDoc(doc(db, ACCESS_COLLECTION, cleanEmail), { email: cleanEmail, role: ROLES.TEACHER, active: true, addedBy, addedAt: serverTimestamp() });
     } catch {}
   }
 
@@ -166,23 +164,31 @@ export async function removeSharedGmail(email) {
 }
 
 export async function getAdminRoles() {
-  if (firebaseConfigured && db) {
-    try {
-      const snapshot = await getDocs(collection(db, ADMIN_COLLECTION));
-      if (!snapshot.empty) return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
-    } catch {}
-  }
-  return MASTER_ADMINS.map((email, idx) => ({ id: `admin-${idx}`, email, role: ROLES.SUPER_ADMIN, active: true }));
+  const subAdmins = getLocalSubAdmins();
+  const admin1Record = { id: 'admin-1', email: ADMIN_1_EMAIL, role: ROLES.SUPER_ADMIN, title: 'Admin 1 (Chủ quản trị • Ẩn danh)', active: true };
+  return [admin1Record, ...subAdmins];
 }
 
-export async function updateAdminRoleStatus(email, active) {
-  const cleanEmail = (email || '').trim().toLowerCase();
-  if (firebaseConfigured && db) {
-    try {
-      const roleRef = doc(db, ADMIN_COLLECTION, cleanEmail);
-      await updateDoc(roleRef, { active: Boolean(active), updatedAt: serverTimestamp() });
-      return { success: true };
-    } catch {}
-  }
+export async function updateAdminRoleStatus(idOrEmail, active) {
+  const updated = getLocalSubAdmins().map(item => (item.id === idOrEmail || item.email === idOrEmail) ? { ...item, active: Boolean(active) } : item);
+  saveLocalSubAdmins(updated);
   return { success: true };
+}
+
+export async function addSubAdmin(email, title = 'Admin 2') {
+  const val = validateEmail(email);
+  if (!val.valid) return { success: false, message: val.error || 'Gmail không đúng định dạng!' };
+  const cleanEmail = val.email;
+  const subAdmins = getLocalSubAdmins();
+  if (cleanEmail === ADMIN_1_EMAIL || subAdmins.some(s => (s.email || '').toLowerCase() === cleanEmail)) {
+    return { success: false, message: 'Tài khoản này đã có quyền quản trị.' };
+  }
+  const updated = [...subAdmins, { id: `sub-${Date.now()}`, email: cleanEmail, role: ROLES.SUB_ADMIN, title: title || 'Admin 2', active: true, addedBy: ADMIN_1_EMAIL }];
+  saveLocalSubAdmins(updated);
+  return { success: true, message: `Đã cấp quyền ${title || 'Admin'} cho ${cleanEmail}.` };
+}
+
+export async function removeSubAdmin(idOrEmail) {
+  saveLocalSubAdmins(getLocalSubAdmins().filter(s => s.id !== idOrEmail && s.email !== idOrEmail));
+  return { success: true, message: 'Đã thu hồi quyền quản trị.' };
 }

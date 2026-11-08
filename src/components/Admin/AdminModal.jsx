@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Check, LogOut, ShieldCheck, Users, X } from 'lucide-react';
 import {
   addSharedGmail,
+  addSubAdmin,
   getAccessErrorMessage,
   getAdminRoles,
   getSharedGmails,
   removeSharedGmail,
+  removeSubAdmin,
   ROLES,
   updateAdminRoleStatus,
 } from '../../utils/adminAuthService';
@@ -44,15 +46,9 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
   if (!isOpen) return null;
 
   const handleAddGmail = async (canonicalEmail) => {
-    setErrorMsg('');
-    setSuccessMsg('');
-    setIsLoading(true);
+    setErrorMsg(''); setSuccessMsg(''); setIsLoading(true);
     const result = await addSharedGmail(canonicalEmail);
-    if (!result.success) {
-      setIsLoading(false);
-      setErrorMsg(result.message);
-      return false;
-    }
+    if (!result.success) { setIsLoading(false); setErrorMsg(result.message); return false; }
     setSuccessMsg(result.message);
     await loadData();
     return true;
@@ -60,29 +56,34 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
 
   const handleRemoveGmail = async (email) => {
     if (!isOwner || !window.confirm(`Thu hồi quyền sử dụng của ${email}?`)) return;
-    setErrorMsg('');
-    setIsLoading(true);
+    setErrorMsg(''); setIsLoading(true);
     const result = await removeSharedGmail(email);
-    if (!result.success) {
-      setIsLoading(false);
-      setErrorMsg(result.message || 'Không thể thu hồi quyền truy cập.');
-      return;
-    }
+    if (!result.success) { setIsLoading(false); setErrorMsg(result.message || 'Không thể thu hồi quyền.'); return; }
     setSuccessMsg(`Đã thu hồi quyền của ${email}.`);
     await loadData();
   };
 
-  const handleToggleAdmin = async (email, active) => {
-    setErrorMsg('');
-    setSuccessMsg('');
-    setIsLoading(true);
-    const result = await updateAdminRoleStatus(email, !active);
-    if (!result.success) {
-      setIsLoading(false);
-      setErrorMsg(result.message || 'Không thể cập nhật vai trò quản trị.');
-      return;
-    }
-    setSuccessMsg(!active ? 'Đã kích hoạt Admin Phụ.' : 'Đã tạm khóa Admin Phụ.');
+  const handleToggleAdmin = async (idOrEmail, active) => {
+    setErrorMsg(''); setSuccessMsg(''); setIsLoading(true);
+    await updateAdminRoleStatus(idOrEmail, !active);
+    setSuccessMsg(!active ? 'Đã kích hoạt Admin.' : 'Đã tạm khóa Admin.');
+    await loadData();
+  };
+
+  const handleAddSub = async (email, title) => {
+    setErrorMsg(''); setSuccessMsg(''); setIsLoading(true);
+    const res = await addSubAdmin(email, title);
+    if (!res.success) { setIsLoading(false); setErrorMsg(res.message); return false; }
+    setSuccessMsg(res.message);
+    await loadData();
+    return true;
+  };
+
+  const handleRemoveSub = async (idOrEmail) => {
+    if (!window.confirm('Thu hồi quyền Admin này?')) return;
+    setErrorMsg(''); setIsLoading(true);
+    const res = await removeSubAdmin(idOrEmail);
+    setSuccessMsg(res.message);
     await loadData();
   };
 
@@ -100,7 +101,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
             <div>
               <h3 className="font-extrabold text-base">Khu Vực Quản Trị</h3>
               <p className="text-xs text-slate-300">
-                {isOwner ? 'Quản lý quyền sử dụng và vai trò quản trị' : 'Cấp quyền sử dụng Cọ Nhí Studio'}
+                {isOwner ? 'Admin 1 (Chủ quản trị tối cao • Ẩn danh)' : (session?.adminTitle || 'Admin Phụ')}
               </p>
             </div>
           </div>
@@ -133,7 +134,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
                 }`}
               >
                 <Users className="w-3.5 h-3.5" />
-                <span>Tài khoản ({sharedList.length})</span>
+                <span>Giáo Viên ({sharedList.length})</span>
               </button>
               <button
                 type="button"
@@ -143,7 +144,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Phân quyền Admin</span>
+                <span>Cấp Quyền Admin 2, 3</span>
               </button>
             </div>
           )}
@@ -164,11 +165,15 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
               adminRoles={adminRoles}
               isLoading={isLoading}
               onToggleAdmin={handleToggleAdmin}
+              onAddSubAdmin={handleAddSub}
+              onRemoveSubAdmin={handleRemoveSub}
             />
           )}
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 font-medium">{session?.email || 'Đã xác thực'}</span>
+            <span className="text-[11px] text-slate-500 font-medium">
+              {isOwner ? 'Admin 1 (Ẩn danh)' : `${session?.adminTitle || 'Admin'}: ${session?.email || ''}`}
+            </span>
             <button
               type="button"
               onClick={onLogout}

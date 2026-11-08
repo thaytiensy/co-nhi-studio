@@ -1,21 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { 
   ClipboardCheck, 
-  Download, 
   Upload,
   Copy, 
   Check, 
   Plus, 
   Trash2, 
   FileSpreadsheet, 
-  ExternalLink, 
-  Info, 
-  Sparkles,
-  BookOpen,
-  Award,
-  AlertCircle
+  Info
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { parseSmasWorkbook, exportSmasExcel } from '../../utils/smasExcelService';
 
 // Ngân hàng nhận xét môn Mĩ thuật chuẩn Thông tư 27/2020/TT-BGDĐT
 const TT27_COMMENTS_BANK = {
@@ -222,158 +217,17 @@ export default function StudentEvaluationSMAS() {
       const arrayBuffer = await file.arrayBuffer();
       const data = new Uint8Array(arrayBuffer);
       const workbook = XLSX.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
+      const { students: parsedStudents, detectedClasses } = parseSmasWorkbook(workbook);
 
-      const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-      if (!rawRows || rawRows.length === 0) {
-        alert('Tệp Excel rỗng hoặc không có dữ liệu học sinh.');
-        return;
-      }
-
-      // Quét tìm dòng tiêu đề (quét đến 25 dòng đầu để hỗ trợ file SMAS/VnEdu có biểu ngữ trường ở đầu)
-      let headerRowIdx = -1;
-      let nameColIdx = -1;
-      let hoDemColIdx = -1;
-      let tenColIdx = -1;
-      let idColIdx = -1;
-      let classColIdx = -1;
-      let levelColIdx = -1;
-      let commentColIdx = -1;
-
-      for (let r = 0; r < Math.min(rawRows.length, 100); r++) {
-        const row = rawRows[r] || [];
-        const rowLower = row.map(cell => (cell || '').toString().toLowerCase().trim());
-
-        // Kiểm tra xem dòng này có cột họ tên không
-        const nIdx = rowLower.findIndex(s => 
-          s.includes('họ và tên') || s.includes('họ tên') || s.includes('tên học sinh') || s === 'họ và tên học sinh'
-        );
-        const hdIdx = rowLower.findIndex(s => s.includes('họ đệm') || s.includes('họ và đệm') || s.includes('họ và tên đệm') || s === 'họ');
-        const tIdx = rowLower.findIndex(s => s === 'tên' || s === 'tên hs' || s === 'tên học sinh');
-
-        if (nIdx !== -1 || (hdIdx !== -1 && tIdx !== -1)) {
-          headerRowIdx = r;
-          nameColIdx = nIdx;
-          hoDemColIdx = hdIdx;
-          tenColIdx = tIdx;
-
-          idColIdx = rowLower.findIndex(s => !s.includes('stt') && !s.includes('lớp') && (s.includes('mã hs') || s.includes('mã học sinh') || s.includes('mã định danh') || s === 'mã' || s === 'id' || s.includes('student id')));
-          classColIdx = rowLower.findIndex(s => s.includes('lớp'));
-          levelColIdx = rowLower.findIndex(s => s.includes('mức') || s.includes('đạt') || s.includes('kết quả') || s.includes('xếp loại'));
-          commentColIdx = rowLower.findIndex(s => s.includes('nhận xét') || s.includes('đánh giá') || s.includes('ghi chú'));
-          break;
-        }
-      }
-
-      // Nếu không tìm thấy dòng tiêu đề chuẩn, kích hoạt Heuristic nhận diện cột họ tên tự động
-      if (nameColIdx === -1 && hoDemColIdx === -1) {
-        // Đếm cột nào có nhiều từ tiếng Việt nhất
-        let bestCol = -1;
-        let maxViNames = 0;
-
-        const columnCount = rawRows.reduce((max, row) => Math.max(max, row?.length || 0), 0);
-        for (let col = 0; col < columnCount; col++) {
-          let viCount = 0;
-          for (let r = 0; r < Math.min(rawRows.length, 100); r++) {
-            const val = (rawRows[r]?.[col] || '').toString().trim();
-            const words = val.split(' ');
-            if (words.length >= 2 && words.length <= 5 && /[a-zA-ZÀ-ỹ]/.test(val)) {
-              viCount++;
-            }
-          }
-          if (viCount > maxViNames) {
-            maxViNames = viCount;
-            bestCol = col;
-          }
-        }
-
-        if (bestCol !== -1 && maxViNames >= 2) {
-          nameColIdx = bestCol;
-          headerRowIdx = 0;
-        }
-      }
-
-      if (nameColIdx === -1 && hoDemColIdx === -1) {
-        alert('Không nhận diện được cột Họ và Tên. Thầy/Cô có thể bấm nút "Dán danh sách" để copy-paste trực tiếp cực nhanh nhé!');
-        return;
-      }
-
-      const parsedStudents = [];
-      const detectedClasses = new Set();
-      let detectedClass = '';
-      const startRow = headerRowIdx >= 0 ? headerRowIdx + 1 : 0;
-
-      for (let r = startRow; r < rawRows.length; r++) {
-        const row = rawRows[r];
-        if (!row) continue;
-
-        let fullName = '';
-        if (nameColIdx !== -1 && row[nameColIdx]) {
-          fullName = row[nameColIdx].toString().trim();
-        } else if (hoDemColIdx !== -1 && tenColIdx !== -1) {
-          const ho = (row[hoDemColIdx] || '').toString().trim();
-          const ten = (row[tenColIdx] || '').toString().trim();
-          fullName = `${ho} ${ten}`.trim();
-        }
-
-        // Bỏ qua dòng trống hoặc dòng tổng cộng/chữ ký
-        if (!fullName || fullName.toLowerCase().includes('tổng cộng') || fullName.toLowerCase().includes('người lập')) {
-          continue;
-        }
-
-        // Bỏ số thứ tự nếu dính vào tên: "1. Nguyễn Văn An" -> "Nguyễn Văn An"
-        fullName = fullName.replace(/^\d+[\.\s\-]+/, '').trim();
-
-        const rawId = (idColIdx !== -1 && row[idColIdx]) 
-          ? row[idColIdx].toString().trim() 
-          : `HS${(parsedStudents.length + 1).toString().padStart(3, '0')}`;
-
-        const rawClass = classColIdx !== -1 && row[classColIdx]
-          ? row[classColIdx].toString().trim()
-          : '';
-        if (rawClass) {
-          detectedClasses.add(rawClass);
-          if (!detectedClass) detectedClass = rawClass;
-        }
-
-        let rawLevel = 'H';
-        if (levelColIdx !== -1 && row[levelColIdx]) {
-          const lStr = row[levelColIdx].toString().trim().toUpperCase();
-          if (['T', 'H', 'C'].includes(lStr)) rawLevel = lStr;
-          else if (lStr.includes('TỐT') || lStr.includes('HOÀN THÀNH TỐT')) rawLevel = 'T';
-          else if (lStr.includes('CHƯA')) rawLevel = 'C';
-        }
-
-        let rawComment = '';
-        if (commentColIdx !== -1 && row[commentColIdx]) {
-          rawComment = row[commentColIdx].toString().trim();
-        }
-        const hasProvidedComment = Boolean(rawComment);
-        if (!rawComment) {
-          const bank = TT27_COMMENTS_BANK[rawLevel] || TT27_COMMENTS_BANK.H;
-          rawComment = bank[parsedStudents.length % bank.length];
-        }
-
-        parsedStudents.push({
-          id: rawId,
-          name: fullName,
-          className: rawClass,
-          level: rawLevel,
-          comment: rawComment,
-          commentSource: hasProvidedComment ? 'provided' : 'generated'
-        });
-      }
-
-      if (parsedStudents.length === 0) {
-        alert('Không tìm thấy danh sách học sinh hợp lệ. Thầy/Cô vui lòng kiểm tra lại tệp hoặc dùng tính năng Dán Danh Sách.');
+      if (!parsedStudents || parsedStudents.length === 0) {
+        alert('Không tìm thấy danh sách học sinh hợp lệ trong tệp Excel. Thầy/Cô có thể bấm "Dán Danh Sách" để copy-paste trực tiếp cực nhanh nhé!');
         return;
       }
 
       setStudents(parsedStudents);
-      setClassOptions(Array.from(detectedClasses));
-      if (detectedClass) setClassName(detectedClass);
-      setExportNotice(`✅ Đã nạp thành công ${parsedStudents.length} học sinh từ "${file.name}"!`);
+      setClassOptions(detectedClasses);
+      if (detectedClasses.length > 0) setClassName(detectedClasses[0]);
+      setExportNotice(`✅ Đã nạp thành công toàn bộ ${parsedStudents.length} học sinh từ "${file.name}"!`);
       setTimeout(() => setExportNotice(''), 4000);
     } catch (err) {
       console.error('Lỗi nạp tệp học sinh:', err);
@@ -477,37 +331,7 @@ export default function StudentEvaluationSMAS() {
     }
 
     try {
-      const rows = students.map((s, idx) => ({
-        'STT': idx + 1,
-        'Mã Học Sinh': s.id,
-        'Họ và Tên': s.name,
-        'Lớp': s.className?.trim() || className.trim(),
-        'Kì Đánh Giá': semester,
-        'Mức Đạt Được': s.level, // T, H, C
-        'Nội Dung Nhận Xét (Thông tư 27/2020)': s.comment,
-        'Ngày Đánh Giá': new Date().toLocaleDateString('vi-VN'),
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      
-      // Auto width for columns
-      worksheet['!cols'] = [
-        { wch: 6 },  // STT
-        { wch: 14 }, // Mã HS
-        { wch: 22 }, // Họ và Tên
-        { wch: 10 }, // Lớp
-        { wch: 12 }, // Kì
-        { wch: 14 }, // Mức
-        { wch: 65 }, // Nhận xét
-        { wch: 14 }, // Ngày
-      ];
-
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Bang_Nhan_Xet_Mi_Thuat');
-
-      const fileName = `Bang_Nhan_Xet_Mi_Thuat_${className.replace(/\s+/g, '_')}_${semester.replace(/\s+/g, '_')}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-
+      const fileName = exportSmasExcel({ students, className, semester });
       setExportNotice(`Đã xuất tệp Excel: ${fileName}`);
       setTimeout(() => setExportNotice(''), 3000);
     } catch (err) {
