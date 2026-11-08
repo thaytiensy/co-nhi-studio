@@ -228,6 +228,32 @@ describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements
     const updatedAll = shuffleClassComments(mockStudents, null);
     assert.ok(updatedAll[2].comment.length > 10 && updatedAll[2].comment !== 'Cũ');
   });
+
+  it('5d. Nhận diện chính xác cột Mức và Nhận xét từ mẫu bảng điểm SMAS thực tế (Giữa kỳ, Cuối kỳ)', () => {
+    const wb = XLSX.utils.book_new();
+    const smasSheetData = [
+      ['BẢNG KẾT QUẢ ĐÁNH GIÁ MÔN MĨ THUẬT - LỚP 2A'],
+      ['Học kỳ I - Năm học 2026-2027'],
+      ['T:Hoàn thành tốt, H:Hoàn thành, C:Chưa hoàn thành'],
+      ['STT', 'StudentId', 'Mã học sinh', 'Họ và tên', 'Giữa học kỳ I', 'Nhận xét GK', 'Cuối học kỳ I', 'Nhận xét'],
+      [1, 'ID001', '64631313-00-1111', 'Nguyễn Văn Tốt', 'T', ''],
+      [2, 'ID002', '64631313-00-2222', 'Trần Thị Đạt', 'H', ''],
+      [3, 'ID003', '64631313-00-3333', 'Lê Cần Cố Gắng', 'C', ''],
+      [4, 'ID004', '64631313-00-4444', 'Phạm Có Lời Khen', 'T', 'Vẽ nét rất sắc sảo và phối màu đẹp.']
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(smasSheetData), 'Mĩ thuật 2A');
+
+    const result = parseSmasWorkbook(wb, { semester: 'Giữa kì I' });
+    assert.equal(result.students.length, 4);
+    assert.equal(result.students[0].level, 'T', 'Phải nhận diện đúng mức T của học sinh 1');
+    assert.equal(result.students[1].level, 'H', 'Phải nhận diện đúng mức H của học sinh 2');
+    assert.equal(result.students[2].level, 'C', 'Phải nhận diện đúng mức C của học sinh 3');
+    assert.equal(result.students[3].level, 'T', 'Phải nhận diện đúng mức T của học sinh 4');
+    assert.equal(result.students[3].comment, 'Vẽ nét rất sắc sảo và phối màu đẹp.', 'Phải giữ nguyên nhận xét gốc trong file');
+    assert.equal(result.students[3].commentSource, 'provided');
+    assert.ok(result.students[0].comment.length > 10, 'Học sinh thiếu nhận xét phải được tự sinh nhận xét chuẩn TT27 tương ứng mức T');
+    assert.equal(result.students[0].commentSource, 'generated');
+  });
 });
 
 describe('Giai đoạn 2 - Kiểm thử khả năng chịu lỗi & Ứng phó ngoại lệ (Error Resilience)', () => {

@@ -10,7 +10,7 @@ import {
   Info
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments } from '../../utils/smasExcelService';
+import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel } from '../../utils/smasExcelService';
 
 // Ngân hàng nhận xét môn Mĩ thuật chuẩn Thông tư 27/2020/TT-BGDĐT
 const TT27_COMMENTS_BANK = {
@@ -139,18 +139,10 @@ export default function StudentEvaluationSMAS() {
       givenIndex = headers.findIndex(label => label === 'ten' || label === 'ten hs');
       idIndex = headers.findIndex(label => (label.includes('ma hs') || label.includes('ma hoc sinh') || label.includes('ma dinh danh') || label === 'ma' || label === 'id') && !label.includes('stt'));
       classIndex = headers.findIndex(label => label.includes('lop'));
-      levelIndex = headers.findIndex(label => label.includes('muc') || label.includes('dat') || label.includes('ket qua') || label.includes('xep loai'));
-      commentIndex = headers.findIndex(label => label.includes('nhan xet') || label.includes('danh gia') || label.includes('ghi chu') || label.includes('noi dung'));
+      levelIndex = headers.findIndex(label => !label.includes('nhan xet') && !label.includes('noi dung') && (label.includes('muc') || label.includes('dat') || label.includes('ket qua') || label.includes('xep loai') || label.includes('hoc ky') || label.includes('hoc ki') || label.includes('giua') || label.includes('cuoi') || label.includes('danh gia') || label.includes('mi thuat') || label.includes('my thuat')));
+      commentIndex = headers.findIndex(label => label.includes('nhan xet') || label.includes('ghi chu') || label.includes('noi dung') || label.includes('y kien') || label.includes('nx'));
     }
 
-    const parseLevel = value => {
-      const level = String(value || '').trim().toUpperCase();
-      if (['T', 'H', 'C'].includes(level)) return level;
-      if (level.includes('TỐT') || level.includes('HOÀN THÀNH TỐT')) return 'T';
-      if (level.includes('CHƯA')) return 'C';
-      if (level.includes('HOÀN THÀNH') || level.includes('ĐẠT')) return 'H';
-      return 'H';
-    };
     const generatedId = index => `HS${String(index + 1).padStart(3, '0')}`;
     const parsed = [];
 
@@ -230,7 +222,7 @@ export default function StudentEvaluationSMAS() {
       const arrayBuffer = await file.arrayBuffer();
       const data = new Uint8Array(arrayBuffer);
       const workbook = XLSX.read(data, { type: 'array' });
-      const { students: parsedStudents, detectedClasses } = parseSmasWorkbook(workbook);
+      const { students: parsedStudents, detectedClasses } = parseSmasWorkbook(workbook, { semester });
 
       if (!parsedStudents || parsedStudents.length === 0) {
         alert('Không tìm thấy danh sách học sinh hợp lệ trong tệp Excel. Thầy/Cô có thể bấm "Dán Danh Sách" để copy-paste trực tiếp cực nhanh nhé!');
@@ -240,7 +232,16 @@ export default function StudentEvaluationSMAS() {
       setStudents(parsedStudents);
       setClassOptions(detectedClasses);
       if (detectedClasses.length > 0) setClassName(detectedClasses[0]);
-      setExportNotice(`✅ Đã nạp thành công toàn bộ ${parsedStudents.length} học sinh từ "${file.name}"!`);
+      if (/giua|ghk/i.test(fileName)) {
+        setSemester('Giữa kì I');
+      } else if (/cuoi|chk/i.test(fileName)) {
+        setSemester('Học kì I');
+      }
+
+      const tCount = parsedStudents.filter(s => s.level === 'T').length;
+      const hCount = parsedStudents.filter(s => s.level === 'H').length;
+      const cCount = parsedStudents.filter(s => s.level === 'C').length;
+      setExportNotice(`✅ Đã nạp thành công toàn bộ ${parsedStudents.length} học sinh (${tCount} T, ${hCount} H, ${cCount} C) từ "${file.name}"!`);
       setTimeout(() => setExportNotice(''), 4000);
     } catch (err) {
       console.error('Lỗi nạp tệp học sinh:', err);
