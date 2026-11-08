@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateGameQuestionsByTheme, detectTopicMatch } from '../src/data/artGamesCurriculumBank.js';
 import { ROLES, getAccessErrorMessage } from '../src/utils/adminAuthService.js';
+import { validateEmail, isValidAccessGrant, isValidUserSession, AUTH_ROLES } from '../src/contracts/authContract.js';
 import { validateSlideElement } from '../src/utils/storageService.js';
 
 describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements, Games & Rubric)', () => {
@@ -255,6 +256,30 @@ describe('Giai đoạn 2 - Kiểm thử khả năng chịu lỗi & Ứng phó ng
     const unknownError = { message: 'Lỗi không xác định từ máy chủ' };
     const fallbackMsg = getAccessErrorMessage(unknownError);
     assert.equal(fallbackMsg, 'Lỗi không xác định từ máy chủ');
+  });
+
+  it('9b. Khóa chặt Data Contract phân quyền Gmail và phiên người dùng (authContract)', () => {
+    // 1. Kiểm tra validation email hợp lệ
+    const validRes = validateEmail('  GiaoVien.MyThuat@gmail.com  ');
+    assert.equal(validRes.valid, true);
+    assert.equal(validRes.email, 'giaovien.mythuat@gmail.com');
+    assert.equal(validRes.error, null);
+
+    // 2. Kiểm tra từ chối email không hợp lệ
+    assert.equal(validateEmail('').valid, false);
+    assert.equal(validateEmail('not-an-email').valid, false);
+    assert.equal(validateEmail(null).valid, false);
+
+    // 3. Kiểm tra Data Contract AccessGrant
+    assert.equal(isValidAccessGrant({ email: 'teacher@school.edu.vn', active: true }), true);
+    assert.equal(isValidAccessGrant({ email: 'invalid', active: true }), false);
+    assert.equal(isValidAccessGrant(null), false);
+
+    // 4. Kiểm tra Data Contract UserSession
+    assert.equal(isValidUserSession({ uid: 'u1', email: 'a@b.com', role: AUTH_ROLES.SUPER_ADMIN }), true);
+    assert.equal(isValidUserSession({ uid: 'u2', email: 'b@b.com', role: AUTH_ROLES.SUB_ADMIN }), true);
+    assert.equal(isValidUserSession({ uid: 'u3', email: 'c@b.com', role: AUTH_ROLES.TEACHER }), true);
+    assert.equal(isValidUserSession({ uid: 'u4', email: 'd@b.com', role: 'hacker' }), false);
   });
 });
 

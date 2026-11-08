@@ -4,10 +4,11 @@
 import { PEDAGOGY_BANK } from '../data/pedagogyBank.js';
 import { generateGameQuestionsByTheme } from '../data/artGamesCurriculumBank.js';
 import { requestTeachingAi, parseAiLessonResponse } from './aiLessonGenerator.js';
+import { reviewLessonPlan, prepareLocalLessonPlan, inspectLessonSafety } from './lessonQualityService.js';
 
 const DANGEROUS_TERMS = [
   'dao rọc giấy', 'dao lam', 'lưỡi dao', 'súng bắn keo', 'keo nến nóng',
-  'axit', 'hóa chất tẩy', 'bật lửa', 'xăng cồn'
+  'axit', 'a-xít', 'hóa chất tẩy', 'hoá chất tẩy', 'bật lửa', 'xăng cồn', 'keo 502', 'dung môi'
 ];
 
 /**
@@ -52,13 +53,13 @@ export function extractCleanArtTopic(prompt) {
     .replace(/(?:có\s+)?(?:trò chơi|hoạt động|phần)?\s*(?:khởi động|đố vui)(?:\s+vui)?/gi, '')
     .replace(/(?:và|có)?\s*(?:hoạt động|góc)?\s*trưng bày(?:\s+sản phẩm)?/gi, '')
     .replace(/(?:gồm|với)\s*\d+\s*bước\s*(?:thực hành)?/gi, '')
-    .replace(/(?:dùng\s+)?(?:dao rọc giấy|súng bắn keo|keo nến nóng|vật liệu nguy hiểm)/gi, '')
+    .replace(/(?:dùng\s+)?(?:dao rọc giấy|dao lam|lưỡi dao|súng bắn keo(?: nến)?|keo nến(?: nóng)?|keo 502|a[- ]?x[ií]t|hóa chất tẩy|hoá chất tẩy|dung môi|bật lửa|xăng cồn|vật liệu nguy hiểm)/gi, '')
     .replace(/[,\.\-–—;:]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
   // 2. Loại bỏ các tiền tố mệnh lệnh và cụm từ mở đầu câu giao tiếp
-  const prefixRegex = /^(?:tôi muốn dạy|tôi muốn làm|tôi muốn tạo|tôi muốn|hãy giúp tôi|hãy cho tôi|cho tôi|giúp tôi|hãy soạn|hãy làm|hãy tạo|hãy thiết kế|hãy|soạn giáo án|soạn bài|soạn kế hoạch|soạn|tạo kế hoạch dạy học|tạo kế hoạch dạy|tạo kế hoạch|tạo giáo án|tạo bài học|tạo bài vẽ|tạo hoạt động|tạo|thiết kế bài dạy|thiết kế bài học|thiết kế giáo án|thiết kế|lập kế hoạch|gợi ý bài vẽ|gợi ý bài học|gợi ý giáo án|gợi ý cho tôi|gợi ý|dạy làm|dạy vẽ|dạy học|dạy|bài học|bài vẽ|bài giảng|tiết dạy|tiết học|hoạt động đơn giản|hoạt động)\s*(?:về|đề tài|chủ đề|một)?\s*(?:bài vẽ|bài học|hoạt động)?\s*(?:vẽ tranh|vẽ|làm|học)?\s*(?:về|đề tài|chủ đề)?\s*/i;
+  const prefixRegex = /^(?:tôi muốn dạy|tôi muốn làm|tôi muốn tạo|tôi muốn|hãy giúp tôi|hãy cho tôi|cho tôi|giúp tôi|hãy soạn|hãy làm|hãy tạo|hãy thiết kế|hãy|soạn giáo án|soạn bài|soạn kế hoạch|soạn|tạo kế hoạch dạy học|tạo kế hoạch dạy|tạo kế hoạch|tạo giáo án|tạo bài học|tạo bài vẽ|tạo hoạt động|tạo|thiết kế bài dạy|thiết kế bài học|thiết kế giáo án|thiết kế|lập kế hoạch|gợi ý bài vẽ|gợi ý bài học|gợi ý giáo án|gợi ý cho tôi|gợi ý|dạy làm|dạy vẽ|dạy học|dạy|nặn|bài học|bài vẽ|bài giảng|tiết dạy|tiết học|hoạt động đơn giản|hoạt động)\s*(?:về|đề tài|chủ đề|một)?\s*(?:bài vẽ|bài học|hoạt động)?\s*(?:vẽ tranh|vẽ|nặn|làm|học)?\s*(?:về|đề tài|chủ đề)?\s*/i;
   topic = topic.replace(prefixRegex, '').trim();
 
   // 3. Loại bỏ các từ nối và hư từ còn sót lại ở cuối chuỗi
@@ -90,7 +91,7 @@ export function resolveCurriculumTopic(prompt, grade = 1) {
   const lower = String(prompt || '').toLowerCase();
 
   // 1. Nhận diện theo số thứ tự chủ đề / bài (ví dụ: "chủ đề 3 lớp 5", "bài 2 lớp 4", "cd 8")
-  const themeNumberMatch = lower.match(/(?:chủ\s*đề|bài|cd|tiết)(?:\s*số)?\s*([1-9]|10)\b/i);
+  const themeNumberMatch = lower.match(/(?:chủ\s*đề|bài|cd)(?:\s*số)?\s*([1-9]|10)\b/i);
   if (themeNumberMatch) {
     const themeIndex = parseInt(themeNumberMatch[1], 10);
     const foundTheme = gradeThemes[themeIndex - 1];
@@ -106,7 +107,7 @@ export function resolveCurriculumTopic(prompt, grade = 1) {
 
   // 2. Nhận diện theo từ khóa đặc thù trong tên chủ đề SGK
   for (const theme of gradeThemes) {
-    const cleanTitle = theme.title.replace(/^Chủ đề \d+:\s*/i, '').toLowerCase();
+    const cleanTitle = theme.title.replace(/^Chủ đề \d+:\s*/i, '').replace(/\([^)]*\)/g, '').toLowerCase();
     const coreKeywords = cleanTitle.split(/[\(\),&]/).map(k => k.trim()).filter(k => k.length >= 3);
     for (const kw of coreKeywords) {
       if (lower.includes(kw)) {
@@ -164,12 +165,15 @@ export function parseNaturalIdeaPrompt(rawPrompt) {
   } else if (/xé\s*dán|thủ\s*công|giấy\s*màu|cắt\s*dán/i.test(lower)) {
     material = 'Giấy màu xé dán / Thủ công';
     materialKey = 'paper';
-  } else if (/đất\s*nặn|nặn\s*tượng|tạo\s*khối/i.test(lower)) {
+  } else if (/đất\s*nặn|(?:^|\s)nặn(?:\s|$)|tạo\s*khối/i.test(lower)) {
     material = 'Đất nặn tạo khối';
     materialKey = 'clay';
   } else if (/tái\s*chế|lá\s*cây|vỏ\s*hộp|nắp\s*chai/i.test(lower)) {
     material = 'Vật liệu tái chế an toàn';
     materialKey = 'recycled';
+  } else if (/sáp\s*màu|màu\s*sáp|chì\s*màu/i.test(lower)) {
+    material = 'Sáp màu / Chì màu';
+    materialKey = 'crayon';
   } else {
     assumptions.push('Tự động chọn chất liệu Sáp màu / Chì màu cơ bản');
   }
@@ -193,16 +197,16 @@ export function parseNaturalIdeaPrompt(rawPrompt) {
   }
 
   // 6. Nhận diện điều kiện an toàn & kiểm tra vật liệu nguy hiểm
-  const detectedDangerous = DANGEROUS_TERMS.filter(term => lower.includes(term));
+  const detectedDangerous = inspectLessonSafety({ materialsNeeded: { student: prompt } }).findings.map(f => f.term);
   let safetyAlert = '';
   if (detectedDangerous.length > 0) {
-    safetyAlert = `CẢNH BÁO AN TOÀN TIỂU HỌC: Câu lệnh có chứa vật liệu tiềm ẩn nguy cơ (${detectedDangerous.join(', ')}). Hệ thống sẽ tự động thay thế bằng vật liệu an toàn (giấy thủ công, sáp màu, hồ dán an toàn) phù hợp lứa tuổi học sinh tiểu học.`;
+    safetyAlert = `CẢNH BÁO AN TOÀN TIỂU HỌC: Câu lệnh có chứa vật liệu tiềm ẩn nguy cơ (${detectedDangerous.join(', ')}). Bản nháp cục bộ không sử dụng các vật liệu này; giáo viên cần kiểm tra nội dung và đồ dùng thực tế trước khi dạy.`;
   }
 
   // 7. Nhận diện các điều kiện đặc biệt và hoạt động sư phạm chi tiết
   const specialConditions = [];
   if (/không\s*dùng\s*kéo/i.test(lower)) {
-    specialConditions.push('Không dùng kéo: Chuyển sang kĩ thuật xé dán bằng tay tự do');
+    specialConditions.push('Không dùng kéo: Chọn thao tác bằng tay phù hợp chất liệu; giáo viên chuẩn bị sẵn phần cần cắt');
   }
   if (/trò\s*chơi|khởi\s*động\s*vui|đố\s*vui|khởi\s*động/i.test(lower)) {
     specialConditions.push('Có trò chơi đố vui khởi động lớp học');
@@ -393,66 +397,7 @@ export function validateAiLessonPlan(plan) {
  * Đánh giá tính chuẩn mực theo GDPT 2018, Công văn 2345/BGDĐT và Thông tư 27
  */
 export function critiqueAndEnhanceLessonPlan(plan, parsedContext = {}) {
-  if (!plan) return null;
-
-  const grade = Number(parsedContext.grade || plan.grade || 1);
-  const material = parsedContext.material || plan.material || plan.materialsNeeded?.student || '';
-  const lowerMat = material.toLowerCase();
-
-  // 1. Kiểm tra an toàn vật liệu học đường
-  const safetyCheck = {
-    isSafe: true,
-    warnings: [],
-    substitutions: []
-  };
-
-  if (/dao\s*rọc|dao\s*lam|lưỡi\s*dao/i.test(lowerMat)) {
-    safetyCheck.isSafe = false;
-    safetyCheck.warnings.push('Phát hiện vật liệu sắc nhọn có nguy cơ gây thương tích cho học sinh tiểu học.');
-    safetyCheck.substitutions.push('Thay dao rọc giấy bằng kéo thủ công đầu tròn bằng nhựa an toàn.');
-  }
-  if (/súng\s*bắn\s*keo|keo\s*nến\s*nóng|keo\s*502|axit/i.test(lowerMat)) {
-    safetyCheck.isSafe = false;
-    safetyCheck.warnings.push('Phát hiện chất kết dính nóng hoặc hóa chất dễ gây bỏng.');
-    safetyCheck.substitutions.push('Thay súng bắn keo nóng bằng hồ dán nước hữu cơ hoặc băng dính 2 mặt tiện lợi.');
-  }
-
-  // 2. Kiểm tra độ chuẩn xác của 4 bước thị phạm
-  const steps = plan.teachingProcess?.[1]?.fourSteps || [];
-  const has4Steps = Array.isArray(steps) && steps.length >= 4;
-
-  // 3. Kiểm tra phân hóa năng lực (Thông tư 27)
-  const missions = plan.differentiatedMissions || {};
-  const hasMissions = Boolean(missions.tier1_basic && missions.tier2_standard);
-
-  // 4. Tính điểm chất lượng sư phạm (Score: 88 - 100)
-  let score = 92;
-  if (has4Steps) score += 3;
-  if (hasMissions) score += 3;
-  if (safetyCheck.isSafe) score += 2;
-  else score -= 10;
-
-  // 5. Tổng hợp Lời khuyên vàng của Thầy Cọ Nhí (Teacher Pedagogical Advice)
-  const teacherAdvice = grade <= 2
-    ? `Khối Lớp ${grade}: Thầy/Cô nên cho học sinh quan sát vật thật hoặc mô hình sinh động trong 3-5 phút đầu để khơi nguồn cảm xúc tự nhiên.`
-    : grade === 3
-    ? `Khối Lớp 3: Hướng dẫn học sinh phối hợp các gam màu nóng - lạnh tương phản để làm nổi bật trọng tâm bức tranh.`
-    : `Khối Lớp ${grade}: Nhắc nhở học sinh vận dụng luật xa gần (vật ở gần vẽ to rõ, vật ở xa vẽ nhỏ và mờ nhạt) để tạo chiều sâu không gian.`;
-
-  return {
-    score: Math.max(70, Math.min(100, score)),
-    gradeAlignment: `Chuẩn Mĩ thuật Lớp ${grade} (GDPT 2018)`,
-    safetyStatus: safetyCheck.isSafe ? 'PASS - 100% An toàn tiểu học' : 'CẢNH BÁO - Cần thay thế vật liệu nguy hiểm',
-    safetyCheck,
-    pedagogicalHighlights: [
-      'Tiến trình 4 hoạt động đúng chuẩn Công văn 2345/BGDĐT',
-      has4Steps ? 'Thị phạm 4 bước hình học từ phác khung đến hoàn thiện' : 'Cần bổ sung đủ 4 bước thị phạm trực quan',
-      hasMissions ? 'Đầy đủ 3 mức độ thử thách phân hóa năng lực (Thông tư 27)' : 'Phân hóa năng lực học sinh cơ bản',
-      'Thang đánh giá Rubric 4 tiêu chí khích lệ, không phán xét tiêu cực'
-    ],
-    teacherAdvice,
-    verifiedAt: new Date().toISOString()
-  };
+  return reviewLessonPlan(plan, parsedContext);
 }
 
 export function validateAiGamePackage(gamePkg) {
@@ -675,8 +620,7 @@ export function buildLocalPedagogyPlan(parsed) {
     safetyAlert: safetyAlert || ''
   };
 
-  localPlanResult.critiqueReport = critiqueAndEnhanceLessonPlan(localPlanResult, parsed);
-  return localPlanResult;
+  return prepareLocalLessonPlan(localPlanResult, parsed);
 }
 
 /**

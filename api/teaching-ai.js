@@ -391,21 +391,14 @@ async function generateImage({ grade, prompt, style, visualPrompt }, apiKey) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { error: 'Phương thức không được hỗ trợ.' });
+  // Mặc định tắt mọi API bên ngoài có thể phát sinh phí. Chỉ chủ ứng dụng mới bật sau khi phê duyệt.
+  if (process.env.ENABLE_EXTERNAL_AI !== 'true') return json(res, 503, { error: 'AI bên ngoài đang tắt. Dùng chế độ sư phạm cục bộ miễn phí.' });
   let input;
   try { input = typeof req.body === 'string' ? JSON.parse(req.body) : req.body; } catch { return json(res, 400, { error: 'Dữ liệu yêu cầu không hợp lệ.' }); }
   const { GEMINI_API_KEY, VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID } = process.env;
-  const effectiveApiKey = (typeof input?.apiKey === 'string' && input.apiKey.startsWith('AIzaSy')) ? input.apiKey.trim() : GEMINI_API_KEY;
+  const effectiveApiKey = GEMINI_API_KEY;
   if (!effectiveApiKey || !VITE_FIREBASE_API_KEY || !VITE_FIREBASE_PROJECT_ID) return json(res, 503, { error: CONFIG_ERROR });
 
-  if (input?.mode === 'debug_models') {
-    try {
-      const resModels = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(effectiveApiKey)}`);
-      const data = await resModels.json();
-      return json(res, 200, { models: data.models?.map(m => m.name) || data });
-    } catch (e) {
-      return json(res, 500, { error: e.message });
-    }
-  }
   const validTextRequest = ['lesson', 'text'].includes(input?.mode)
     && typeof input.prompt === 'string' && input.prompt.trim().length > 0 && input.prompt.length <= 8000;
   const validImageRequest = input?.mode === 'image'
@@ -418,17 +411,12 @@ export default async function handler(req, res) {
     return json(res, 400, { error: 'Dữ liệu yêu cầu không hợp lệ.' });
   }
 
-  // Tùy chọn xác thực nâng cao nếu người dùng cung cấp token
   const authorization = req.headers?.authorization || req.headers?.Authorization;
-  if (typeof authorization === 'string' && /^Bearer\s+\S+$/.test(authorization)) {
-    const idToken = authorization.replace(/^Bearer\s+/i, '');
-    if (idToken && idToken !== 'null' && idToken !== 'undefined' && VITE_FIREBASE_API_KEY && VITE_FIREBASE_PROJECT_ID) {
-      try {
-        await authorize(idToken, VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID);
-      } catch (err) {
-        console.warn('Firebase token authorization warning:', err.message);
-      }
-    }
+  if (typeof authorization !== 'string' || !/^Bearer\s+\S+$/.test(authorization)) return json(res, 401, { error: AUTH_ERROR });
+  try {
+    await authorize(authorization.replace(/^Bearer\s+/i, ''), VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID);
+  } catch {
+    return json(res, 403, { error: AUTH_ERROR });
   }
 
   if (input.mode === 'image') {
@@ -468,5 +456,5 @@ export default async function handler(req, res) {
   try {
     const text = await generate(input.mode, input.grade, input.prompt.trim(), effectiveApiKey);
     return json(res, 200, { text });
-  } catch (err) { return json(res, 502, { error: UPSTREAM_ERROR, detail: err?.message }); }
+  } catch (err) { return json(res, 502, { error: UPSTREAM_ERROR }); }
 }

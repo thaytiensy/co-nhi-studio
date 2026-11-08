@@ -1,7 +1,8 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts'
 import https from 'https'
+import chatHandler from './api/chat.js'
 
 const ttsCache = new Map();
 let ttsQueue = Promise.resolve();
@@ -183,12 +184,37 @@ const ttsPlugin = () => ({
   }
 });
 
+const groqChatPlugin = () => ({
+  name: 'co-nhi-groq-chat-middleware',
+  config(_, { mode }) {
+    const localEnv = loadEnv(mode, process.cwd(), 'GROQ_');
+    if (!process.env.GROQ_API_KEY && localEnv.GROQ_API_KEY) process.env.GROQ_API_KEY = localEnv.GROQ_API_KEY;
+  },
+  configureServer(server) {
+    server.middlewares.use(async (req, res, next) => {
+      if (!req.url || new URL(req.url, 'http://localhost').pathname !== '/api/chat') return next();
+      if (req.method === 'OPTIONS') {
+        res.statusCode = 204;
+        res.end();
+        return;
+      }
+      try {
+        await chatHandler(req, res);
+      } catch {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify({ error: 'Lỗi máy chủ chat. Chưa có câu trả lời được tạo.' }));
+      }
+    });
+  },
+});
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), ttsPlugin()],
+  plugins: [react(), ttsPlugin(), groqChatPlugin()],
   server: {
     port: 3100,
-    host: true
+    host: '127.0.0.1'
   },
   build: {
     chunkSizeWarningLimit: 600,

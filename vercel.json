@@ -8,6 +8,10 @@
       "destination": "/api/tts"
     },
     {
+      "source": "/api/chat",
+      "destination": "/api/chat"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

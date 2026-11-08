@@ -15,12 +15,12 @@ import {
   ArrowRight,
   Bot,
   Globe,
-  Key,
+
   Loader2
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { speechService } from '../../utils/speechService';
-import { requestTeachingAi } from '../../utils/aiLessonGenerator';
+import { requestGroqChat } from '../../utils/groqChatService';
 
 export default function OfflinePedagogyAssistant({
   currentSlide = null,
@@ -37,6 +37,12 @@ export default function OfflinePedagogyAssistant({
   const streamingIntervalRef = React.useRef(null);
 
   const [currentGender, setCurrentGender] = useState(() => speechService.gender || 'male');
+
+  React.useEffect(() => {
+    try {
+      localStorage.removeItem('co_nhi_gemini_api_key');
+    } catch { /* ignore unavailable browser storage */ }
+  }, []);
 
   React.useEffect(() => {
     const unsub = speechService.subscribe((state) => {
@@ -114,12 +120,8 @@ export default function OfflinePedagogyAssistant({
     setCurrentGender(gender);
   };
 
-  // AI Provider state: 'offline' | 'online' | 'gemini'
+  // Groq chat chỉ đi qua API server; không lưu khóa trong trình duyệt.
   const [aiProvider, setAiProvider] = useState('online');
-  const [geminiApiKey, setGeminiApiKey] = useState(
-    typeof window !== 'undefined' ? (localStorage.getItem('co_nhi_gemini_api_key') || '') : ''
-  );
-  const [showKeyInput, setShowKeyInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Hiệu ứng streaming/typewriter gõ chữ từng từ giống như AI thực thụ
@@ -167,7 +169,7 @@ export default function OfflinePedagogyAssistant({
       sender: 'assistant',
       time: 'Vừa xong',
       title: 'Chào Thầy/Cô Mĩ Thuật!',
-      content: 'Em là Trợ Giảng Sư Phạm của Cọ Nhí Studio. Thầy/Cô có thể lựa chọn nguồn gợi ý bên dưới (AI trực tuyến qua máy chủ, ngân hàng cục bộ hoặc Gemini API cá nhân).\n\nEm sẵn sàng hỗ trợ soạn mục tiêu, hoạt động khởi động, câu hỏi gợi mở và lời giảng truyền cảm hứng theo đúng sách Kết nối tri thức với cuộc sống!',
+      content: 'Em là Trợ giảng ART AI của Cọ Nhí Studio. Thầy/Cô có thể trò chuyện tự nhiên bằng tiếng Việt; Groq Free giữ ngữ cảnh các lượt chat và hỗ trợ gợi ý dạy Mĩ thuật tiểu học. Chế độ Cục Bộ Offline dùng ngân hàng nội dung có sẵn khi không cần kết nối AI.\n\nCác câu trả lời AI là bản nháp để giáo viên xem lại; chat văn bản không tự tạo ảnh.',
       actions: true
     }
   ]);
@@ -183,53 +185,72 @@ export default function OfflinePedagogyAssistant({
     }
   };
 
-  const handleSaveGeminiKey = (key) => {
-    setGeminiApiKey(key);
-    localStorage.setItem('co_nhi_gemini_api_key', key.trim());
-    setShowKeyInput(false);
+  const queryOnlineAI = async (promptText, conversation = messages, onDelta) => {
+    const activePersona = ART_PERSONAS.find(p => p.id === selectedPersonaId) || ART_PERSONAS[0];
+    const history = conversation
+      .filter(message => message.id !== 'welcome' && ['user', 'assistant'].includes(message.sender)
+        && typeof message.content === 'string' && message.content.trim())
+      .slice(-10)
+      .map(message => ({ role: message.sender, content: message.content.slice(-1800) }));
+
+    return requestGroqChat({
+      grade: selectedGrade,
+      theme: currentTheme?.title || '',
+      persona: activePersona?.name || '',
+      messages: [...history, { role: 'user', content: promptText.trim() }],
+    }, globalThis.fetch, onDelta);
   };
 
-  // Call server AI or the existing personal Gemini option
-  const queryOnlineAI = async (promptText) => {
-    const themeContext = currentTheme
-      ? `\nBài tham chiếu: ${currentTheme.title}. Mục tiêu: ${currentTheme.objectives.knowledge} ${currentTheme.objectives.skills} Gợi ý/lời dẫn trong ngân hàng: ${currentTheme.teacherScript}`
-      : '';
-    const activePersona = ART_PERSONAS.find(p => p.id === selectedPersonaId) || ART_PERSONAS[0];
-    const systemPrompt = `${activePersona.systemPrompt} Bạn đang trò chuyện và hỗ trợ giáo viên và học sinh lớp ${selectedGrade}. Trả lời bằng tiếng Việt tự nhiên, ấm áp, đúng phong cách của ${activePersona.name}. Hãy bám sát câu hỏi cùng chủ đề và ngữ cảnh bài học; tạo ý tưởng cụ thể, đa dạng, có thể dùng ngay trong lớp, không lặp lời mẫu chung chung. Không tự bịa số trang hay quy định sai sự thật. Mọi nội dung là gợi ý dự thảo để giáo viên xem lại.${themeContext}`;
+  const streamOnlineReply = async (promptText, title, conversation = messages) => {
+    const messageId = `${Date.now()}-assistant`;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let accumulated = '';
+    let pendingDelta = '';
+    let renderTimer = null;
+    const flushPending = () => {
+      if (renderTimer) clearTimeout(renderTimer);
+      renderTimer = null;
+      if (!pendingDelta) return;
+      accumulated += pendingDelta;
+      pendingDelta = '';
+      setMessages(prev => prev.map(message => message.id === messageId
+        ? { ...message, content: accumulated }
+        : message));
+    };
 
-    if (aiProvider === 'gemini') {
-      if (!geminiApiKey.trim()) {
-        setShowKeyInput(true);
-        throw new Error('Vui lòng nhập Gemini API Key cá nhân hoặc chuyển sang AI trực tuyến của ứng dụng.');
-      }
+    setMessages(prev => [...prev, {
+      id: messageId,
+      sender: 'assistant',
+      time,
+      title,
+      content: '',
+      provider: 'Groq Free · chat văn bản qua máy chủ',
+      isStreaming: true,
+    }]);
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey.trim()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: `${systemPrompt}\n\nYêu cầu của giáo viên: ${promptText}` }]
-            }
-          ]
-        })
+    try {
+      const reply = await queryOnlineAI(promptText, conversation, (delta) => {
+        pendingDelta += delta;
+        if (!renderTimer) renderTimer = setTimeout(flushPending, 40);
       });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error?.message || `Lỗi Gemini API (${res.status})`);
-      }
-
-      const data = await res.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Không nhận được phản hồi từ Gemini.';
+      flushPending();
+      if (!accumulated) accumulated = reply;
+      setMessages(prev => prev.map(message => message.id === messageId
+        ? { ...message, content: accumulated.trim(), isStreaming: false }
+        : message));
+    } catch (error) {
+      flushPending();
+      const errorText = error?.message || 'Chưa nhận được câu trả lời từ Groq.';
+      setMessages(prev => prev.map(message => message.id === messageId
+        ? {
+          ...message,
+          title: '⚠️ Lỗi Kết Nối AI',
+          content: accumulated ? `${accumulated.trim()}\n\n${errorText}` : errorText,
+          provider: 'Hệ thống',
+          isStreaming: false,
+        }
+        : message));
     }
-
-    return requestTeachingAi({
-      mode: 'text',
-      grade: selectedGrade,
-      prompt: `${systemPrompt}\n\nYêu cầu của giáo viên: ${promptText}`,
-    });
   };
 
   const handleQuickPrompt = async (type) => {
@@ -292,20 +313,10 @@ export default function OfflinePedagogyAssistant({
       return;
     }
 
-    // Nếu chọn AI trực tuyến
+    // Nếu chọn AI trực tuyến, hiển thị nội dung theo từng phần khi Groq gửi về.
     setIsLoading(true);
     try {
-      const aiResponse = await queryOnlineAI(promptForAI);
-      streamAssistantMessage(title, aiResponse, aiProvider === 'gemini' ? '✨ Gemini AI' : 'AI trực tuyến · Gemini');
-    } catch (err) {
-      let fallbackContent = currentTheme.teacherScript;
-      if (type === 'objectives') fallbackContent = `${currentTheme.objectives.knowledge}\n\n${currentTheme.objectives.skills}`;
-      else if (type === 'steps') fallbackContent = currentTheme.fourSteps.join('\n\n');
-      streamAssistantMessage(
-        title,
-        `AI trực tuyến chưa phản hồi. Đây là mẫu tham khảo cục bộ, không phải nội dung do AI vừa tạo:\n\n${fallbackContent}`,
-        'Mẫu cục bộ · AI chưa kết nối'
-      );
+      await streamOnlineReply(promptForAI, title, messages);
     } finally {
       setIsLoading(false);
     }
@@ -414,33 +425,10 @@ export default function OfflinePedagogyAssistant({
       return;
     }
 
-    // Online AI Query
+    // Online AI Query: tạo câu trả lời ngay khi các token đầu tiên về tới.
     setIsLoading(true);
     try {
-      const aiResponse = await queryOnlineAI(query);
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString() + '-resp',
-          sender: 'assistant',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          title: `Gợi ý sư phạm: "${query}"`,
-          content: aiResponse,
-          provider: aiProvider === 'gemini' ? '✨ Gemini AI' : 'AI trực tuyến · Gemini'
-        }
-      ]);
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: Date.now().toString() + '-resp',
-          sender: 'assistant',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          title: '⚠️ Lỗi Kết Nối AI',
-          content: `${err.message}`,
-          provider: 'Hệ thống'
-        }
-      ]);
+      await streamOnlineReply(query, `Gợi ý sư phạm: "${query}"`, messages);
     } finally {
       setIsLoading(false);
     }
@@ -523,10 +511,10 @@ export default function OfflinePedagogyAssistant({
                 ? 'bg-white text-pink-700 shadow-2xs border border-pink-200'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
-            title="Gemini qua máy chủ; khóa AI không nằm trong trình duyệt"
+            title="Groq Free qua endpoint máy chủ riêng; khóa không nằm trong trình duyệt"
           >
             <span>🌸</span>
-            <span>AI trực tuyến</span>
+            <span>Groq Free Chat</span>
           </button>
 
           <button
@@ -542,49 +530,15 @@ export default function OfflinePedagogyAssistant({
             <span>Cục Bộ Offline</span>
           </button>
 
-          <button
-            onClick={() => {
-              setAiProvider('gemini');
-              if (!geminiApiKey) setShowKeyInput(true);
-            }}
-            className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 ${
-              aiProvider === 'gemini'
-                ? 'bg-white text-indigo-700 shadow-2xs border border-indigo-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-            title="Google Gemini: Dùng API Key cá nhân miễn phí từ AI Studio"
-          >
-            <span>✨</span>
-            <span>Gemini API</span>
-          </button>
         </div>
 
         {aiProvider !== 'offline' && (
           <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-slate-500">
-            Câu hỏi và ngữ cảnh bài học được gửi tới dịch vụ AI. Không nhập thông tin cá nhân học sinh; kết quả là bản nháp cần xem lại.
+            Tin nhắn và lịch sử gần đây được gửi qua endpoint máy chủ tới Groq Free. Không nhập thông tin cá nhân học sinh; câu trả lời là bản nháp cần xem lại.
           </p>
         )}
 
-        {/* Gemini Key Input Drawer */}
-        {showKeyInput && (
-          <div className="mt-2 p-2 bg-indigo-50 border border-indigo-200 rounded-lg text-xs animate-in fade-in">
-            <div className="flex items-center justify-between font-bold text-indigo-900 mb-1">
-              <span>Nhập Google Gemini API Key:</span>
-              <button onClick={() => setShowKeyInput(false)} className="text-slate-400 hover:text-slate-600">✕</button>
-            </div>
-            <input
-              type="password"
-              defaultValue={geminiApiKey}
-              placeholder="Dán AI Studio key (AIzaSy...)"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveGeminiKey(e.target.value);
-              }}
-              onBlur={(e) => handleSaveGeminiKey(e.target.value)}
-              className="w-full px-2 py-1 text-xs bg-white border border-indigo-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
-            />
-            <p className="text-[10px] text-indigo-700 mt-1">Lưu an toàn tại trình duyệt của bạn, không gửi lên bất kỳ máy chủ nào.</p>
-          </div>
-        )}
+
 
         {/* Grade and Theme Selection Filter */}
         <div className="mt-2.5 grid grid-cols-2 gap-2">
@@ -740,7 +694,7 @@ export default function OfflinePedagogyAssistant({
           value={userQuery}
           disabled={isLoading}
           onChange={(e) => setUserQuery(e.target.value)}
-          placeholder={`Hỏi trợ giảng ${aiProvider === 'online' ? 'AI trực tuyến' : aiProvider === 'gemini' ? 'Gemini' : 'Cục bộ'}...`}
+          placeholder={`Hỏi trợ giảng ${aiProvider === 'online' ? 'Groq Free' : 'Cục bộ'}...`}
           className="flex-1 px-3 py-1.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
         <button

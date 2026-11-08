@@ -3,7 +3,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import Header from './components/Header';
 import SlideEditorView from './components/SlideEditor/SlideEditorView';
 import LoginGateModal from './components/Admin/LoginGateModal';
-import { SLIDE_TEMPLATES } from './data/slideTemplates';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 
 // Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
@@ -17,9 +16,9 @@ const PPTXPreviewModal = React.lazy(() => import('./components/SlideEditor/PPTXP
 const VideoGuideModal = React.lazy(() => import('./components/VideoGuide/VideoGuideModal'));
 const AdminModal = React.lazy(() => import('./components/Admin/AdminModal'));
 const InstallAppModal = React.lazy(() => import('./components/Install/InstallAppModal'));
-import { getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
+import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
-import { Sparkles, MessageCircle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 // Khởi tạo trang slide trắng tinh (App hoàn toàn sạch, không chứa file mẫu có sẵn)
 const BLANK_INITIAL_SLIDE = {
@@ -42,8 +41,8 @@ export default function App() {
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUserSession, setCurrentUserSession] = useState(null);
+  const [currentUserSession, setCurrentUserSession] = useState(() => getCurrentSession());
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getCurrentSession()));
   const [isAuthReady, setIsAuthReady] = useState(!auth);
   const [authError, setAuthError] = useState('');
   const authVersionRef = useRef(0);
@@ -77,7 +76,15 @@ export default function App() {
     }
 
     let isActive = true;
+    let receivedInitialAuthState = false;
+    const authReadyTimeout = window.setTimeout(() => {
+      if (isActive && !receivedInitialAuthState) setIsAuthReady(true);
+    }, 2000);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!receivedInitialAuthState) {
+        receivedInitialAuthState = true;
+        clearTimeout(authReadyTimeout);
+      }
       const requestVersion = ++authVersionRef.current;
       const isCurrentRequest = () => isActive
         && requestVersion === authVersionRef.current
@@ -86,6 +93,14 @@ export default function App() {
       const isExplicitLogout = typeof window !== 'undefined'
         && (localStorage.getItem('conhi_explicit_logout') === 'true' || sessionStorage.getItem('conhi_explicit_logout') === 'true');
       if (!user || isExplicitLogout) {
+        const existingSession = getCurrentSession();
+        if (existingSession && !isExplicitLogout) {
+          setIsAuthenticated(true);
+          setCurrentUserSession(existingSession);
+          setIsAdminModalOpen(false);
+          setIsAuthReady(true);
+          return;
+        }
         setIsAuthenticated(false);
         setCurrentUserSession(null);
         setIsAdminModalOpen(false);
@@ -121,6 +136,7 @@ export default function App() {
 
     return () => {
       isActive = false;
+      clearTimeout(authReadyTimeout);
       authVersionRef.current += 1;
       unsubscribe();
     };
@@ -550,15 +566,16 @@ export default function App() {
   const activeSlideGrade = gradeMatch ? Number(gradeMatch[1]) : 1;
 
   // 0. BẢO VỆ MÀN HÌNH KHÓA: HIỆN NGAY KHI MỞ APP (Chặn 100%, không hiển thị app phía sau khi chưa đăng nhập)
-  if (!isAuthReady) {
-    return <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-sm font-semibold text-white">Đang kiểm tra phiên đăng nhập…</div>;
-  }
-
   if (!isAuthenticated) {
     return (
       <LoginGateModal
         isOpen={true}
         authError={authError}
+        onLoginSuccess={(session) => {
+          setCurrentUserSession(session);
+          setIsAuthenticated(true);
+          setAuthError('');
+        }}
         onClearAuthError={() => setAuthError('')}
       />
     );

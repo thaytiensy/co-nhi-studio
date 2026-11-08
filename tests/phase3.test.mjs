@@ -329,15 +329,12 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
     );
     assert.ok(dataUrl.startsWith('data:image/jpeg;base64,'));
 
-    // 3. Chế độ không có fetch / lỗi fetch -> fallback trả về Pollinations URL hợp lệ
+    // 3. Lỗi mạng phải báo thất bại, không trả URL chưa có ảnh như thành công.
     const failFetch = async () => { throw new Error('Network error'); };
-    const directUrl = await generateAiArtwork(
+    await assert.rejects(generateAiArtwork(
       { topic: 'bông hoa', grade: 1, style: 'watercolor', seed: 99 },
       failFetch
-    );
-    assert.ok(directUrl.startsWith('https://image.pollinations.ai/prompt/'));
-    assert.ok(directUrl.includes('width=1024'));
-    assert.ok(directUrl.includes('nologo=true'));
+    ), /Network error/);
   });
 
   it('15. Phân tích ngữ cảnh sâu sắc (Deep Contextual Understanding): Thể loại, Chủ đề tinh gọn và 4 bước thị phạm chuyên biệt', () => {
@@ -379,7 +376,8 @@ describe('Giai đoạn 3 - Xác thực Schema & Bộ sinh Ý tưởng / Trò ch�
     const plan1 = buildLocalPedagogyPlan(p1);
     assert.ok(plan1.critiqueReport, 'Phải có báo cáo kiểm định sư phạm');
     assert.ok(plan1.critiqueReport.score >= 95, `Điểm phải >= 95, thực tế: ${plan1.critiqueReport.score}`);
-    assert.ok(plan1.critiqueReport.safetyStatus.includes('PASS'));
+    assert.equal(plan1.critiqueReport.safetyCheck.isSafe, true);
+    assert.ok(!plan1.critiqueReport.safetyStatus.includes('100%'));
     assert.ok(plan1.critiqueReport.teacherAdvice.includes('Lớp 2'));
     assert.ok(Array.isArray(plan1.critiqueReport.pedagogicalHighlights));
 

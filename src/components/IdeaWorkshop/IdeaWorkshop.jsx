@@ -18,11 +18,13 @@ import {
   Image as ImageIcon,
   Loader2,
   Upload,
-  Trash2
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
-import { generateAiArtwork, generateAiLesson } from '../../utils/aiLessonGenerator';
-import { generateNaturalIdeaLesson, parseNaturalIdeaPrompt, critiqueAndEnhanceLessonPlan } from '../../utils/aiNaturalLanguageService';
+import { generateAiArtwork, generateAiLesson, externalAiEnabled } from '../../utils/aiLessonGenerator';
+import { generateNaturalIdeaLesson, parseNaturalIdeaPrompt, critiqueAndEnhanceLessonPlan, detectArtGenre } from '../../utils/aiNaturalLanguageService';
+import { prepareLocalLessonPlan } from '../../utils/lessonQualityService';
 
 const MATERIALS = [
   { id: 'crayon', name: 'Sáp màu / Chì màu', icon: '🖍️' },
@@ -325,6 +327,8 @@ export default function IdeaWorkshop({
   const [ideaResult, setIdeaResult] = useState(null);
   const [generatedArtworkUrl, setGeneratedArtworkUrl] = useState('');
   const [artworkGallery, setArtworkGallery] = useState([]);
+  const artworkGalleryRef = useRef([]);
+  const [artworkMaterialKey, setArtworkMaterialKey] = useState('crayon');
   const ideaResultRef = useRef(null);
   const imageRequestRef = useRef(false);
   const pendingImageRequestRef = useRef(null);
@@ -332,7 +336,7 @@ export default function IdeaWorkshop({
     ideaResultRef.current = ideaResult;
   }, [ideaResult]);
   const [activeArtworkIndex, setActiveArtworkIndex] = useState(0);
-  const [artworkSeed, setArtworkSeed] = useState(100);
+  const artworkSeedRef = useRef(100);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [addedNotice, setAddedNotice] = useState(false);
@@ -355,9 +359,9 @@ export default function IdeaWorkshop({
     return t.charAt(0).toUpperCase() + t.slice(1);
   };
 
-  const generateArtworkForContext = async ({ topic, grade, materialKey, genre = 'general', ideaId, count = 1, append = false }) => {
+  const generateArtworkForContext = async ({ topic, grade, materialKey, genre = 'general', ideaId, count = 1, append = false, seed = artworkSeedRef.current }) => {
     if (imageRequestRef.current) {
-      pendingImageRequestRef.current = { topic, grade, materialKey, ideaId, count, append };
+      pendingImageRequestRef.current = { topic, grade, materialKey, genre, ideaId, count, append, seed };
       return;
     }
     imageRequestRef.current = true;
@@ -374,19 +378,20 @@ export default function IdeaWorkshop({
         const latestBeforeRequest = ideaResultRef.current;
         if (!latestBeforeRequest || latestBeforeRequest.id !== ideaId) break;
         setAiGeneratingStatus(safeCount > 1
-          ? `Gemini đang tạo tranh ${index + 1}/${safeCount} theo yêu cầu...`
-          : `Gemini đang tạo tranh cho “${topic}”...`);
+          ? `Đang yêu cầu dịch vụ tạo tranh ${index + 1}/${safeCount} theo yêu cầu...`
+          : `Đang yêu cầu dịch vụ tạo tranh cho “${topic}”...`);
         try {
-          const url = await generateAiArtwork({ topic, grade, style: materialKey, genre });
+          const url = await generateAiArtwork({ topic, grade, style: materialKey, genre, seed: seed + index });
           generatedItems.push({
             id: `art-${Date.now()}-${index}-${Math.floor(Math.random() * 999999)}`,
             url,
-            seed: null,
+            seed: seed + index,
             styleName: materialObj.name,
             styleKey: materialKey,
             title: topic,
             prompt: topic,
-            source: 'Gemini'
+            source: 'Pollinations (dịch vụ bên ngoài)',
+            requiresTeacherReview: true
           });
         } catch (error) {
           generationError = error;
@@ -398,8 +403,11 @@ export default function IdeaWorkshop({
       if (!currentIdea || currentIdea.id !== ideaId) return;
 
       if (generatedItems.length > 0) {
-        setArtworkGallery(previous => append ? [...previous, ...generatedItems] : generatedItems);
-        setActiveArtworkIndex(append ? artworkGallery.length + generatedItems.length - 1 : generatedItems.length - 1);
+        const gallery = append ? [...artworkGalleryRef.current, ...generatedItems] : generatedItems;
+        artworkGalleryRef.current = gallery;
+        setArtworkGallery(gallery);
+        setActiveArtworkIndex(gallery.length - 1);
+        setArtworkMaterialKey(materialKey);
         const selectedArtwork = generatedItems[generatedItems.length - 1];
         setGeneratedArtworkUrl(selectedArtwork.url);
         const updatedIdea = { ...currentIdea, artworkUrl: selectedArtwork.url };
@@ -416,7 +424,7 @@ export default function IdeaWorkshop({
         });
       } else {
         setAiGenerationMessage(previous => previous?.type === 'error' ? previous : {
-          type: 'success', text: 'Tranh đã được tạo bằng AI theo đúng chủ đề, khối lớp và chất liệu đã chọn.'
+          type: 'success', text: 'Đã nhận ảnh hợp lệ từ dịch vụ tạo tranh. Thầy/Cô cần xem lại nội dung và chất liệu trước khi dùng.'
         });
       }
     } finally {
@@ -426,7 +434,7 @@ export default function IdeaWorkshop({
       const latest = ideaResultRef.current;
       if (pending && latest && latest.id === pending.ideaId
         && latest.themeTitle === pending.topic && latest.grade === pending.grade
-        && latest.materialKey === pending.materialKey) {
+        ) {
         void generateArtworkForContext(pending);
       } else {
         setIsImageLoading(false);
@@ -469,14 +477,14 @@ export default function IdeaWorkshop({
     const lessonTitle = `${baseTitle} cùng ${materialObj.name}`;
 
     // Tạo kế hoạch dạy học thông minh hiểu sâu sắc ngữ cảnh đề tài và chất liệu
-    const pedagogy = generateSmartPedagogy({
+    const pedagogy = prepareLocalLessonPlan(generateSmartPedagogy({
       topic: baseTitle,
       material: materialObj,
       duration: durationObj,
       grade,
       isCustom,
       currentTheme: theme
-    });
+    }), { topic: baseTitle, grade, material: materialObj.name, materialKey, durationId, duration: durationObj.name, genre: isCustom ? detectArtGenre(baseTitle) : theme?.genre, curriculumRef: isCustom ? null : theme?.title });
 
     const newIdea = {
       id: 'idea-' + Date.now(),
@@ -486,7 +494,7 @@ export default function IdeaWorkshop({
       material: materialObj.name,
       durationId: durationObj.id,
       duration: durationObj.name,
-      genre: theme?.genre || 'general',
+      genre: isCustom ? detectArtGenre(baseTitle) : (theme?.genre || 'general'),
       lessonTitle,
       isCustom,
       generationSource: 'Bản nháp cục bộ',
@@ -498,17 +506,22 @@ export default function IdeaWorkshop({
       objectives: pedagogy.objectives,
       materialsNeeded: pedagogy.materialsNeeded,
       teachingProcess: pedagogy.teachingProcess,
-      rubricCriteria: pedagogy.rubricCriteria
+      rubricCriteria: pedagogy.rubricCriteria,
+      differentiatedMissions: pedagogy.differentiatedMissions,
+      critiqueReport: pedagogy.critiqueReport
     };
 
     setAiGenerationMessage(null);
     setArtworkGallery([]);
+    artworkGalleryRef.current = [];
+    setArtworkMaterialKey(materialKey);
+    artworkSeedRef.current = Math.floor(Math.random() * 1000000);
     setActiveArtworkIndex(0);
     setGeneratedArtworkUrl('');
     setIdeaResult(newIdea);
     ideaResultRef.current = newIdea;
 
-    if (generatePlan) {
+    if (generatePlan && externalAiEnabled) {
       const planRequestId = `${newIdea.id}-plan`;
       aiPlanRequestRef.current = planRequestId;
       setIsAiGenerating(true);
@@ -524,6 +537,7 @@ export default function IdeaWorkshop({
         const latest = ideaResultRef.current;
         if (aiPlanRequestRef.current !== planRequestId || !latest || latest.id !== newIdea.id) return;
         const updated = { ...latest, ...pedagogyResult, generationSource: 'AI trực tuyến · Gemini' };
+        updated.critiqueReport = critiqueAndEnhanceLessonPlan(updated, updated);
         ideaResultRef.current = updated;
         setIdeaResult(updated);
         setAiGenerationMessage(previous => previous?.type === 'error' ? previous : {
@@ -546,12 +560,13 @@ export default function IdeaWorkshop({
     }
 
     if (generateArtwork) {
-      void generateArtworkForContext({ topic: baseTitle, grade, materialKey, genre: theme?.genre || 'general', ideaId: newIdea.id, count: 1, append: false });
+      void generateArtworkForContext({ topic: baseTitle, grade, materialKey, genre: newIdea.genre, ideaId: newIdea.id, count: 1, append: false });
     }
   };
 
   const handleRewriteWithAI = async () => {
     if (!ideaResult || isAiGenerating) return;
+    if (!externalAiEnabled) { setAiGenerationMessage({ type: 'error', text: 'AI bên ngoài đang tắt để giữ chế độ miễn phí. Giáo án cục bộ vẫn dùng được.' }); return; }
     const currentIdea = ideaResultRef.current;
     const topic = currentIdea.themeTitle;
     const materialObj = MATERIALS.find(m => m.id === currentIdea.materialKey) || MATERIALS[0];
@@ -578,6 +593,7 @@ export default function IdeaWorkshop({
         setIdeaResult(current => {
           if (!current || current.grade !== requestContext.grade || current.themeTitle !== topic || current.material !== requestContext.material || current.duration !== requestContext.duration) return current;
           const updated = { ...current, ...pedagogy, generationSource: 'AI trực tuyến · Gemini' };
+          updated.critiqueReport = critiqueAndEnhanceLessonPlan(updated, updated);
           ideaResultRef.current = updated;
           return updated;
         });
@@ -601,20 +617,26 @@ export default function IdeaWorkshop({
   const handleGenerateNaturalPrompt = async (promptOverride = null) => {
     const promptText = promptOverride || naturalPrompt;
     if (!promptText.trim()) return;
+    const planRequestId = `natural-${Date.now()}-${Math.random()}`;
+    aiPlanRequestRef.current = planRequestId;
     setIsAiGenerating(true);
     setAiGeneratingStatus('Đang phân tích câu lệnh & thiết kế bài dạy GDPT 2018...');
     try {
       const result = await generateNaturalIdeaLesson({
         prompt: promptText,
-        isOnline: navigator.onLine
+        isOnline: externalAiEnabled && navigator.onLine
       });
+      if (aiPlanRequestRef.current !== planRequestId) return;
       setNaturalAnalysis(result.parsedParams);
+      setSelectedDuration(result.parsedParams.periods === 2 ? 70 : 35);
       setSelectedGrade(result.parsedParams.grade);
       setSelectedMaterial(result.parsedParams.materialKey);
       
       const plan = result.plan;
       const newIdea = {
+        ...plan,
         id: `idea-nat-${Date.now()}`,
+        durationId: result.parsedParams.periods === 2 ? 70 : 35,
         grade: result.parsedParams.grade,
         themeTitle: result.parsedParams.topic,
         lessonTitle: plan.lessonTitle,
@@ -633,6 +655,12 @@ export default function IdeaWorkshop({
         isCustom: true,
         sourceDescription: result.source
       };
+      setArtworkGallery([]);
+      artworkGalleryRef.current = [];
+      setGeneratedArtworkUrl('');
+      setActiveArtworkIndex(0);
+      setArtworkMaterialKey(newIdea.materialKey);
+      artworkSeedRef.current = Math.floor(Math.random() * 1000000);
       setIdeaResult(newIdea);
       ideaResultRef.current = newIdea;
 
@@ -641,33 +669,28 @@ export default function IdeaWorkshop({
         topic: result.parsedParams.topic,
         grade: result.parsedParams.grade,
         materialKey: result.parsedParams.materialKey,
+        genre: result.parsedParams.genre,
         ideaId: newIdea.id
       });
     } catch (err) {
       alert('Không thể tạo kế hoạch: ' + err.message);
     } finally {
-      setIsAiGenerating(false);
-      setAiGeneratingStatus('');
+      if (aiPlanRequestRef.current === planRequestId) {
+        aiPlanRequestRef.current = null;
+        setIsAiGenerating(false);
+        setAiGeneratingStatus('');
+      }
     }
   };
 
   // Cập nhật trường nội dung khi giáo viên chỉnh sửa kế hoạch
   const handleUpdatePlanField = (field, value, subfield = null) => {
-    if (!ideaResult) return;
-    if (subfield) {
-      setIdeaResult(prev => ({
-        ...prev,
-        [field]: {
-          ...prev[field],
-          [subfield]: value
-        }
-      }));
-    } else {
-      setIdeaResult(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+    const previous = ideaResultRef.current;
+    if (!previous) return;
+    const updated = subfield ? { ...previous, [field]: { ...previous[field], [subfield]: value } } : { ...previous, [field]: value };
+    updated.critiqueReport = critiqueAndEnhanceLessonPlan(updated, updated);
+    ideaResultRef.current = updated;
+    setIdeaResult(updated);
   };
 
   // Tự động khởi tạo ngay khi mở Xưởng Ý Tưởng để không bao giờ bị trống
@@ -691,7 +714,9 @@ export default function IdeaWorkshop({
     return generateArtworkForContext({
       topic: currentIdea.themeTitle,
       grade: currentIdea.grade,
-      materialKey: currentIdea.materialKey,
+      materialKey: artworkMaterialKey || currentIdea.materialKey,
+      genre: currentIdea.genre,
+      seed: ++artworkSeedRef.current,
       ideaId: currentIdea.id,
       count,
       append: true
@@ -703,9 +728,12 @@ export default function IdeaWorkshop({
     if (idx >= 0 && idx < artworkGallery.length) {
       setActiveArtworkIndex(idx);
       const chosen = artworkGallery[idx];
+      setArtworkMaterialKey(chosen.styleKey);
       setGeneratedArtworkUrl(chosen.url);
       if (ideaResult) {
-        setIdeaResult(prev => ({ ...prev, artworkUrl: chosen.url }));
+        const updated = { ...ideaResultRef.current, artworkUrl: chosen.url };
+        ideaResultRef.current = updated;
+        setIdeaResult(updated);
       }
     }
   };
@@ -765,14 +793,14 @@ export default function IdeaWorkshop({
               </span>
               <div>
                 <h2 className="font-extrabold text-base text-slate-800">Xưởng Ý Tưởng Mĩ Thuật</h2>
-                <p className="text-xs text-slate-500">Thiết kế bài dạy mĩ thuật tiểu học chuẩn GDPT 2018</p>
+                <p className="text-xs text-slate-500">Soạn bản nháp bài dạy mĩ thuật tiểu học để giáo viên duyệt</p>
               </div>
             </div>
             {/* Offline disclosure badge */}
             <div className="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-1.5">
               <Info className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-900 leading-tight">
-                Khi bấm tạo ý tưởng, chủ đề, khối lớp, chất liệu và thời lượng được phân tích để soạn kế hoạch và tranh minh họa. Thao tác an toàn, không gửi ảnh học sinh.
+                Khi bấm tạo ý tưởng, chủ đề, khối lớp, chất liệu và thời lượng được phân tích để soạn kế hoạch và tranh minh họa. Giáo án mặc định được soạn cục bộ. Khi yêu cầu tranh, chủ đề được gửi đến dịch vụ ngoài; không nhập dữ liệu học sinh.
               </p>
             </div>
 
@@ -787,7 +815,7 @@ export default function IdeaWorkshop({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span>💬 Câu Lệnh Tự Nhiên AI</span>
+                <span>💬 Câu Lệnh Tự Nhiên</span>
               </button>
               <button
                 type="button"
@@ -809,7 +837,7 @@ export default function IdeaWorkshop({
               <div>
                 <label className="text-xs font-black text-slate-700 block mb-1.5 flex items-center justify-between">
                   <span>Nhập Yêu Cầu Bài Học Bằng Tiếng Việt Tự Do:</span>
-                  <span className="text-[10px] text-amber-700 font-bold">✨ AI Tự Hiểu Ngữ Nghĩa</span>
+                  <span className="text-[10px] text-amber-700 font-bold">✨ Phân tích quy tắc cục bộ</span>
                 </label>
                 <textarea
                   rows={4}
@@ -1272,54 +1300,16 @@ export default function IdeaWorkshop({
               </div>
             </div>
 
-            {/* KHU VỰC THẨM ĐỊNH & PHẢN BIỆN SƯ PHẠM ĐA LỚP (AI CRITIQUE & QA REPORT) */}
             {ideaResult.critiqueReport && (
-              <div className="bg-gradient-to-br from-emerald-50 via-teal-50/40 to-amber-50/50 border border-emerald-200/80 rounded-2xl p-4 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-emerald-600 text-white rounded-xl shadow-xs flex items-center justify-center">
-                      <ShieldCheck className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-black text-xs md:text-sm text-emerald-950">
-                          Kiểm Định Sư Phạm Đa Lớp (AI Critique & QA)
-                        </h3>
-                        <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">
-                          ⭐ {ideaResult.critiqueReport.score}/100 Điểm Chuẩn GDPT 2018
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-emerald-800 font-medium mt-0.5">
-                        Tự động đối chiếu Thông tư 32/2018, Công văn 2345 và Thông tư 27 của Bộ GD&ĐT
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-emerald-700 border border-emerald-200 rounded-lg flex items-center gap-1">
-                      ✓ {ideaResult.critiqueReport.safetyStatus}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-amber-700 border border-amber-200 rounded-lg flex items-center gap-1">
-                      ✓ 4 Bước thị phạm chuẩn
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-white text-indigo-700 border border-indigo-200 rounded-lg flex items-center gap-1">
-                      ✓ Phân hóa 3 cấp độ (TT27)
-                    </span>
-                  </div>
-                </div>
-
-                {ideaResult.critiqueReport.teacherAdvice && (
-                  <div className="p-2.5 bg-white/90 border border-emerald-100 rounded-xl text-xs text-slate-700 flex items-start gap-2">
-                    <span className="text-base leading-none">💡</span>
-                    <div className="space-y-0.5 flex-1">
-                      <span className="font-extrabold text-[11px] text-emerald-900 block">Lời Khuyên Vàng Của Thầy Cọ Nhí Cho Tiết Dạy:</span>
-                      <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                        {ideaResult.critiqueReport.teacherAdvice}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <section data-testid="lesson-review" className="bg-slate-50 border border-slate-300 rounded-2xl p-4 space-y-3">
+                <h3 className="font-bold text-sm flex items-center gap-2"><ShieldCheck className="w-4 h-4" />Rà soát sư phạm cục bộ — {ideaResult.critiqueReport.score}/100 điểm theo bộ quy tắc</h3>
+                <p className="text-xs text-slate-600">{ideaResult.critiqueReport.reviewMethod} Giáo viên duyệt trước khi sử dụng; không bảo đảm 100% an toàn.</p>
+                <p className={ideaResult.critiqueReport.safetyCheck.isSafe ? 'text-xs text-slate-700' : 'text-xs font-bold text-red-700'}>{ideaResult.critiqueReport.safetyStatus}</p>
+                <ul className="text-xs space-y-1">{ideaResult.critiqueReport.pedagogicalHighlights.map((item, i) => <li key={i}>{item}</li>)}</ul>
+                {ideaResult.critiqueReport.safetyCheck.warnings.map((item, i) => <p className="text-xs text-red-700" key={i}>{item}</p>)}
+                {ideaResult.critiqueReport.safetyCheck.substitutions.map((item, i) => <p className="text-xs font-bold text-amber-800" key={i}>{item}</p>)}
+                <p className="text-xs"><strong>Gợi ý cho giáo viên:</strong> {ideaResult.critiqueReport.teacherAdvice}</p>
+              </section>
             )}
 
             {/* ẢNH Ý TƯỞNG CỦA THẦY/CÔ TẢI LÊN (NẾU CÓ) */}
@@ -1359,6 +1349,47 @@ export default function IdeaWorkshop({
               </div>
             )}
 
+                {/* ĐỔI BIẾN THỂ CHẤT LIỆU TRANH NHANH */}
+                <div className="flex items-center gap-1.5 pt-2 border-t border-amber-200/60 flex-wrap">
+                  <span className="text-[10px] font-extrabold text-amber-900 mr-1 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    Tạo biến thể mới theo chất liệu (không chuyển đổi ảnh gốc):
+                  </span>
+                  {[
+                    { id: 'crayon', name: 'Sáp màu', icon: '🖍️' },
+                    { id: 'watercolor', name: 'Màu nước', icon: '🎨' },
+                    { id: 'paper', name: 'Xé dán', icon: '✂️' },
+                    { id: 'clay', name: 'Đất nặn', icon: '🏺' }
+                  ].map((mat) => (
+                    <button
+                      key={mat.id}
+                      type="button"
+                      onClick={() => {
+                        setArtworkMaterialKey(mat.id);
+                        if (ideaResult) {
+                          generateArtworkForContext({
+                            topic: ideaResult.themeTitle,
+                            grade: ideaResult.grade,
+                            materialKey: mat.id,
+                            genre: ideaResult.genre || 'general',
+                            ideaId: ideaResult.id,
+                            count: 1,
+                            append: true
+                          });
+                        }
+                      }}
+                      disabled={isImageLoading}
+                      className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer active:scale-95 ${
+                        artworkMaterialKey === mat.id
+                          ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50 hover:border-amber-300'
+                      }`}
+                    >
+                      <span>{mat.icon} {mat.name}</span>
+                    </button>
+                  ))}
+                </div>
+
             {/* KHU VỰC THƯ VIỆN TRANH MẪU MINH HỌA SINH THEO Ý TƯỞNG (NHIỀU TRANH, LIÊN TỤC) */}
             {ideaResult && !generatedArtworkUrl && artworkGallery.length === 0 && (
               <div className="bg-white border border-dashed border-amber-300 rounded-2xl p-5 text-center space-y-2">
@@ -1384,11 +1415,12 @@ export default function IdeaWorkshop({
                     <div>
                       <h3 className="font-extrabold text-xs md:text-sm text-amber-950 flex items-center gap-2">
                         <span>Bộ Sưu Tập Tranh Minh Họa AI ({artworkGallery.length} bức)</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Gemini • tạo theo yêu cầu</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Dịch vụ tạo tranh bên ngoài</span>
                       </h3>
                       <p className="text-[11px] text-amber-800">
                         {artworkGallery[activeArtworkIndex]?.styleName || ideaResult.material} • Bấm vào các tranh nhỏ bên dưới để chọn tranh muốn dùng
                       </p>
+                      <p className="text-[11px] font-bold text-red-700">Ảnh chưa được kiểm chứng đúng đề tài/chất liệu. Giáo viên cần duyệt trước khi chèn; dịch vụ ngoài có thể trả ảnh sai hoặc từ chối.</p>
                     </div>
                   </div>
 
@@ -1441,7 +1473,6 @@ export default function IdeaWorkshop({
                   <img
                     src={generatedArtworkUrl}
                     alt={`Tranh AI minh họa: ${ideaResult.themeTitle}`}
-                    onLoad={() => setIsImageLoading(false)}
                     onError={() => {
                       setIsImageLoading(false);
                       setAiGenerationMessage({ type: 'error', text: 'Không tải được tranh AI đang chọn. Hãy thử tạo lại tranh theo cùng chủ đề.' });
@@ -1454,47 +1485,6 @@ export default function IdeaWorkshop({
                       Biến thể #{activeArtworkIndex + 1}: {artworkGallery[activeArtworkIndex].styleName}
                     </div>
                   )}
-                </div>
-
-                {/* ĐỔI BIẾN THỂ CHẤT LIỆU TRANH NHANH */}
-                <div className="flex items-center gap-1.5 pt-2 border-t border-amber-200/60 flex-wrap">
-                  <span className="text-[10px] font-extrabold text-amber-900 mr-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-amber-600" />
-                    Đổi nhanh chất liệu tranh:
-                  </span>
-                  {[
-                    { id: 'crayon', name: 'Sáp màu', icon: '🖍️' },
-                    { id: 'watercolor', name: 'Màu nước', icon: '🎨' },
-                    { id: 'paper', name: 'Xé dán', icon: '✂️' },
-                    { id: 'clay', name: 'Đất nặn', icon: '🏺' }
-                  ].map((mat) => (
-                    <button
-                      key={mat.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedMaterial(mat.id);
-                        if (ideaResult) {
-                          generateArtworkForContext({
-                            topic: ideaResult.themeTitle,
-                            grade: ideaResult.grade,
-                            materialKey: mat.id,
-                            genre: ideaResult.genre || 'general',
-                            ideaId: ideaResult.id,
-                            count: 1,
-                            append: true
-                          });
-                        }
-                      }}
-                      disabled={isImageLoading}
-                      className={`px-2 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer active:scale-95 ${
-                        (artworkGallery[activeArtworkIndex]?.styleKey || ideaResult?.materialKey) === mat.id
-                          ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50 hover:border-amber-300'
-                      }`}
-                    >
-                      <span>{mat.icon} {mat.name}</span>
-                    </button>
-                  ))}
                 </div>
 
                 {/* THƯ VIỆN CÁC TRANH MẪU ĐÃ TẠO (CLICK ĐỂ CHỌN HOẶC CHÈN NGAY) */}
@@ -1606,7 +1596,7 @@ export default function IdeaWorkshop({
                     
                     {proc.fourSteps && (
                       <div className="mt-2.5 p-2.5 bg-purple-50/70 border border-purple-100 rounded-lg">
-                        <span className="text-[11px] font-bold text-purple-900 block mb-1">4 bước vẽ tranh thị phạm:</span>
+                        <span className="text-[11px] font-bold text-purple-900 block mb-1">4 bước tạo hình thị phạm:</span>
                         <div className="grid grid-cols-2 gap-1 text-[11px] text-purple-950 font-medium">
                           {proc.fourSteps.map((st, i) => (
                             <div key={i}>• {st}</div>
@@ -1646,7 +1636,7 @@ export default function IdeaWorkshop({
             {ideaResult.differentiatedMissions && (
               <div>
                 <h3 className="text-xs font-black text-amber-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <span>🎯</span> V. Thử Thách Sáng Tạo Phân Hóa Năng Lực (Thông tư 27)
+                  <span>🎯</span> V. Nhiệm vụ phân hóa gợi ý (không phải mức đánh giá chính thức TT27)
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                   <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs space-y-1">
@@ -1660,7 +1650,7 @@ export default function IdeaWorkshop({
 
                   <div className="p-3 bg-sky-50/70 border border-sky-200 rounded-xl text-xs space-y-1">
                     <span className="font-extrabold text-sky-900 flex items-center gap-1">
-                      <span>⭐</span> Mức 2: Thành Thạo (Chuẩn SGK)
+                      <span>⭐</span> Mức 2: Vận Dụng
                     </span>
                     <p className="text-sky-950 text-[11px] leading-relaxed">
                       {ideaResult.differentiatedMissions.tier2_standard}
@@ -1669,7 +1659,7 @@ export default function IdeaWorkshop({
 
                   <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl text-xs space-y-1">
                     <span className="font-extrabold text-purple-900 flex items-center gap-1">
-                      <span>🚀</span> Mức 3: Tài Năng Nhí (Vượt Trội)
+                      <span>🚀</span> Mức 3: Mở Rộng Sáng Tạo
                     </span>
                     <p className="text-purple-950 text-[11px] leading-relaxed">
                       {ideaResult.differentiatedMissions.tier3_advanced}

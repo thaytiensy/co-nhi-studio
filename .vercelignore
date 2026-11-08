@@ -1,0 +1,3 @@
+# Keep local-only environment files out of Vercel deployments.
+.env.local
+.env.*.local

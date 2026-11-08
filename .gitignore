@@ -34,3 +34,6 @@ KICH_BAN_VIDEO_HUONG_DAN.md
 HO_SO_CO_NHI_STUDIO/
 synthesize_video_voiceover.mjs
 *.zip
+
+# Task-local QA harnesses and intermediate files (not application deliverables)
+.work/

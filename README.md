@@ -38,7 +38,7 @@ npm install
 ```bash
 npm run dev
 ```
-Trình duyệt sẽ mở ứng dụng tại: `http://localhost:5173/` (hoặc cổng hiển thị trên terminal).
+Mở trình duyệt tại: `http://localhost:3100/` (hoặc cổng hiển thị trên terminal).
 
 ### Kiểm tra tĩnh mã nguồn (Lint)
 ```bash
@@ -47,7 +47,7 @@ npm run lint
 
 ### Kiểm thử đơn vị tự động (Unit Test Suite)
 ```bash
-npm test -- --run
+npm test
 ```
 
 ### Biên dịch ứng dụng cho Production (Build)
@@ -66,3 +66,13 @@ npm run build
 - `src/components/Evaluation/`: Bảng nhận xét đánh giá định kỳ theo Thông tư 27 và xuất bảng điểm SMAS.
 - `src/components/Admin/`: Hệ thống phân quyền 3 cấp (Admin Chính, Admin Phụ, Giáo Viên).
 - `api/`: Serverless Functions hỗ trợ Edge Neural TTS và AI Teaching Assistant.
+
+## Chế độ miễn phí và rà soát giáo án
+
+Giáo án và trò chơi mặc định dùng ngân hàng/quy tắc cục bộ. `VITE_ENABLE_EXTERNAL_AI` (client) và `ENABLE_EXTERNAL_AI` (server) mặc định tắt; không bật hoặc thêm dịch vụ/khóa API khi chủ ứng dụng chưa phê duyệt chi phí và hạn mức. Endpoint AI từ chối yêu cầu thiếu xác thực hoặc không có quyền. Không đưa khóa bí mật vào biến `VITE_`, Git hoặc log.
+
+Điểm rà soát là điểm đáp ứng bộ quy tắc cấu trúc và từ khóa, không phải chất lượng chuyên môn được chứng nhận. Bộ lọc không thay thế việc giáo viên kiểm tra vật liệu thực tế. Ba nhiệm vụ phân hóa là gợi ý hoạt động, không phải ba mức đánh giá chính thức theo TT27. Khi sửa nội dung, cần rà soát lại trước khi dùng.
+
+Tranh AI hiện thử endpoint công khai cũ của Pollinations, không dùng khóa và không tự chuyển sang API có thể tính phí. Không cam kết dịch vụ này luôn miễn phí, luôn hoạt động hoặc giữ bố cục chính xác giữa các chất liệu. Tham khảo [tài liệu hiện hành](https://gen.pollinations.ai/docs) trước khi thay tích hợp. Khi mạng, HTTP, MIME hoặc giải mã ảnh lỗi, ứng dụng báo thất bại và giữ tranh cũ; có thể dùng ảnh do giáo viên tải từ máy.
+
+Kiểm thử hồi quy có trong `tests/lesson-quality.test.mjs`; các trang và tệp QA nội bộ nằm trong `.work/`, không đưa vào bản phân phối. Kiểm thử có ảnh giả lập chỉ xác minh luồng giao diện, không chứng minh chất lượng ảnh của nhà cung cấp hoặc trạng thái sau đăng nhập của bản live.
