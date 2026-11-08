@@ -1,13 +1,34 @@
 # BÁO CÁO TRẠNG THÁI DỰ ÁN CỌ NHÍ STUDIO (PROJECT STATE)
 
-> **Cập nhật lúc:** 2026-11-08 17:15:00 (Giờ Việt Nam)  
-> **Trạng thái:** SUCCESS - 0 LỖI BIÊN DỊCH - 74/74 TEST PASS - ĐÃ LOẠI BỎ HOÀN TOÀN XƯỞNG Ý TƯỞNG AN TOÀN
+> **Cập nhật lúc:** 2026-11-08 17:55:00 (Giờ Việt Nam)  
+> **Trạng thái:** SUCCESS - 0 LỖI BIÊN DỊCH - 74/74 TEST PASS - TRÌNH CHIẾU POWERPOINT & VIDEO HOÀN HẢO
 
 ---
 
 ## 1. Kết Quả Xử Lý & Khắc Phục Toàn Diện
 
-### A. Loại Bỏ Hoàn Toàn Chức Năng "Xưởng Ý Tưởng" (Không Ảnh Hưởng Tính Năng Khác)
+### A. Tích Hợp Trình Chiếu Kiểu PowerPoint (Chuyển Ô Chữ, Hình & Tự Động Đọc Chữ)
+- **Cơ chế click-to-advance chuẩn PowerPoint:**
+  1. Mỗi lần click chuột vào màn hình hoặc bấm phím Cách / Enter / Mũi tên Phải: Từng ô chữ, hình khối, hình ảnh, video lần lượt xuất hiện mượt mà (hiệu ứng fade-in & zoom nhẹ).
+  2. Tự động đọc phát âm chuẩn tiếng Việt bằng `speechService` cho từng ô chữ ngay khi ô đó xuất hiện trên màn hình.
+  3. Khi tất cả các ô trên slide hiện đủ, lượt click tiếp theo sẽ tự động chuyển sang trang slide kế tiếp và đọc tiêu đề / nội dung mở đầu của slide mới.
+  4. Hỗ trợ lùi từng bước (phím Mũi tên Trái / Backspace / nút `<`).
+  5. Bổ sung nút chuyển đổi linh hoạt ngay trên thanh điều khiển: `🎬 PowerPoint: Từng Bước / Hiện Toàn Bộ` và nút `🔊 Tự Đọc: BẬT / TẮT`.
+
+### B. Khắc Phục Lỗi Chạy Slide Không Đọc / Không Phát Được File Video
+- **Nguyên nhân:** Trong `PresentationModal.jsx`, trình render phần tử slide trước đây chỉ xử lý `text`, `shape`, `image`, `game` mà bỏ sót hoàn toàn `video`, `youtube`, `audio`.
+- **Giải pháp:** Bổ sung khối render video chuẩn HTML5 với controls, poster, object-contain, cô lập sự kiện click (`e.stopPropagation()`) để giáo viên tương tác play/pause/tua video mà không bị nhảy slide ngoài ý muốn.
+
+### C. Khắc Phục Lỗi Đọc File Tải Lên & Mở Tệp Đa Định Dạng
+- Bổ sung hàm `findZipFile` với cơ chế tìm kiếm case-insensitive (không phân biệt hoa-thường), chuẩn hóa dấu gạch chéo `/`, tự động khớp đường dẫn `ppt/media/` của PowerPoint.
+- Quét dự phòng toàn bộ video nhúng trong `slideRels` ngay cả khi video không nằm trong thẻ `<p:pic>` chuẩn.
+- Mở rộng bộ lọc `Header.jsx` và tự động điều hướng file `.pptx` khi người dùng chọn nhầm ở mục "Mở tệp từ máy".
+
+### D. Bổ Sung Nút "Trở Về" Trực Quan Cho Bảng Vẽ Thị Phạm
+- **Trong chế độ Trình Chiếu (F5):** Bổ sung nút `↩ Trở Về Slide (W / Esc)` màu xanh ngọc nổi bật trên thanh công cụ vẽ trên cùng và đổi trạng thái nút ở thanh đáy thành `↩ Trở Về Slide` khi đang mở bảng vẽ.
+- **Trong màn hình Bảng Vẽ Thị Phạm chính:** Bổ sung nút `← Trở Về Soạn Slide` ngay góc trái thanh công cụ giúp Thầy/Cô dễ dàng quay lại trang soạn slide với 1 cú click.
+
+### E. Loại Bỏ Hoàn Toàn Chức Năng "Xưởng Ý Tưởng" (Không Ảnh Hưởng Tính Năng Khác)
 - **Thực hiện sạch sẽ:**
   1. Loại bỏ tab `ideas` và icon `Lightbulb` khỏi thanh điều hướng chính trong `Header.jsx`.
   2. Gỡ bỏ `IdeaWorkshop` (lazy component), hàm `handleGenerateSlidesFromIdea` và khối render `activeTab === 'ideas'` khỏi `App.jsx`.

@@ -258,8 +258,27 @@ export default function App() {
     }
   };
 
-  // Import native .conhi project
+  // Import native .conhi project hoặc tự động nhận diện nếu người dùng chọn .pptx
   const handleImportProject = async (file) => {
+    if (!file) return;
+    const lowerName = file.name.toLowerCase();
+    if (lowerName.endsWith('.pptx')) {
+      setIsImportingPPTX(true);
+      try {
+        const { parsePPTXFile } = await import('./utils/pptxImportService');
+        const result = await parsePPTXFile(file);
+        setPptxPreviewData(result);
+      } catch (err) {
+        setPptxPreviewData({
+          success: false,
+          error: err.message || 'Lỗi đọc tệp PowerPoint'
+        });
+      } finally {
+        setIsImportingPPTX(false);
+      }
+      return;
+    }
+
     try {
       const data = await importProjectFile(file);
       if (data.slides) {

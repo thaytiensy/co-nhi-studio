@@ -26,6 +26,30 @@ import { generateSlidePedagogyTips } from '../../utils/aiNaturalLanguageService'
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
 
+const isWatermark = (txt) => {
+  if (!txt) return true;
+  const lower = txt.toLowerCase();
+  return (
+    lower.includes('thiết kế') || 
+    lower.includes('zalo') || 
+    lower.includes('097') || 
+    lower.includes('098') || 
+    lower.includes('090') || 
+    lower.includes('091') || 
+    lower.includes('096') || 
+    lower.includes('086') || 
+    lower.includes('hương thảo') ||
+    lower.includes('template')
+  );
+};
+
+const isBgElement = (el) => {
+  if (!el) return false;
+  if (el.isBackground) return true;
+  if ((el.type === 'image' || el.type === 'shape') && el.x <= 0 && el.y <= 0 && el.width >= 900 && el.height >= 500) return true;
+  return false;
+};
+
 // Khung 4 chặng tiến trình 35 phút chuẩn GDPT 2018 môn Mĩ thuật
 const PEDAGOGY_PHASES = [
   { id: 'warmup', name: '1. Khởi động', minutes: 5, color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-400/40' },
@@ -71,6 +95,11 @@ export default function PresentationModal({
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiTips, setAiTips] = useState(null);
   const [isLoadingAiTips, setIsLoadingAiTips] = useState(false);
+
+  // === 5. TRÌNH CHIẾU TỪNG BƯỚC KIỂU POWERPOINT & TỰ ĐỘNG ĐỌC CHỮ ===
+  const [powerPointMode, setPowerPointMode] = useState(true);
+  const [revealCount, setRevealCount] = useState(1);
+  const [autoReadOnAdvance, setAutoReadOnAdvance] = useState(true);
 
   // Định dạng mm:ss
   const formatTime = (secs) => {
@@ -151,6 +180,8 @@ export default function PresentationModal({
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
+  const currentSlide = slides[currentIndex] || slides[0];
+
   const goToNext = useCallback(() => {
     if (currentIndex < slides.length - 1) {
       speechService.stop();
@@ -166,6 +197,88 @@ export default function PresentationModal({
       setShowAiModal(false);
     }
   }, [currentIndex]);
+
+  // Helper đọc chữ của ô nội dung hoặc video
+  const speakElementText = useCallback((el) => {
+    if (!el || !autoReadOnAdvance) return;
+    let textToSpeak = '';
+    if ((el.type === 'text' || el.type === 'shape') && el.text?.trim()) {
+      if (!isWatermark(el.text)) {
+        textToSpeak = el.text.trim();
+      }
+    } else if (el.type === 'video') {
+      textToSpeak = `Mời các em theo dõi video: ${el.title || 'bài học'}`;
+    }
+    if (textToSpeak) {
+      speechService.stop();
+      speechService.speak(textToSpeak);
+    }
+  }, [autoReadOnAdvance]);
+
+  // Chuyển bước kế tiếp kiểu PowerPoint: chuyển ô chữ, hình -> khi hết thì chuyển slide
+  const handleAdvanceStep = useCallback(() => {
+    if (!powerPointMode) {
+      goToNext();
+      return;
+    }
+
+    const buildEls = (currentSlide?.elements || []).filter(el => !isBgElement(el));
+    if (revealCount < buildEls.length) {
+      const nextCount = revealCount + 1;
+      setRevealCount(nextCount);
+      const nextEl = buildEls[nextCount - 1];
+      if (nextEl) {
+        speakElementText(nextEl);
+      }
+    } else {
+      if (currentIndex < slides.length - 1) {
+        speechService.stop();
+        setCurrentIndex(prev => prev + 1);
+        setRevealCount(1);
+        setShowAiModal(false);
+      }
+    }
+  }, [powerPointMode, currentSlide, revealCount, currentIndex, slides.length, goToNext, speakElementText]);
+
+  // Lùi lại một bước: lùi ô chữ, hình -> khi về đầu slide thì lùi slide trước
+  const handleStepBack = useCallback(() => {
+    if (!powerPointMode) {
+      goToPrev();
+      return;
+    }
+    if (revealCount > 1) {
+      speechService.stop();
+      setRevealCount(prev => prev - 1);
+    } else {
+      if (currentIndex > 0) {
+        speechService.stop();
+        const prevSlide = slides[currentIndex - 1];
+        const prevBuildEls = (prevSlide?.elements || []).filter(el => !isBgElement(el));
+        setCurrentIndex(prev => prev - 1);
+        setRevealCount(Math.max(1, prevBuildEls.length));
+        setShowAiModal(false);
+      }
+    }
+  }, [powerPointMode, revealCount, currentIndex, slides, goToPrev]);
+
+  // Tự động đọc tiêu đề / nội dung mở đầu khi đổi trang slide
+  useEffect(() => {
+    setRevealCount(1);
+    if (autoReadOnAdvance) {
+      const slide = slides[currentIndex];
+      if (!slide) return;
+      const buildEls = (slide.elements || []).filter(el => !isBgElement(el));
+      if (buildEls.length > 0) {
+        speakElementText(buildEls[0]);
+      } else if (slide.title && !slide.title.startsWith('Trang ') && !isWatermark(slide.title)) {
+        speechService.stop();
+        speechService.speak(slide.title);
+      } else if (slide.notes && !isWatermark(slide.notes)) {
+        speechService.stop();
+        speechService.speak(slide.notes);
+      }
+    }
+  }, [currentIndex, autoReadOnAdvance, slides, speakElementText]);
 
   // === XỬ LÝ PHÍM TẮT ĐỨNG LỚP TOÀN DIỆN ===
   useEffect(() => {
@@ -235,12 +348,12 @@ export default function PresentationModal({
         return;
       }
 
-      // Điều hướng slide: Phím cách, Mũi tên phải/trái, PageUp/PageDown
+      // Điều hướng slide & từng bước PowerPoint: Phím cách, Enter, Mũi tên phải/trái, PageUp/PageDown
       if (!showGameModal && !isWhiteboardOpen && !isBlackScreen) {
-        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
-          goToNext();
-        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-          goToPrev();
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') {
+          handleAdvanceStep();
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') {
+          handleStepBack();
         }
       }
     };
@@ -254,8 +367,8 @@ export default function PresentationModal({
     isWhiteboardOpen, 
     isBlackScreen, 
     showNotesOverlay, 
-    goToNext, 
-    goToPrev, 
+    handleAdvanceStep, 
+    handleStepBack, 
     onClose
   ]);
 
@@ -267,27 +380,8 @@ export default function PresentationModal({
     }, 4000);
   };
 
-  const currentSlide = slides[currentIndex] || slides[0];
-
   // Helper trích xuất lời giảng phù hợp
   const getLectureTextToSpeak = () => {
-    const isWatermark = (txt) => {
-      if (!txt) return true;
-      const lower = txt.toLowerCase();
-      return (
-        lower.includes('thiết kế') || 
-        lower.includes('zalo') || 
-        lower.includes('097') || 
-        lower.includes('098') || 
-        lower.includes('090') || 
-        lower.includes('091') || 
-        lower.includes('096') || 
-        lower.includes('086') || 
-        lower.includes('hương thảo') ||
-        lower.includes('template')
-      );
-    };
-
     const parts = [];
     if (currentSlide?.title && currentSlide.title.trim() && !currentSlide.title.startsWith('Trang ') && !isWatermark(currentSlide.title)) {
       parts.push(`Tiêu đề: ${currentSlide.title.trim()}`);
@@ -405,17 +499,26 @@ export default function PresentationModal({
   const fallbackGameQuestions = generateGameQuestionsByTheme(1, getSlideTheme(), 'all');
   const activePhase = PEDAGOGY_PHASES[currentPhaseIdx];
 
+  const handleContainerClick = () => {
+    if (showAiModal || showGameModal || isWhiteboardOpen || showShortcutsHelp || showNotesOverlay || isBlackScreen) {
+      return;
+    }
+    handleAdvanceStep();
+  };
+
   return (
     <div 
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      className="fixed inset-0 bg-black z-50 flex items-center justify-center select-none overflow-hidden cursor-default"
+      onClick={handleContainerClick}
+      className="fixed inset-0 bg-black z-50 flex items-center justify-center select-none overflow-hidden cursor-pointer"
     >
       {/* =========================================================================
           1. THANH ĐỒNG HỒ SƯ PHẠM 35 PHÚT (PEDAGOGY TIMER DOCK - TOP)
       ========================================================================= */}
       {showTimerDock && (
         <div 
+          onClick={(e) => e.stopPropagation()}
           className={`fixed top-3 left-1/2 -translate-x-1/2 z-45 transition-all duration-300 ${
             controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
           }`}
@@ -497,141 +600,233 @@ export default function PresentationModal({
           backgroundColor: currentSlide?.background || '#ffffff',
         }}
       >
-        {currentSlide?.elements?.map((el) => {
-          if (el.type === 'text') {
-            return (
-              <div
-                key={el.id}
-                className="absolute break-words select-none pointer-events-none"
-                style={{
-                  left: `${el.x}px`,
-                  top: `${el.y}px`,
-                  width: `${el.width}px`,
-                  fontSize: `${el.fontSize || 16}px`,
-                  fontWeight: el.fontWeight || 'normal',
-                  fontStyle: el.fontStyle || 'normal',
-                  color: el.color || '#000000',
-                  textAlign: el.textAlign || 'left',
-                  whiteSpace: 'pre-wrap',
-                  lineHeight: 1.25,
-                }}
-              >
-                {el.text}
-              </div>
-            );
-          }
+        {(() => {
+          const buildElements = (currentSlide?.elements || []).filter(el => !isBgElement(el));
+          return currentSlide?.elements?.map((el) => {
+            const isBg = isBgElement(el);
+            const buildIdx = isBg ? -1 : buildElements.indexOf(el);
+            const isVisible = isBg || !powerPointMode || buildIdx < revealCount;
+            if (!isVisible) return null;
 
-          if (el.type === 'shape') {
-            return (
-              <div
-                key={el.id}
-                className="absolute pointer-events-none"
-                style={{
-                  left: `${el.x}px`,
-                  top: `${el.y}px`,
-                  width: `${el.width}px`,
-                  height: `${el.height}px`,
-                }}
-              >
-                {el.shapeType === 'circle' ? (
-                  <div
-                    className="w-full h-full rounded-full"
-                    style={{
-                      backgroundColor: el.fill || '#3b82f6',
-                      border: el.stroke ? `${el.strokeWidth || 2}px solid ${el.stroke}` : 'none',
-                      opacity: el.opacity ?? 1,
-                    }}
+            if (el.type === 'text') {
+              return (
+                <div
+                  key={el.id}
+                  className="absolute break-words select-none pointer-events-none animate-in fade-in zoom-in-95 duration-200"
+                  style={{
+                    left: `${el.x}px`,
+                    top: `${el.y}px`,
+                    width: `${el.width}px`,
+                    fontSize: `${el.fontSize || 16}px`,
+                    fontWeight: el.fontWeight || 'normal',
+                    fontStyle: el.fontStyle || 'normal',
+                    color: el.color || '#000000',
+                    textAlign: el.textAlign || 'left',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {el.text}
+                </div>
+              );
+            }
+
+            if (el.type === 'shape') {
+              return (
+                <div
+                  key={el.id}
+                  className="absolute pointer-events-none animate-in fade-in zoom-in-95 duration-200 relative"
+                  style={{
+                    left: `${el.x}px`,
+                    top: `${el.y}px`,
+                    width: `${el.width}px`,
+                    height: `${el.height}px`,
+                  }}
+                >
+                  {el.shapeType === 'circle' ? (
+                    <div
+                      className="w-full h-full rounded-full"
+                      style={{
+                        backgroundColor: el.fill || '#3b82f6',
+                        border: el.stroke ? `${el.strokeWidth || 2}px solid ${el.stroke}` : 'none',
+                        opacity: el.opacity ?? 1,
+                      }}
+                    />
+                  ) : el.shapeType === 'triangle' ? (
+                    <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <polygon
+                        points="50,5 95,95 5,95"
+                        fill={el.fill || '#10b981'}
+                        stroke={el.stroke || 'none'}
+                        strokeWidth={el.strokeWidth || 0}
+                        opacity={el.opacity ?? 1}
+                      />
+                    </svg>
+                  ) : el.shapeType === 'star' ? (
+                    <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <polygon
+                        points="50,5 64,36 98,36 70,57 81,91 50,70 19,91 30,57 2,36 36,36"
+                        fill={el.fill || '#f59e0b'}
+                        stroke={el.stroke || 'none'}
+                        strokeWidth={el.strokeWidth || 0}
+                        opacity={el.opacity ?? 1}
+                      />
+                    </svg>
+                  ) : el.shapeType === 'arrow' ? (
+                    <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
+                      <polygon
+                        points="0,20 60,20 60,0 100,30 60,60 60,40 0,40"
+                        fill={el.fill || '#6366f1'}
+                        stroke={el.stroke || 'none'}
+                        strokeWidth={el.strokeWidth || 0}
+                        opacity={el.opacity ?? 1}
+                      />
+                    </svg>
+                  ) : (
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        backgroundColor: el.fill || '#f1f5f9',
+                        borderRadius: el.shapeType === 'roundedRect' ? '16px' : '4px',
+                        border: el.stroke ? `${el.strokeWidth || 2}px solid ${el.stroke}` : 'none',
+                        opacity: el.opacity ?? 1,
+                      }}
+                    />
+                  )}
+
+                  {el.text && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center p-2 text-center break-words select-none pointer-events-none"
+                      style={{
+                        fontSize: `${el.fontSize || 16}px`,
+                        fontWeight: el.fontWeight || 'normal',
+                        color: el.color || '#000000',
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      {el.text}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            if (el.type === 'image') {
+              return (
+                <img
+                  key={el.id}
+                  src={el.src}
+                  alt="Hình minh họa"
+                  className="absolute object-contain pointer-events-none animate-in fade-in zoom-in-95 duration-200"
+                  style={{
+                    left: `${el.x}px`,
+                    top: `${el.y}px`,
+                    width: `${el.width}px`,
+                    height: `${el.height}px`,
+                  }}
+                />
+              );
+            }
+
+            if (el.type === 'video') {
+              return (
+                <div
+                  key={el.id}
+                  className="absolute bg-black rounded-xl overflow-hidden shadow-2xl flex items-center justify-center animate-in fade-in zoom-in-95 duration-200 z-10"
+                  style={{
+                    left: `${el.x}px`,
+                    top: `${el.y}px`,
+                    width: `${el.width}px`,
+                    height: `${el.height}px`,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <video
+                    controls
+                    playsInline
+                    src={el.src}
+                    poster={el.poster}
+                    className="w-full h-full object-contain"
                   />
-                ) : el.shapeType === 'triangle' ? (
-                  <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <polygon
-                      points="50,5 95,95 5,95"
-                      fill={el.fill || '#10b981'}
-                      stroke={el.stroke || 'none'}
-                      strokeWidth={el.strokeWidth || 0}
-                      opacity={el.opacity ?? 1}
-                    />
-                  </svg>
-                ) : el.shapeType === 'star' ? (
-                  <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <polygon
-                      points="50,5 64,36 98,36 70,57 81,91 50,70 19,91 30,57 2,36 36,36"
-                      fill={el.fill || '#f59e0b'}
-                      stroke={el.stroke || 'none'}
-                      strokeWidth={el.strokeWidth || 0}
-                      opacity={el.opacity ?? 1}
-                    />
-                  </svg>
-                ) : el.shapeType === 'arrow' ? (
-                  <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
-                    <polygon
-                      points="0,20 60,20 60,0 100,30 60,60 60,40 0,40"
-                      fill={el.fill || '#6366f1'}
-                      stroke={el.stroke || 'none'}
-                      strokeWidth={el.strokeWidth || 0}
-                      opacity={el.opacity ?? 1}
-                    />
-                  </svg>
-                ) : (
-                  <div
-                    className="w-full h-full"
-                    style={{
-                      backgroundColor: el.fill || '#f1f5f9',
-                      borderRadius: el.shapeType === 'roundedRect' ? '16px' : '4px',
-                      border: el.stroke ? `${el.strokeWidth || 2}px solid ${el.stroke}` : 'none',
-                      opacity: el.opacity ?? 1,
-                    }}
+                </div>
+              );
+            }
+
+            if (el.type === 'youtube') {
+              return (
+                <div
+                  key={el.id}
+                  className="absolute bg-black rounded-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-10"
+                  style={{
+                    left: `${el.x}px`,
+                    top: `${el.y}px`,
+                    width: `${el.width}px`,
+                    height: `${el.height}px`,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <iframe
+                    src={el.src}
+                    title="YouTube Video"
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
                   />
-                )}
-              </div>
-            );
-          }
+                </div>
+              );
+            }
 
-          if (el.type === 'image') {
-            return (
-              <img
-                key={el.id}
-                src={el.src}
-                alt="Hình minh họa"
-                className="absolute object-contain pointer-events-none"
-                style={{
-                  left: `${el.x}px`,
-                  top: `${el.y}px`,
-                  width: `${el.width}px`,
-                  height: `${el.height}px`,
-                }}
-              />
-            );
-          }
+            if (el.type === 'audio') {
+              return (
+                <div
+                  key={el.id}
+                  className="absolute bg-slate-900/90 border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-lg animate-in fade-in duration-200 z-10"
+                  style={{
+                    left: `${el.x}px`,
+                    top: `${el.y}px`,
+                    width: `${el.width}px`,
+                    height: `${el.height}px`,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <audio controls src={el.src} className="w-full h-full" />
+                </div>
+              );
+            }
 
-          if (el.type === 'game') {
-            return (
-              <div
-                key={el.id}
-                className="absolute flex items-center justify-center p-4 bg-indigo-50/90 rounded-2xl border-2 border-indigo-200 cursor-pointer hover:bg-indigo-100 transition-all shadow-md group"
-                style={{
-                  left: `${el.x}px`,
-                  top: `${el.y}px`,
-                  width: `${el.width}px`,
-                  height: `${el.height}px`,
-                }}
-                onClick={() => setShowGameModal(true)}
-              >
-                <div className="text-center space-y-2 pointer-events-none">
-                  <div className="w-12 h-12 mx-auto rounded-full bg-indigo-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Gamepad2 className="w-6 h-6 text-amber-300" />
-                  </div>
-                  <div className="font-extrabold text-sm text-indigo-900">{el.title || 'Trò Chơi Mĩ Thuật'}</div>
-                  <div className="text-[11px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full inline-block">
-                    🎮 Bấm để phóng to trò chơi cho cả lớp
+            if (el.type === 'game') {
+              return (
+                <div
+                  key={el.id}
+                  className="absolute flex items-center justify-center p-4 bg-indigo-50/90 rounded-2xl border-2 border-indigo-200 cursor-pointer hover:bg-indigo-100 transition-all shadow-md group animate-in fade-in zoom-in-95 duration-200"
+                  style={{
+                    left: `${el.x}px`,
+                    top: `${el.y}px`,
+                    width: `${el.width}px`,
+                    height: `${el.height}px`,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowGameModal(true);
+                  }}
+                >
+                  <div className="text-center space-y-2 pointer-events-none">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-indigo-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Gamepad2 className="w-6 h-6 text-amber-300" />
+                    </div>
+                    <div className="font-extrabold text-sm text-indigo-900">{el.title || 'Trò Chơi Mĩ Thuật'}</div>
+                    <div className="text-[11px] font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full inline-block">
+                      🎮 Bấm để phóng to trò chơi cho cả lớp
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          }
+              );
+            }
 
-          return null;
-        })}
+            return null;
+          });
+        })()}
       </div>
 
       {/* =========================================================================
@@ -707,9 +902,11 @@ export default function PresentationModal({
               </button>
               <button
                 onClick={() => setIsWhiteboardOpen(false)}
-                className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                title="Trở về trình chiếu slide (Phím W hoặc Esc)"
               >
-                ✕ Đóng bảng (Phím W)
+                <RotateCcw className="w-4 h-4" />
+                <span>↩ Trở Về Slide (W / Esc)</span>
               </button>
             </div>
           </div>
@@ -761,6 +958,7 @@ export default function PresentationModal({
           5. THANH ĐIỀU KHIỂN DƯỚI ĐÁY MÀN HÌNH (FLOATING CONTROL BAR - BOTTOM)
       ========================================================================= */}
       <div 
+        onClick={(e) => e.stopPropagation()}
         className={`fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-full px-5 py-2.5 flex items-center gap-2.5 text-white shadow-2xl z-40 transition-all duration-300 ${
           controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
         }`}
@@ -773,26 +971,52 @@ export default function PresentationModal({
         {/* Prev / Next buttons */}
         <div className="flex items-center gap-1">
           <button
-            onClick={goToPrev}
-            disabled={currentIndex === 0}
+            onClick={powerPointMode ? handleStepBack : goToPrev}
+            disabled={currentIndex === 0 && (!powerPointMode || revealCount <= 1)}
             className={`p-1.5 rounded-full transition-all ${
-              currentIndex === 0 ? 'text-slate-600 cursor-not-allowed' : 'hover:bg-slate-700 text-white'
+              currentIndex === 0 && (!powerPointMode || revealCount <= 1) ? 'text-slate-600 cursor-not-allowed' : 'hover:bg-slate-700 text-white cursor-pointer'
             }`}
-            title="Lùi lại (Mũi tên Trái)"
+            title="Lùi lại một bước (Mũi tên Trái / Backspace)"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
-            onClick={goToNext}
-            disabled={currentIndex === slides.length - 1}
+            onClick={powerPointMode ? handleAdvanceStep : goToNext}
+            disabled={currentIndex === slides.length - 1 && (!powerPointMode || revealCount >= ((currentSlide?.elements || []).filter(el => !isBgElement(el)).length))}
             className={`p-1.5 rounded-full transition-all ${
-              currentIndex === slides.length - 1 ? 'text-slate-600 cursor-not-allowed' : 'hover:bg-slate-700 text-white'
+              currentIndex === slides.length - 1 && (!powerPointMode || revealCount >= ((currentSlide?.elements || []).filter(el => !isBgElement(el)).length)) ? 'text-slate-600 cursor-not-allowed' : 'hover:bg-slate-700 text-white cursor-pointer'
             }`}
-            title="Tiến lên (Mũi tên Phải hoặc Phím Cách)"
+            title="Tiến lên một bước (Mũi tên Phải, Phím Cách hoặc Click chuột)"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Nút Bật/Tắt Trình Chiếu Kiểu PowerPoint */}
+        <button
+          onClick={() => setPowerPointMode(!powerPointMode)}
+          className={`px-3 py-1.5 text-xs font-black rounded-full flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+            powerPointMode ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-slate-800 text-slate-400 hover:text-white'
+          }`}
+          title="Bật/Tắt chế độ trình chiếu từng bước kiểu PowerPoint: Mỗi lần bấm chuột sẽ chuyển ô chữ, hình và tự động đọc nếu có chữ"
+        >
+          <span>🎬 PowerPoint: {powerPointMode ? 'Từng Bước' : 'Hiện Toàn Bộ'}</span>
+        </button>
+
+        {/* Nút Bật/Tắt Tự Động Đọc Chữ Khi Chuyển Bước */}
+        <button
+          onClick={() => {
+            const next = !autoReadOnAdvance;
+            setAutoReadOnAdvance(next);
+            if (!next) speechService.stop();
+          }}
+          className={`px-2.5 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all border cursor-pointer ${
+            autoReadOnAdvance ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'
+          }`}
+          title="Bật/Tắt tự động đọc ô chữ khi chuyển bước"
+        >
+          <span>{autoReadOnAdvance ? '🔊 Tự Đọc' : '🔇 Tắt Đọc'}</span>
+        </button>
 
         {/* Giọng Thầy / Cô */}
         <button
@@ -800,7 +1024,7 @@ export default function PresentationModal({
             const nextGender = speechState.gender === 'female' ? 'male' : 'female';
             speechService.setGender(nextGender);
           }}
-          className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 transition-all border border-slate-700 flex items-center gap-1"
+          className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 transition-all border border-slate-700 flex items-center gap-1 cursor-pointer"
           title="Bấm để đổi giữa giọng đọc Thầy giáo (Nam) và Cô giáo (Nữ)"
         >
           <span>{speechState.gender === 'female' ? '👩 Cô' : '👨 Thầy'}</span>
@@ -809,7 +1033,7 @@ export default function PresentationModal({
         {/* Nút Đọc Lời Giảng */}
         <button
           onClick={handleToggleSpeak}
-          className={`px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs ${
+          className={`px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
             speechState.isSpeaking && !speechState.isPaused
               ? 'bg-amber-500 text-white animate-pulse'
               : 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -823,7 +1047,7 @@ export default function PresentationModal({
         {/* Nút Trợ Lý AI Sư Phạm Tức Thời */}
         <button
           onClick={handleOpenAiTips}
-          className="px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-xs transition-all"
+          className="px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-xs transition-all cursor-pointer"
           title="Gợi ý câu hỏi tương tác & bí quyết mĩ thuật AI (Phím A)"
         >
           <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
@@ -833,13 +1057,13 @@ export default function PresentationModal({
         {/* Nút Bảng Vẽ Thị Phạm Nhanh */}
         <button
           onClick={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
-          className={`px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs ${
-            isWhiteboardOpen ? 'bg-amber-500 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+          className={`px-3.5 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+            isWhiteboardOpen ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
           }`}
           title="Mở bảng vẽ thị phạm nhanh (Phím W)"
         >
           <Edit3 className="w-3.5 h-3.5 text-amber-300" />
-          <span>Vẽ thị phạm</span>
+          <span>{isWhiteboardOpen ? '↩ Trở Về Slide' : 'Vẽ thị phạm'}</span>
         </button>
 
         {/* Nút Màn Hình Tối (Black Screen) */}

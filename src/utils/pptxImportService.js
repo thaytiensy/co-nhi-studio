@@ -188,24 +188,42 @@ export const parsePPTXFile = async (file) => {
     const imageDataCache = {};
     const layoutMasterCache = {};
 
-    const getMediaBlobUrl = async (zipPath) => {
-      if (mediaCache[zipPath]) return mediaCache[zipPath];
-      const mediaFile = zip.file(zipPath);
-      if (!mediaFile) return null;
+    const findZipFile = (zipPath) => {
+      if (!zipPath) return null;
+      const clean = zipPath.replace(/\\/g, '/').replace(/^\/+/, '');
+      let f = zip.file(clean);
+      if (f) return f;
+      if (!clean.startsWith('ppt/')) {
+        f = zip.file('ppt/' + clean);
+        if (f) return f;
+      }
+      const cleanLower = clean.toLowerCase();
+      const pptCleanLower = ('ppt/' + clean).toLowerCase();
+      const matchKey = Object.keys(zip.files).find(k => {
+        const kLower = k.toLowerCase();
+        return kLower === cleanLower || kLower === pptCleanLower || kLower.endsWith('/' + cleanLower);
+      });
+      return matchKey ? zip.file(matchKey) : null;
+    };
 
-      const mimeType = getMediaMimeType(zipPath);
+    const getMediaBlobUrl = async (zipPath) => {
+      const mediaFile = findZipFile(zipPath);
+      if (!mediaFile) return null;
+      if (mediaCache[mediaFile.name]) return mediaCache[mediaFile.name];
+
+      const mimeType = getMediaMimeType(mediaFile.name);
       const blob = await mediaFile.async('blob');
       const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
-      mediaCache[zipPath] = blobUrl;
+      mediaCache[mediaFile.name] = blobUrl;
       return blobUrl;
     };
 
     const getMediaDataUrl = async (zipPath) => {
-      if (imageDataCache[zipPath]) return imageDataCache[zipPath];
-      const mediaFile = zip.file(zipPath);
+      const mediaFile = findZipFile(zipPath);
       if (!mediaFile) return null;
+      if (imageDataCache[mediaFile.name]) return imageDataCache[mediaFile.name];
 
-      const mimeType = getMediaMimeType(zipPath);
+      const mimeType = getMediaMimeType(mediaFile.name);
       const bytes = await mediaFile.async('uint8array');
       let binary = '';
       const chunkSize = 0x8000;
@@ -213,7 +231,7 @@ export const parsePPTXFile = async (file) => {
         binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
       }
       const dataUrl = `data:${mimeType};base64,${btoa(binary)}`;
-      imageDataCache[zipPath] = dataUrl;
+      imageDataCache[mediaFile.name] = dataUrl;
       return dataUrl;
     };
 
@@ -409,6 +427,7 @@ export const parsePPTXFile = async (file) => {
       }
 
       const elements = [];
+      const processedVideos = new Set();
 
       // 3. Trích xuất hình ảnh & Video nhúng (p:pic)
       const pics = slideDoc.getElementsByTagName('p:pic');
@@ -488,6 +507,7 @@ export const parsePPTXFile = async (file) => {
               height: h,
               title: videoTarget.split('/').pop() || 'Video Bài Giảng'
             });
+            processedVideos.add(videoTarget.toLowerCase());
             totalVideosExtracted++;
             continue; // Đã trích xuất video thành công, không thêm thành ảnh tĩnh
           }
@@ -707,6 +727,32 @@ export const parsePPTXFile = async (file) => {
               color: '#1e293b',
               textAlign: 'left'
             });
+          }
+        }
+      }
+
+      // 4b. Quét bổ sung video nhúng trong slide chưa được gắn vào p:pic
+      for (const [rId, relObj] of Object.entries(slideRels)) {
+        const target = typeof relObj === 'string' ? relObj : relObj.target || '';
+        const type = typeof relObj === 'string' ? '' : relObj.type || '';
+        const isVideo = type.includes('video') || /\.(mp4|webm|mov|avi|wmv|m4v)$/i.test(target);
+
+        if (isVideo && !processedVideos.has(target.toLowerCase())) {
+          processedVideos.add(target.toLowerCase());
+          const videoZipPath = 'ppt/' + target.replace(/^\.\.\//, '');
+          const videoUrl = await getMediaBlobUrl(videoZipPath);
+          if (videoUrl) {
+            elements.push({
+              id: `video-${sIdx}-${processedVideos.size}-${Date.now()}`,
+              type: 'video',
+              src: videoUrl,
+              x: 80,
+              y: 50,
+              width: 800,
+              height: 440,
+              title: target.split('/').pop() || 'Video Bài Giảng'
+            });
+            totalVideosExtracted++;
           }
         }
       }

@@ -10,7 +10,7 @@ export const validateSlideElement = (el, index, slideIndex) => {
   if (!el.type || typeof el.type !== 'string') {
     throw new Error(`Slide ${slideIndex + 1}: Phần tử thứ ${index + 1} thiếu thuộc tính type.`);
   }
-  const validTypes = ['text', 'shape', 'image', 'game', 'audio', 'video'];
+  const validTypes = ['text', 'shape', 'image', 'game', 'audio', 'video', 'youtube'];
   if (!validTypes.includes(el.type)) {
     throw new Error(`Slide ${slideIndex + 1}: Loại phần tử "${el.type}" không được hỗ trợ.`);
   }

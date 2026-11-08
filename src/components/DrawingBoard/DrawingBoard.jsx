@@ -14,6 +14,7 @@ import {
   Star,
   Heart,
   ArrowRight,
+  ArrowLeft,
   Box,
   Cylinder,
   Presentation,
@@ -406,6 +407,18 @@ export default function DrawingBoard({
     <div className="flex-1 flex flex-col h-full bg-slate-100 select-none overflow-hidden">
       {/* Top Controls Ribbon */}
       <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-4 shadow-2xs">
+        {/* Nút Trở Về Soạn Slide */}
+        {onNavigateToEditor && (
+          <button
+            onClick={onNavigateToEditor}
+            className="px-3.5 py-1.5 text-xs font-black text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs shrink-0 cursor-pointer"
+            title="Trở về màn hình Soạn Slide bài giảng"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-amber-700" />
+            <span>Trở Về Soạn Slide</span>
+          </button>
+        )}
+
         {/* Drawing Tools */}
         <div className="flex items-center gap-1 border-r border-slate-200 pr-3">
           <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mr-1">Dụng Cụ</span>
