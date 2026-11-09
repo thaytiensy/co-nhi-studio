@@ -3,8 +3,8 @@ import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
 import SpeakerNotes from './SpeakerNotes';
+import PresentationModal from './PresentationModal';
 const OfflinePedagogyAssistant = React.lazy(() => import('../Assistant/OfflinePedagogyAssistant'));
-const PresentationModal = React.lazy(() => import('./PresentationModal'));
 const MediaYouTubeModal = React.lazy(() => import('../Media/MediaYouTubeModal'));
 import { SLIDE_TEMPLATES } from '../../data/slideTemplates';
 
@@ -554,13 +554,11 @@ export default function SlideEditorView({
 
       {/* 4. Fullscreen Presentation Modal */}
       {isPresentationOpen && (
-        <React.Suspense fallback={null}>
-          <PresentationModal
-            slides={slides}
-            initialSlideIndex={currentSlideIndex}
-            onClose={() => setIsPresentationOpen(false)}
-          />
-        </React.Suspense>
+        <PresentationModal
+          slides={slides}
+          initialSlideIndex={currentSlideIndex}
+          onClose={() => setIsPresentationOpen(false)}
+        />
       )}
       {/* 5. Media & YouTube Modal */}
       {showMediaModal && (

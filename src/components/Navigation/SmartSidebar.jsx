@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Presentation,
+  Share2,
   Brush,
   Gamepad2,
   Camera,
@@ -170,6 +171,20 @@ export default function SmartSidebar({
           >
             <Download className="w-3.5 h-3.5 text-amber-700 shrink-0" />
             {!isCollapsed && <span>Cài Đặt App</span>}
+          </button>
+        )}
+
+        {/* Nút Chia sẻ app bằng Gmail cho Admin & người được cấp quyền */}
+        {onOpenAdminModal && (userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' || userSession?.canShareGmail) && (
+          <button
+            onClick={onOpenAdminModal}
+            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] font-black text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer ${
+              isCollapsed ? 'justify-center px-0' : ''
+            }`}
+            title="Chia sẻ quyền sử dụng app bằng Gmail"
+          >
+            <Share2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            {!isCollapsed && <span>Chia Sẻ Gmail</span>}
           </button>
         )}
 

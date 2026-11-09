@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  Play, 
+  Play,
+  Share2, 
   Save, 
   Download, 
   Upload, 
@@ -44,14 +45,6 @@ export default function Header({
   onLogout
 }) {
   const [showFileMenu, setShowFileMenu] = useState(false);
-
-  const tabs = [
-    { id: 'editor', name: 'Soạn Slide', icon: Presentation, color: 'text-amber-600' },
-    { id: 'drawing', name: 'Bảng Vẽ Thị Phạm', icon: Brush, color: 'text-emerald-600' },
-    { id: 'games', name: 'Trò Chơi Mĩ Thuật', icon: Gamepad2, color: 'text-indigo-600' },
-    { id: 'camera', name: 'Cam Chấm Tranh', icon: Camera, color: 'text-rose-600' },
-    { id: 'evaluation', name: 'Nhận xét theo TT27 • Xuất sang SMAS', icon: ClipboardCheck, color: 'text-purple-600' },
-  ];
 
   const handleFileInput = (e) => {
     const file = e.target.files[0];
@@ -108,6 +101,19 @@ export default function Header({
             >
               <Download className="w-4 h-4 text-emerald-900" />
               <span>Tải & Cài Đặt App</span>
+            </button>
+          )}
+
+          {/* Nút Chia Sẻ App Bằng Gmail cho Admin & người được cấp quyền */}
+          {onOpenAdminModal && (userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' || userSession?.canShareGmail) && (
+            <button
+              onClick={onOpenAdminModal}
+              className="px-3 py-1.5 text-xs font-black text-indigo-950 bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+              title="Chia sẻ quyền sử dụng app bằng Gmail"
+            >
+              <Share2 className="w-4 h-4 text-indigo-700" />
+              <span className="hidden sm:inline">Chia Sẻ Gmail</span>
+              <span className="sm:hidden">Chia Sẻ</span>
             </button>
           )}
 
@@ -186,7 +192,16 @@ export default function Header({
                 className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setShowFileMenu(false)}
               >
-                                {onNewProject && (
+                                {onOpenAdminModal && (userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' || userSession?.canShareGmail) && (
+                  <button
+                    onClick={onOpenAdminModal}
+                    className="w-full px-4 py-2 text-left text-xs font-bold text-indigo-900 hover:bg-indigo-50 flex items-center gap-2 border-b border-slate-100 cursor-pointer"
+                  >
+                    <Share2 className="w-4 h-4 text-indigo-600" />
+                    <span>Chia sẻ app bằng Gmail</span>
+                  </button>
+                )}
+                {onNewProject && (
                   <button
                     onClick={onNewProject}
                     className="w-full px-4 py-2 text-left text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 border-b border-slate-100"
@@ -250,28 +265,6 @@ export default function Header({
             <span>Trình Chiếu (F5)</span>
           </button>
         </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="px-4 flex items-center gap-1 overflow-x-auto bg-slate-50/70 border-b border-slate-200/80">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3.5 py-2 text-xs font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                isActive 
-                  ? 'border-amber-500 text-amber-700 bg-white shadow-xs rounded-t-lg' 
-                  : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60 rounded-t-lg'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? tab.color : 'text-slate-500'}`} />
-              <span>{tab.name}</span>
-            </button>
-          );
-        })}
       </div>
     </header>
   );

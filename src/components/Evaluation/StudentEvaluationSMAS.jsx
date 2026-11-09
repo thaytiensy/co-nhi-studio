@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  ClipboardCheck, 
+  ClipboardCheck,
+  Edit3,
+  X, 
   Upload, 
   Copy, 
   Check, 
@@ -50,7 +52,7 @@ const INITIAL_STUDENTS = [
 ];
 
 const SMAS_STORAGE_KEY = 'conhi_smas_evaluations_state_v2';
-const QUICK_TEACHING_CLASSES = ['1A', '1B', '1C', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B'];
+const DEFAULT_TEACHING_CLASSES = ['1A', '1B', '1C', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B'];
 
 export default function StudentEvaluationSMAS() {
   // Trạng thái: Chỉ hiện lớp và học kỳ khi giáo viên đã tải danh sách hoặc đã chọn lớp dạy
@@ -155,6 +157,68 @@ export default function StudentEvaluationSMAS() {
   const displayedStudents = selectedClassFilter === 'all'
     ? students
     : students.filter(s => (s.className || className || '').trim() === selectedClassFilter.trim());
+
+  // Quản lý danh sách lớp dạy có thể chỉnh sửa theo ý muốn giáo viên
+  const [teachingClasses, setTeachingClasses] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('conhi_teaching_classes') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return DEFAULT_TEACHING_CLASSES;
+  });
+
+  const saveTeachingClasses = (newClasses) => {
+    const cleaned = Array.from(new Set(newClasses.map(c => String(c).trim().replace(/^Lớp\s+/i, '')).filter(Boolean)));
+    setTeachingClasses(cleaned);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('conhi_teaching_classes', JSON.stringify(cleaned));
+      }
+    } catch (_) {}
+  };
+
+  const [showClassManagerModal, setShowClassManagerModal] = useState(false);
+  const [editingClassList, setEditingClassList] = useState([]);
+  const [newClassInput, setNewClassInput] = useState('');
+
+  const handleOpenClassManager = () => {
+    setEditingClassList(teachingClasses.map(c => ({ id: Math.random().toString(), name: c })));
+    setNewClassInput('');
+    setShowClassManagerModal(true);
+  };
+
+  const handleAddClassInManager = (e) => {
+    e?.preventDefault();
+    if (!newClassInput.trim()) return;
+    const cleanName = newClassInput.trim().replace(/^Lớp\s+/i, '');
+    if (editingClassList.some(c => c.name.toLowerCase() === cleanName.toLowerCase())) {
+      alert('Lớp này đã có trong danh sách!');
+      return;
+    }
+    setEditingClassList(prev => [...prev, { id: Math.random().toString(), name: cleanName }]);
+    setNewClassInput('');
+  };
+
+  const handleSaveClassManager = () => {
+    const updatedNames = editingClassList.map(c => c.name.trim().replace(/^Lớp\s+/i, '')).filter(Boolean);
+    if (updatedNames.length === 0) {
+      alert('Danh sách lớp dạy không được để trống.');
+      return;
+    }
+    saveTeachingClasses(updatedNames);
+    setShowClassManagerModal(false);
+    setExportNotice('✅ Đã cập nhật danh sách lớp dạy theo ý muốn!');
+    setTimeout(() => setExportNotice(''), 3000);
+  };
+
+  const handleResetDefaultClasses = () => {
+    if (window.confirm('Khôi phục danh sách lớp dạy mặc định (1A đến 5B)?')) {
+      setEditingClassList(DEFAULT_TEACHING_CLASSES.map(c => ({ id: Math.random().toString(), name: c })));
+    }
+  };
 
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteInputText, setPasteInputText] = useState('');
@@ -741,6 +805,14 @@ export default function StudentEvaluationSMAS() {
                 <Plus className="w-3 h-3" />
                 <span>Thêm Lớp</span>
               </button>
+              <button
+                onClick={handleOpenClassManager}
+                className="px-2 py-1 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg flex items-center gap-1 cursor-pointer ml-1"
+                title="Chỉnh sửa hoặc xóa lớp dạy"
+              >
+                <Edit3 className="w-3 h-3 text-purple-600" />
+                <span>Sửa Lớp</span>
+              </button>
             </div>
 
             {/* Công cụ thao tác nhanh cho lớp đang chọn */}
@@ -796,22 +868,30 @@ export default function StudentEvaluationSMAS() {
               <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
                 <span>🏫</span> Chọn Lớp Dạy:
               </span>
-              {QUICK_TEACHING_CLASSES.map((cls) => (
+              {teachingClasses.map((cls) => (
                 <button
                   key={cls}
-                  onClick={() => handleSelectTeachingClass(`Lớp ${cls}`)}
+                  onClick={() => handleSelectTeachingClass(cls.startsWith('Lớp') ? cls : `Lớp ${cls}`)}
                   className="px-2.5 py-1 text-xs font-bold rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white transition-all cursor-pointer shadow-2xs"
                 >
-                  Lớp {cls}
+                  {cls.startsWith('Lớp') ? cls : `Lớp ${cls}`}
                 </button>
               ))}
               <button
                 onClick={handleAddNewClass}
-                className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg flex items-center gap-1 cursor-pointer"
                 title="Nhập tên lớp khác nếu ngoài danh sách trên"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5 text-purple-600" />
                 <span>Thêm Lớp Khác</span>
+              </button>
+              <button
+                onClick={handleOpenClassManager}
+                className="px-2.5 py-1 text-xs font-bold text-purple-800 bg-purple-100 hover:bg-purple-200 border border-purple-300 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Chỉnh sửa tên lớp, xóa bớt lớp không dạy hoặc thêm lớp mới"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-purple-700" />
+                <span>Sửa Danh Sách Lớp</span>
               </button>
             </div>
             <div className="text-xs text-slate-400 italic">
@@ -998,6 +1078,119 @@ export default function StudentEvaluationSMAS() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL QUẢN LÝ & CHỈNH SỬA DANH SÁCH LỚP DẠY */}
+      {showClassManagerModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setShowClassManagerModal(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 bg-gradient-to-r from-purple-700 to-indigo-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🏫</span>
+                <div>
+                  <h3 className="font-extrabold text-sm">Chỉnh Sửa Danh Sách Lớp Dạy</h3>
+                  <p className="text-[11px] text-purple-100">Đổi tên lớp, xóa bớt lớp không dạy hoặc thêm lớp theo phân công</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowClassManagerModal(false)}
+                className="p-1 rounded-lg hover:bg-white/20 text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              {/* Thêm nhanh lớp mới */}
+              <form onSubmit={handleAddClassInManager} className="flex gap-2">
+                <input
+                  type="text"
+                  value={newClassInput}
+                  onChange={(e) => setNewClassInput(e.target.value)}
+                  placeholder="Nhập tên lớp mới (vd: 1A1, 2C, 3D, 5E...)"
+                  className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-bold"
+                />
+                <button
+                  type="submit"
+                  disabled={!newClassInput.trim()}
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-xl flex items-center gap-1 cursor-pointer transition-all shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Thêm</span>
+                </button>
+              </form>
+
+              {/* Danh sách lớp hiện tại với ô nhập sửa trực tiếp & nút xóa */}
+              <div className="space-y-2">
+                <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+                  Danh Sách Lớp Dạy Hiện Tại ({editingClassList.length} lớp):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1">
+                  {editingClassList.map((item, idx) => (
+                    <div 
+                      key={item.id}
+                      className="flex items-center gap-1.5 p-1.5 bg-slate-50 hover:bg-white border border-slate-200 rounded-xl transition-all shadow-2xs"
+                    >
+                      <span className="text-[10px] font-bold text-slate-400 w-5 text-center">{idx + 1}</span>
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setEditingClassList(prev => prev.map(c => c.id === item.id ? { ...c, name: val } : c));
+                        }}
+                        className="flex-1 px-2 py-1 text-xs font-bold text-purple-950 bg-white border border-purple-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+                        title="Bấm vào để đổi tên lớp theo ý muốn"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingClassList(prev => prev.filter(c => c.id !== item.id));
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        title="Xóa lớp này khỏi danh sách dạy"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handleResetDefaultClasses}
+                className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl cursor-pointer"
+              >
+                ↺ Mặc định (1A - 5B)
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClassManagerModal(false)}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveClassManager}
+                  className="px-4 py-1.5 text-xs font-black text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  ✓ Lưu Thay Đổi
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

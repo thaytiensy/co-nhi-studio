@@ -36,6 +36,14 @@ export default function OfflinePedagogyAssistant({
   const [userQuery, setUserQuery] = useState('');
   const [copiedId, setCopiedId] = useState(null);
   const streamingIntervalRef = React.useRef(null);
+  const messagesEndRef = React.useRef(null);
+  const chatContainerRef = React.useRef(null);
+
+  const scrollToBottom = (behavior = 'smooth') => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
+  };
 
   const [currentGender, setCurrentGender] = useState(() => speechService.gender || 'male');
 
@@ -58,6 +66,11 @@ export default function OfflinePedagogyAssistant({
       speechService.stop();
     };
   }, []);
+
+  // Tự động cuộn xuống khi có thông tin hoặc tin nhắn mới xuất hiện
+  React.useEffect(() => {
+    scrollToBottom('smooth');
+  }, [messages, isLoading]);
 
   // Đọc toàn bộ chữ trên slide hiện tại (loại bỏ watermark bản quyền mẫu)
   const handleReadCurrentSlide = () => {
@@ -152,6 +165,7 @@ export default function OfflinePedagogyAssistant({
         accumulated += (currentIdx > 0 ? ' ' : '') + words[currentIdx];
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: accumulated } : m));
         currentIdx++;
+        scrollToBottom('auto');
       } else {
         if (streamingIntervalRef.current) {
           clearInterval(streamingIntervalRef.current);
@@ -217,6 +231,7 @@ export default function OfflinePedagogyAssistant({
       setMessages(prev => prev.map(message => message.id === messageId
         ? { ...message, content: accumulated }
         : message));
+      scrollToBottom('auto');
     };
 
     setMessages(prev => [...prev, {
@@ -593,8 +608,8 @@ export default function OfflinePedagogyAssistant({
         </div>
       </div>
 
-      {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      {/* Message Stream (Tự động cuộn hiển thị thông tin mới) */}
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3 scroll-smooth">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -669,6 +684,8 @@ export default function OfflinePedagogyAssistant({
             <span>Trợ giảng AI đang suy nghĩ và biên soạn lời giảng...</span>
           </div>
         )}
+        {/* Điểm neo tự động cuộn hiển thị thông tin mới */}
+        <div ref={messagesEndRef} className="h-2 shrink-0" />
       </div>
 
       {/* Input query box */}

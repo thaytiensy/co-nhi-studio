@@ -145,6 +145,14 @@ export default function App() {
     window.addEventListener('appinstalled', handleAppInstalled);
 
     const handleKeyDown = (e) => {
+      // Phím F5: Bắt đầu trình chiếu toàn màn hình & ngăn trình duyệt reload trang
+      if (e.key === 'F5') {
+        e.preventDefault();
+        setActiveTab('editor');
+        setIsPresentationOpen(true);
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')
         && (currentUserSession?.role === ROLES.SUB_ADMIN || currentUserSession?.role === ROLES.SUPER_ADMIN)) {
         e.preventDefault();
@@ -600,22 +608,18 @@ export default function App() {
       )}
 
       {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) */}
-      {!isPresentationOpen && (
+      {!isPresentationOpen && !isAssistantOpen && (
         <button
-          onClick={() => setIsAssistantOpen(!isAssistantOpen)}
-          className={`fixed bottom-6 right-6 z-40 p-3 md:px-4 md:py-2.5 rounded-full shadow-xl hover:shadow-2xl border-2 border-white flex items-center gap-2 transition-all transform active:scale-95 group ${
-            isAssistantOpen 
-              ? 'bg-amber-600 text-white ring-2 ring-amber-300' 
-              : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white'
-          }`}
-          title={isAssistantOpen ? 'Thu gọn khung Trợ Giảng' : 'Mở Trợ Giảng Sư Phạm Mĩ Thuật (Cục bộ GDPT 2018)'}
+          onClick={() => setIsAssistantOpen(true)}
+          className="fixed bottom-6 right-6 z-40 p-3 md:px-4 md:py-2.5 rounded-full shadow-xl hover:shadow-2xl border-2 border-white flex items-center gap-2 transition-all transform active:scale-95 group bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white cursor-pointer"
+          title="Mở Trợ Giảng Sư Phạm Mĩ Thuật (Cục bộ GDPT 2018)"
         >
           <div className="relative flex items-center justify-center">
             <Sparkles className="w-5 h-5 fill-white text-white" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full"></span>
           </div>
           <span className="text-xs font-black tracking-wide hidden sm:inline">
-            {isAssistantOpen ? 'Thu Gọn Trợ Giảng' : 'Trợ Giảng'}
+            Trợ Giảng
           </span>
         </button>
       )}

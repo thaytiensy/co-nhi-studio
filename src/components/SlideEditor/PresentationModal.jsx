@@ -15,7 +15,8 @@ import {
   Edit3,
   Trash2,
   HelpCircle,
-  EyeOff
+  EyeOff,
+  Maximize2
 } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 import SlideGameWidget from '../ArtGames/SlideGameWidget';
@@ -303,6 +304,24 @@ export default function PresentationModal({
     }
   }, [currentIndex, autoReadOnAdvance, slides, speakElementText]);
 
+  // Mở AI Gợi Ý Sư Phạm & Lời Giảng Tức Thời
+  const handleOpenAiTips = useCallback(async () => {
+    setShowAiModal(true);
+    setIsLoadingAiTips(true);
+    try {
+      const tips = await generateSlidePedagogyTips({
+        slide: currentSlide,
+        grade: 1,
+        isOnline: navigator.onLine
+      });
+      setAiTips(tips);
+    } catch (e) {
+      console.warn('Lỗi lấy gợi ý AI:', e);
+    } finally {
+      setIsLoadingAiTips(false);
+    }
+  }, [currentSlide]);
+
   // === XỬ LÝ PHÍM TẮT ĐỨNG LỚP TOÀN DIỆN ===
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -473,24 +492,6 @@ export default function PresentationModal({
       if (res && !res.success) {
         console.warn('Lỗi đọc lời giảng:', res.error);
       }
-    }
-  };
-
-  // Mở AI Gợi Ý Sư Phạm & Lời Giảng Tức Thời
-  const handleOpenAiTips = async () => {
-    setShowAiModal(true);
-    setIsLoadingAiTips(true);
-    try {
-      const tips = await generateSlidePedagogyTips({
-        slide: currentSlide,
-        grade: 1,
-        isOnline: navigator.onLine
-      });
-      setAiTips(tips);
-    } catch (e) {
-      console.warn('Lỗi lấy gợi ý AI:', e);
-    } finally {
-      setIsLoadingAiTips(false);
     }
   };
 
@@ -689,7 +690,6 @@ export default function PresentationModal({
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
                     backgroundColor: el.background || 'transparent',
-                    fontStyle: el.fontStyle || 'normal',
                     textDecoration: el.textDecoration || 'none',
                     fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Playpen Sans', cursive, sans-serif` : undefined,
                     lineHeight: 1.25,
