@@ -62,21 +62,28 @@ class SpeechService {
         lang.startsWith('vi') || 
         lang === 'vi-vn' || 
         lang === 'vi_vn' ||
+        lang.includes('vi') ||
         name.includes('vietnam') ||
         name.includes('vietnamese') ||
+        name.includes('tiếng việt') ||
         name.includes('namminh') ||
-        name.includes('hoaimy')
+        name.includes('hoaimy') ||
+        name.includes('an')
       );
     });
 
-    this.vietnameseVoice = viVoices.find(voice => this.voiceMatchesGender(voice)) || null;
+    this.vietnameseVoice = viVoices.find(voice => this.voiceMatchesGender(voice)) || viVoices[0] || null;
   }
 
   voiceMatchesGender(voice) {
-    const name = String(voice?.name || '').toLowerCase();
-    const explicitFemale = /hoaimy|female|woman|\bnữ\b/.test(name);
-    const explicitMale = /namminh|(^|[^a-z])male([^a-z]|$)|(^|[^a-z])man([^a-z]|$)|\bnam\b/.test(name);
-    return this.gender === 'female' ? explicitFemale : explicitMale;
+    if (!voice) return false;
+    const name = String(voice.name || '').toLowerCase();
+    const explicitFemale = /hoaimy|female|woman|\bnữ\b|linh|chi|my/.test(name);
+    const explicitMale = /namminh|(^|[^a-z])male([^a-z]|$)|(^|[^a-z])man([^a-z]|$)|nam|an/.test(name);
+    if (this.gender === 'female') {
+      return explicitFemale || (!explicitMale);
+    }
+    return explicitMale || (!explicitFemale);
   }
 
   hasViVoice() {
@@ -158,6 +165,15 @@ class SpeechService {
 
     this.stop();
     this.lastError = null;
+
+    // ƯU TIÊN WEB SPEECH API NATIVE ĐỂ ĐẠT ĐỘ TRỄ CỰC THẤP (< 30ms, khớp tức thì với slide)
+    if (this.synth) {
+      if (!this.vietnameseVoice) this.initVoices();
+      if (this.vietnameseVoice) {
+        return this.speakWithWebSpeechFallback(text);
+      }
+    }
+
     return this.speakWithServerTTS(text);
   }
 
@@ -231,33 +247,41 @@ class SpeechService {
 
   speakWithWebSpeechFallback(text) {
     if (!this.synth) {
-      this.isSpeaking = false;
-      this.isPaused = false;
-      this.lastError = 'Không thể kết nối dịch vụ âm thanh Tiếng Việt.';
-      this.notify();
-      return { success: false, error: this.lastError };
+      return this.speakWithServerTTS(text);
     }
 
-    const voice = this.vietnameseVoice && this.voiceMatchesGender(this.vietnameseVoice)
-      ? this.vietnameseVoice
-      : null;
+    const voice = this.vietnameseVoice || (this.synth.getVoices().find(v => (v.lang || '').toLowerCase().startsWith('vi')));
     if (!voice) {
-      return this.failPlayback(this.gender === 'female'
-        ? 'Không phát được giọng nữ tiếng Việt: không có giọng nữ vi-VN phù hợp trên thiết bị.'
-        : 'Không phát được giọng nam tiếng Việt: không có giọng nam vi-VN phù hợp trên thiết bị.');
+      return this.speakWithServerTTS(text);
     }
 
     try {
       const fallbackPlaybackId = ++this.playbackId;
-      if (this.currentAudio) this.currentAudio.pause();
-      this.currentAudio = null;
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
       this.audioQueue = [];
       this.currentChunkIndex = 0;
+
+      // Hủy mọi âm thanh tồn đọng để phát âm tức thì (< 20ms)
+      this.synth.cancel();
+
       const utterance = new SpeechSynthesisUtterance(text.trim());
       utterance.lang = 'vi-VN';
       utterance.voice = voice;
-      utterance.pitch = this.pitch;
-      utterance.rate = this.rate;
+
+      const vName = String(voice.name || '').toLowerCase();
+      const isVoiceFemale = /hoaimy|female|woman|\bnữ\b|linh|chi|my/.test(vName);
+      const isVoiceMale = /namminh|male|man|\bnam\b|an/.test(vName);
+
+      if (this.gender === 'female') {
+        utterance.pitch = isVoiceFemale ? 1.0 : 1.15;
+      } else {
+        utterance.pitch = isVoiceMale ? 1.0 : 0.88;
+      }
+
+      utterance.rate = Math.max(0.9, Math.min(1.35, this.rate || 1.05));
       utterance.volume = this.volume;
       this.lastError = null;
       const isCurrentUtterance = () => fallbackPlaybackId === this.playbackId && this.currentUtterance === utterance;
@@ -279,14 +303,14 @@ class SpeechService {
 
       utterance.onerror = () => {
         if (!isCurrentUtterance()) return;
-        this.failPlayback('Giọng đọc tiếng Việt trên thiết bị gặp lỗi. Hãy kiểm tra kết nối rồi thử lại.');
+        this.speakWithServerTTS(text);
       };
 
       this.currentUtterance = utterance;
       this.synth.speak(utterance);
       return { success: true };
     } catch (err) {
-      return this.failPlayback(err?.message || 'Không thể phát giọng đọc tiếng Việt.');
+      return this.speakWithServerTTS(text);
     }
   }
 

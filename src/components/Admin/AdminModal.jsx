@@ -101,7 +101,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
             <div>
               <h3 className="font-extrabold text-base">Khu Vực Quản Trị</h3>
               <p className="text-xs text-slate-300">
-                {isOwner ? 'Admin 1 (Chủ quản trị tối cao • Ẩn danh)' : (session?.adminTitle || 'Admin Phụ')}
+                {isOwner ? 'Quản trị viên (Admin)' : 'Admin'}
               </p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Cấp Quyền Admin 2, 3</span>
+                <span>Cấp Quyền Admin</span>
               </button>
             </div>
           )}
@@ -172,7 +172,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
             <span className="text-[11px] text-slate-500 font-medium">
-              {isOwner ? 'Admin 1 (Ẩn danh)' : `${session?.adminTitle || 'Admin'}: ${session?.email || ''}`}
+              {isOwner ? 'Admin' : `Admin: ${session?.email || ''}`}
             </span>
             <button
               type="button"

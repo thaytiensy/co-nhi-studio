@@ -173,19 +173,6 @@ export default function SmartSidebar({
           </button>
         )}
 
-        {/* Nút Quản trị */}
-        {onOpenAdminModal && (
-          <button
-            onClick={onOpenAdminModal}
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer ${
-              isCollapsed ? 'justify-center px-0' : ''
-            }`}
-            title="Khu vực quản trị hệ thống"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            {!isCollapsed && <span>Quản Trị</span>}
-          </button>
-        )}
 
         {/* Nút Đăng xuất */}
         {onLogout && (

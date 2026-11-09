@@ -114,13 +114,13 @@ export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess 
                     type="password"
                     value={passwordInput}
                     onChange={(e) => { setPasswordInput(e.target.value); setErrorMsg(''); }}
-                    placeholder="Mật khẩu bảo mật Admin 1 (Tiensy2026@)…"
+                    placeholder="Mật khẩu bảo mật Admin (Tiensy2026@)…"
                     required
                     className="w-full pl-10 pr-3 py-2.5 text-xs text-slate-800 bg-amber-50/60 border border-amber-300 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                   />
                 </div>
                 <p className="text-[10px] text-amber-800 font-bold pl-1 flex items-center gap-1">
-                  <span>🔒</span> Quyền Admin 1 • Chế độ Quản trị Ẩn danh
+                  <span>🔒</span> Quyền Quản trị viên (Admin)
                 </p>
               </div>
             )}
@@ -130,7 +130,7 @@ export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess 
               disabled={isSubmitting || !emailInput.trim() || (isAdmin1 && !passwordInput.trim())}
               className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer"
             >
-              <span>{isSubmitting ? 'Đang xác thực…' : isAdmin1 ? 'Xác Thực Quyền Admin 1' : 'Đăng Nhập Bằng Gmail'}</span>
+              <span>{isSubmitting ? 'Đang xác thực…' : isAdmin1 ? 'Xác Thực Quyền Admin' : 'Đăng Nhập Bằng Gmail'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

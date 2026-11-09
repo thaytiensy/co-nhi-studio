@@ -101,6 +101,7 @@ export default function PresentationModal({
   const [revealCount, setRevealCount] = useState(1);
   const [autoReadOnAdvance, setAutoReadOnAdvance] = useState(true);
   const [isLaserActive, setIsLaserActive] = useState(false);
+  const [showSlidePickerModal, setShowSlidePickerModal] = useState(false);
   const [laserPos, setLaserPos] = useState({ x: -100, y: -100 });
   const [dismissedBySlide, setDismissedBySlide] = useState({});
 
@@ -310,6 +311,10 @@ export default function PresentationModal({
 
       // Phím Esc: Đóng các modal/overlay theo thứ tự ưu tiên
       if (e.key === 'Escape') {
+        if (showSlidePickerModal) {
+          setShowSlidePickerModal(false);
+          return;
+        }
         if (showShortcutsHelp) {
           setShowShortcutsHelp(false);
           return;
@@ -367,6 +372,22 @@ export default function PresentationModal({
       // Phím L / l: Bật/Tắt con trỏ Laser đỏ phát sáng
       if (e.key === 'l' || e.key === 'L') {
         setIsLaserActive(prev => !prev);
+        return;
+      }
+
+      // Phím G / g: Mở danh sách chọn nhanh slide (Slide Sorter)
+      if (e.key === 'g' || e.key === 'G') {
+        setShowSlidePickerModal(prev => !prev);
+        return;
+      }
+
+      // Phím F / f: Bật/Tắt toàn màn hình
+      if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.().catch(() => {});
+        } else {
+          document.exitFullscreen?.().catch(() => {});
+        }
         return;
       }
 
@@ -621,10 +642,19 @@ export default function PresentationModal({
       )}
 
       {/* =========================================================================
-          2. SLIDE CANVAS 16:9 CHÍNH
+          2. SLIDE CANVAS 16:9 CHÍNH (CÓ HIỆU ỨNG CHUYỂN SLIDE POWERPOINT)
       ========================================================================= */}
       <div
-        className="relative overflow-hidden shadow-2xl transition-all"
+        key={`slide-${currentIndex}-${currentSlide?.id}`}
+        className={`relative overflow-hidden shadow-2xl transition-all ${
+          currentSlide?.transition === 'slide'
+            ? 'animate-in slide-in-from-right-8 duration-300'
+            : currentSlide?.transition === 'zoom'
+              ? 'animate-in zoom-in-90 duration-300'
+              : currentSlide?.transition === 'none'
+                ? 'animate-none'
+                : 'animate-in fade-in duration-250'
+        }`}
         style={{
           width: `${CANVAS_WIDTH}px`,
           height: `${CANVAS_HEIGHT}px`,
@@ -1245,6 +1275,30 @@ export default function PresentationModal({
           <span>Trò Chơi</span>
         </button>
 
+        {/* Nút Mở Danh Sách Chọn Nhanh Slide (Slide Sorter) */}
+        <button
+          onClick={() => setShowSlidePickerModal(true)}
+          className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700 flex items-center gap-1 cursor-pointer"
+          title="Chọn nhanh trang slide bất kỳ (Phím G)"
+        >
+          <span>🖼️ Slide</span>
+        </button>
+
+        {/* Nút Toàn Màn Hình */}
+        <button
+          onClick={() => {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+              document.exitFullscreen?.().catch(() => {});
+            }
+          }}
+          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-300 transition-all cursor-pointer"
+          title="Bật/Tắt toàn màn hình (Phím F)"
+        >
+          <Maximize2 className="w-4 h-4" />
+        </button>
+
         {/* Nút Ghi Chú Sư Phạm */}
         <button
           onClick={() => setShowNotesOverlay(!showNotesOverlay)}
@@ -1278,6 +1332,71 @@ export default function PresentationModal({
           <X className="w-4 h-4" />
         </button>
       </div>
+
+      {/* =========================================================================
+          5.5 MODAL DANH SÁCH CHỌN SLIDE (POWERPOINT SLIDE SORTER / PICKER)
+      ========================================================================= */}
+      {showSlidePickerModal && (
+        <div 
+          className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-6 animate-in fade-in"
+          onClick={() => setShowSlidePickerModal(false)}
+        >
+          <div 
+            className="w-full max-w-4xl max-h-[85vh] bg-slate-900 border border-slate-700 rounded-3xl p-6 text-white shadow-2xl flex flex-col space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🖼️</span>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">Danh Sách Slide Bài Dạy</h3>
+                  <p className="text-xs text-slate-400 font-medium">Bấm vào slide để chuyển nhanh tới trang đó (Phím tắt G)</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowSlidePickerModal(false)}
+                className="text-slate-400 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                ✕ Đóng (Esc)
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-1">
+              {slides.map((slide, sIdx) => {
+                const isCurr = sIdx === currentIndex;
+                const sTitle = slide.elements?.find(e => e.type === 'text' && e.text?.trim())?.text?.split('\n')[0] || `Trang ${sIdx + 1}`;
+                return (
+                  <button
+                    key={slide.id || sIdx}
+                    onClick={() => {
+                      speechService.stop();
+                      setCurrentIndex(sIdx);
+                      setShowSlidePickerModal(false);
+                    }}
+                    className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between h-28 ${
+                      isCurr 
+                        ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 text-white' 
+                        : 'bg-slate-800/80 hover:bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${
+                        isCurr ? 'bg-amber-500 text-slate-950' : 'bg-slate-700 text-slate-300'
+                      }`}>
+                        Trang ${sIdx + 1}
+                      </span>
+                      {isCurr && <span className="text-[10px] text-amber-300 font-bold">● Đang chiếu</span>}
+                    </div>
+                    <p className="text-xs font-bold line-clamp-2 mt-2 text-slate-200">
+                      {sTitle}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           6. MODAL GỢI Ý SƯ PHẠM & LỜI GIẢNG AI (SMART AI ASSISTANT)

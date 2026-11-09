@@ -10,7 +10,7 @@ export default function AdminRolesTab({
   onRemoveSubAdmin = async () => {},
 }) {
   const [subEmail, setSubEmail] = useState('');
-  const [subTitle, setSubTitle] = useState('Admin 2');
+  const [subTitle, setSubTitle] = useState('Admin');
   const [localError, setLocalError] = useState('');
 
   const handleAdd = async (e) => {
@@ -30,7 +30,7 @@ export default function AdminRolesTab({
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs text-indigo-950 leading-relaxed">
-        <strong>Phân quyền quản trị:</strong> Admin 1 (<code>dotiensy.8785@gmail.com</code>) là Chủ quản trị tối cao hoạt động ở chế độ <strong>Ẩn danh</strong> (chỉ hiện ổ khóa). Các quyền Admin 2, 3 do Admin 1 cấp sẽ <strong>hiển thị công khai</strong> chức danh trên thanh điều hướng.
+        <strong>Quản trị viên (Admin):</strong> Danh sách tài khoản Admin có toàn quyền quản trị, bảo mật và chia sẻ bài giảng.
       </div>
 
       {localError && (
@@ -41,7 +41,7 @@ export default function AdminRolesTab({
 
       {onAddSubAdmin && (
         <form onSubmit={handleAdd} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-          <span className="text-xs font-bold text-slate-700 block">Cấp quyền Admin mới (Không ẩn danh):</span>
+          <span className="text-xs font-bold text-slate-700 block">Cấp quyền Admin mới:</span>
           <div className="flex gap-2">
             <input
               type="email"
@@ -51,15 +51,9 @@ export default function AdminRolesTab({
               required
               className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
-            <select
-              value={subTitle}
-              onChange={(e) => setSubTitle(e.target.value)}
-              className="px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg"
-            >
-              <option value="Admin 2">Admin 2</option>
-              <option value="Admin 3">Admin 3</option>
-              <option value="Admin Phụ">Admin Phụ</option>
-            </select>
+            <span className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-200 rounded-lg text-indigo-700 flex items-center shrink-0">
+              Admin
+            </span>
             <button
               type="submit"
               disabled={isLoading || !subEmail.trim()}
@@ -93,7 +87,7 @@ export default function AdminRolesTab({
                     <span>{item.email || item.id}</span>
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
-                    {item.title || (isMaster ? 'Admin 1 (Chủ quản trị • Ẩn danh)' : 'Admin Phụ (Không ẩn danh)')}
+                    Admin
                     {' • '}
                     <span className={item.active ? 'text-emerald-600 font-bold' : 'text-rose-500 font-bold'}>
                       {item.active ? 'Đang hoạt động' : 'Tạm khóa'}
@@ -134,7 +128,7 @@ export default function AdminRolesTab({
 
       <p className="text-[11px] text-slate-500 flex items-center gap-1 pt-1">
         <KeyRound className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-        <span>Admin 1 xác thực bằng mật khẩu bảo mật riêng; Admin 2, 3 xác thực qua Gmail được cấp.</span>
+        <span>Quản trị viên xác thực bằng mật khẩu bảo mật riêng hoặc qua Gmail được cấp quyền.</span>
       </p>
     </div>
   );
