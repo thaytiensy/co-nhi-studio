@@ -96,7 +96,7 @@ export default function OfflinePedagogyAssistant({
 
     const parts = [];
     if (currentSlide.title && currentSlide.title.trim() && !currentSlide.title.startsWith('Trang ') && !isWatermark(currentSlide.title)) {
-      parts.push(`Tiêu đề: ${currentSlide.title.trim()}`);
+      parts.push(currentSlide.title.trim());
     }
 
     (currentSlide.elements || []).forEach(e => {

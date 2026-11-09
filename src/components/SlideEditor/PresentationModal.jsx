@@ -291,18 +291,26 @@ export default function PresentationModal({
     if (autoReadOnAdvance) {
       const slide = slides[currentIndex];
       if (!slide) return;
-      const buildEls = (slide.elements || []).filter(el => !isBgElement(el));
-      if (buildEls.length > 0) {
-        speakElementText(buildEls[0]);
-      } else if (slide.title && !slide.title.startsWith('Trang ') && !isWatermark(slide.title)) {
-        speechService.stop();
-        speechService.speak(slide.title);
-      } else if (slide.notes && !isWatermark(slide.notes)) {
-        speechService.stop();
-        speechService.speak(slide.notes);
+      if (!powerPointMode) {
+        const fullLecture = getLectureTextToSpeak();
+        if (fullLecture) {
+          speechService.stop();
+          speechService.speak(fullLecture);
+        }
+      } else {
+        const buildEls = (slide.elements || []).filter(el => !isBgElement(el));
+        if (buildEls.length > 0) {
+          speakElementText(buildEls[0]);
+        } else if (slide.title && !slide.title.startsWith('Trang ') && !isWatermark(slide.title)) {
+          speechService.stop();
+          speechService.speak(slide.title);
+        } else if (slide.notes && !isWatermark(slide.notes)) {
+          speechService.stop();
+          speechService.speak(slide.notes);
+        }
       }
     }
-  }, [currentIndex, autoReadOnAdvance, slides, speakElementText]);
+  }, [currentIndex, autoReadOnAdvance, powerPointMode, slides, speakElementText]);
 
   // Mở AI Gợi Ý Sư Phạm & Lời Giảng Tức Thời
   const handleOpenAiTips = useCallback(async () => {
@@ -455,7 +463,7 @@ export default function PresentationModal({
   const getLectureTextToSpeak = () => {
     const parts = [];
     if (currentSlide?.title && currentSlide.title.trim() && !currentSlide.title.startsWith('Trang ') && !isWatermark(currentSlide.title)) {
-      parts.push(`Tiêu đề: ${currentSlide.title.trim()}`);
+      parts.push(currentSlide.title.trim());
     }
 
     (currentSlide?.elements || []).forEach(el => {

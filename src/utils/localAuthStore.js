@@ -18,7 +18,6 @@ export const INITIAL_SUB_ADMINS = [
 
 export const INITIAL_SEEDED_GMAILS = [
   { id: 'seed-1', email: 'hoangthanhtam1980@gmail.com', role: AUTH_ROLES.TEACHER, addedBy: 'ngathuyphu2@gmail.com', active: true },
-  { id: 'seed-2', email: 'giaovien@gmail.com', role: AUTH_ROLES.TEACHER, addedBy: ADMIN_1_EMAIL, active: true },
 ];
 
 export function getLocalSubAdmins() {
@@ -46,7 +45,12 @@ export function getLocalSharedGmails() {
       localStorage.setItem(STORAGE_KEY_SHARED, JSON.stringify(INITIAL_SEEDED_GMAILS));
       return INITIAL_SEEDED_GMAILS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    const cleaned = (Array.isArray(parsed) ? parsed : []).filter(item => item.email !== 'giaovien@gmail.com');
+    if (cleaned.length !== (Array.isArray(parsed) ? parsed.length : 0)) {
+      localStorage.setItem(STORAGE_KEY_SHARED, JSON.stringify(cleaned));
+    }
+    return cleaned;
   } catch { return INITIAL_SEEDED_GMAILS; }
 }
 

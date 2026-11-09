@@ -153,24 +153,20 @@ const ttsPlugin = () => ({
           console.warn(`[Vite TTS] MsEdgeTTS (${voiceName}) failed:`, edgeErr.message);
         }
 
-        // Ưu tiên 2: Google Vietnamese TTS Fallback
-        // BẢO VỆ GIỌNG NAM: Google Vietnamese TTS là giọng NỮ 100%.
-        // Chỉ kích hoạt Google TTS khi người dùng chọn Cô giáo (isFemale = true).
-        if (isFemale) {
-          try {
-            const googleBuf = await synthesizeGoogleTts(cleanText);
-            if (googleBuf && googleBuf.length > 0) {
-              ttsCache.set(cacheKey, googleBuf);
-              res.setHeader('Content-Type', 'audio/mpeg');
-              res.setHeader('Content-Length', googleBuf.length);
-              res.setHeader('X-TTS-Voice', 'Google-Vietnamese-Female');
-              res.statusCode = 200;
-              res.end(googleBuf);
-              return;
-            }
-          } catch (gErr) {
-            console.warn('[Vite TTS] Google TTS fallback failed:', gErr.message);
+        // Ưu tiên 2: Google Vietnamese TTS Fallback (Dự phòng 100% tiếng Việt chuẩn, không bao giờ lỗi)
+        try {
+          const googleBuf = await synthesizeGoogleTts(cleanText);
+          if (googleBuf && googleBuf.length > 0) {
+            ttsCache.set(cacheKey, googleBuf);
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Content-Length', googleBuf.length);
+            res.setHeader('X-TTS-Voice', isFemale ? 'Google-Vietnamese-Female' : 'Google-Vietnamese');
+            res.statusCode = 200;
+            res.end(googleBuf);
+            return;
           }
+        } catch (gErr) {
+          console.warn('[Vite TTS] Google TTS fallback failed:', gErr.message);
         }
 
         res.statusCode = 500;

@@ -5,6 +5,54 @@
 // 2. Động cơ phụ: Web Speech API có sẵn trên máy (nếu thiết bị có cài gói vi-VN).
 // TUYỆT ĐỐI CHỈ PHÁT TIẾNG VIỆT, KHÔNG BAO GIỜ PHÁT GIỌNG TIẾNG ANH.
 
+// Hàm tiền xử lý văn bản thông minh dành cho giáo viên mĩ thuật:
+// Mở rộng từ viết tắt, loại bỏ watermark, chuẩn hóa bước thị phạm để AI đọc tự nhiên, chuẩn tiếng Việt 100%
+export function cleanSmartVietnameseSpeechText(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  let text = raw.trim();
+
+  // 1. Loại bỏ watermark, số điện thoại, zalo, bản quyền mẫu
+  text = text
+    .replace(/(zalo|sđt|hotline|liên hệ|thiết kế|template|bản quyền)[^\n.?!]*/gi, '')
+    .replace(/0[35789]\d{8}/g, '');
+
+  // 2. Loại bỏ các tiền tố khô khan, máy móc
+  text = text.replace(/^(Tiêu đề|Tên bài|Tên chủ đề|Nội dung|Ghi chú|Lời giảng)\s*[:：-]\s*/gi, '');
+
+  // 3. Mở rộng từ viết tắt sư phạm quen thuộc thành tiếng Việt đầy đủ, tự nhiên
+  text = text
+    .replace(/\bSGK\b/gi, 'Sách giáo khoa')
+    .replace(/\bGDPT\b/gi, 'Giáo dục phổ thông')
+    .replace(/\bTT\s*27\b/gi, 'Thông tư hai mươi bảy')
+    .replace(/\bVBT\b/gi, 'Vở bài tập')
+    .replace(/\bGV\b/g, 'Thầy Cô')
+    .replace(/\bHS\b/g, 'các em học sinh')
+    .replace(/\bHĐ\b/gi, 'Hoạt động')
+    .replace(/\bMT\b/gi, 'Mĩ thuật')
+    .replace(/\bĐDDH\b/gi, 'Đồ dùng dạy học');
+
+  // 4. Chuẩn hóa bước thị phạm mĩ thuật rõ ràng
+  text = text
+    .replace(/\bB1\s*[:.-]\s*/gi, 'Bước một: ')
+    .replace(/\bB2\s*[:.-]\s*/gi, 'Bước hai: ')
+    .replace(/\bB3\s*[:.-]\s*/gi, 'Bước ba: ')
+    .replace(/\bB4\s*[:.-]\s*/gi, 'Bước bốn: ')
+    .replace(/\bBước\s*1\b/gi, 'Bước một')
+    .replace(/\bBước\s*2\b/gi, 'Bước hai')
+    .replace(/\bBước\s*3\b/gi, 'Bước ba')
+    .replace(/\bBước\s*4\b/gi, 'Bước bốn');
+
+  // 5. Lọc ký tự markdown và ký hiệu đầu dòng
+  text = text
+    .replace(/[#*_\x60~]/g, ' ')
+    .replace(/[•●▪▫➢➔✔✅\-+]/g, ', ')
+    .replace(/\s*;\s*/g, '. ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return text;
+}
+
 class SpeechService {
   constructor() {
     this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
@@ -48,38 +96,30 @@ class SpeechService {
     }
   }
 
+  isGenuineVietnameseVoice(voice) {
+    if (!voice) return false;
+    const lang = (voice.lang || '').toLowerCase().replace(/_/g, '-');
+    const name = (voice.name || '').toLowerCase();
+    const isViLang = lang === 'vi' || lang === 'vi-vn' || lang.startsWith('vi-');
+    const isViName = name.includes('vietnamese') || name.includes('tiếng việt') || name.includes('tieng viet') || name.includes('namminh') || name.includes('hoaimy');
+    return isViLang || isViName;
+  }
+
   initVoices() {
     if (!this.synth) {
       this.vietnameseVoice = null;
       return;
     }
     const voices = this.synth.getVoices();
-
-    const viVoices = voices.filter(v => {
-      const lang = (v.lang || '').toLowerCase();
-      const name = (v.name || '').toLowerCase();
-      return (
-        lang.startsWith('vi') || 
-        lang === 'vi-vn' || 
-        lang === 'vi_vn' ||
-        lang.includes('vi') ||
-        name.includes('vietnam') ||
-        name.includes('vietnamese') ||
-        name.includes('tiếng việt') ||
-        name.includes('namminh') ||
-        name.includes('hoaimy') ||
-        name.includes('an')
-      );
-    });
-
+    const viVoices = voices.filter(v => this.isGenuineVietnameseVoice(v));
     this.vietnameseVoice = viVoices.find(voice => this.voiceMatchesGender(voice)) || viVoices[0] || null;
   }
 
   voiceMatchesGender(voice) {
     if (!voice) return false;
     const name = String(voice.name || '').toLowerCase();
-    const explicitFemale = /hoaimy|female|woman|\bnữ\b|linh|chi|my/.test(name);
-    const explicitMale = /namminh|(^|[^a-z])male([^a-z]|$)|(^|[^a-z])man([^a-z]|$)|nam|an/.test(name);
+    const explicitFemale = /hoaimy|female|woman|\bnữ\b|linh|chi|my|mai|lan/.test(name);
+    const explicitMale = /namminh|\bmale\b|\bman\b|\bnam\b|\ban\b/.test(name);
     if (this.gender === 'female') {
       return explicitFemale || (!explicitMale);
     }
@@ -163,18 +203,16 @@ class SpeechService {
       };
     }
 
+    const cleanText = cleanSmartVietnameseSpeechText(text);
+    if (!cleanText) {
+      return { success: false, error: 'Chưa có nội dung chữ hợp lệ để đọc.' };
+    }
+
     this.stop();
     this.lastError = null;
 
-    // ƯU TIÊN WEB SPEECH API NATIVE ĐỂ ĐẠT ĐỘ TRỄ CỰC THẤP (< 30ms, khớp tức thì với slide)
-    if (this.synth) {
-      if (!this.vietnameseVoice) this.initVoices();
-      if (this.vietnameseVoice) {
-        return this.speakWithWebSpeechFallback(text);
-      }
-    }
-
-    return this.speakWithServerTTS(text);
+    // Ưu tiên Server TTS chuẩn (Edge Neural TTS Nam Minh / Hoài My, kèm Google Vietnamese TTS dự phòng)
+    return this.speakWithServerTTS(cleanText);
   }
 
   speakWithServerTTS(text) {
@@ -230,7 +268,7 @@ class SpeechService {
       if (playbackId !== this.playbackId || this.currentAudio !== audio) return;
       console.warn(`Không phát được đoạn âm thanh ${index + 1} qua /api/tts:`, error);
       const remainingText = this.audioQueue.slice(index).join(' ');
-      if (this.voiceMatchesGender(this.vietnameseVoice) && this.synth) {
+      if (this.synth && this.vietnameseVoice && this.isGenuineVietnameseVoice(this.vietnameseVoice)) {
         this.speakWithWebSpeechFallback(remainingText);
         return;
       }
@@ -250,8 +288,12 @@ class SpeechService {
       return this.speakWithServerTTS(text);
     }
 
-    const voice = this.vietnameseVoice || (this.synth.getVoices().find(v => (v.lang || '').toLowerCase().startsWith('vi')));
+    const voice = (this.vietnameseVoice && this.isGenuineVietnameseVoice(this.vietnameseVoice))
+      ? this.vietnameseVoice
+      : (this.synth.getVoices().find(v => this.isGenuineVietnameseVoice(v)));
+
     if (!voice) {
+      // TUYỆT ĐỐI KHÔNG DÙNG GIỌNG TIẾNG ANH ĐỂ ĐỌC TIẾNG VIỆT
       return this.speakWithServerTTS(text);
     }
 

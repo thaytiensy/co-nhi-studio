@@ -104,19 +104,6 @@ export default function Header({
             </button>
           )}
 
-          {/* Nút Chia Sẻ App Bằng Gmail cho Admin & người được cấp quyền */}
-          {onOpenAdminModal && (userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' || userSession?.canShareGmail) && (
-            <button
-              onClick={onOpenAdminModal}
-              className="px-3 py-1.5 text-xs font-black text-indigo-950 bg-indigo-50 hover:bg-indigo-100 border border-indigo-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
-              title="Chia sẻ quyền sử dụng app bằng Gmail"
-            >
-              <Share2 className="w-4 h-4 text-indigo-700" />
-              <span className="hidden sm:inline">Chia Sẻ Gmail</span>
-              <span className="sm:hidden">Chia Sẻ</span>
-            </button>
-          )}
-
           {/* Đã xóa nút khóa header theo yêu cầu người dùng */}
           {userSession?.role === 'sub_admin' ? (
             /* Admin 2, Admin 3 (do Admin 1 cấp): hiển thị rõ chức danh quản trị */
@@ -192,15 +179,6 @@ export default function Header({
                 className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setShowFileMenu(false)}
               >
-                                {onOpenAdminModal && (userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' || userSession?.canShareGmail) && (
-                  <button
-                    onClick={onOpenAdminModal}
-                    className="w-full px-4 py-2 text-left text-xs font-bold text-indigo-900 hover:bg-indigo-50 flex items-center gap-2 border-b border-slate-100 cursor-pointer"
-                  >
-                    <Share2 className="w-4 h-4 text-indigo-600" />
-                    <span>Chia sẻ app bằng Gmail</span>
-                  </button>
-                )}
                 {onNewProject && (
                   <button
                     onClick={onNewProject}

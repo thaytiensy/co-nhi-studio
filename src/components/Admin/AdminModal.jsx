@@ -24,6 +24,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
 
   const isOwner = session?.role === ROLES.SUPER_ADMIN;
   const isSubAdmin = session?.role === ROLES.SUB_ADMIN;
+  const canManageGmails = isOwner || isSubAdmin || Boolean(session?.canShareGmail);
 
   const loadData = useCallback(() => Promise.all([
     getSharedGmails(),
@@ -55,7 +56,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
   };
 
   const handleRemoveGmail = async (email) => {
-    if (!isOwner || !window.confirm(`Thu hồi quyền sử dụng của ${email}?`)) return;
+    if (!canManageGmails || !window.confirm(`Thu hồi quyền sử dụng của ${email}?`)) return;
     setErrorMsg(''); setIsLoading(true);
     const result = await removeSharedGmail(email);
     if (!result.success) { setIsLoading(false); setErrorMsg(result.message || 'Không thể thu hồi quyền.'); return; }
@@ -152,7 +153,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
           {(activeTab === 'accounts' || isSubAdmin) && (
             <AdminAccountsTab
               sharedList={sharedList}
-              isOwner={isOwner}
+              isOwner={canManageGmails}
               isLoading={isLoading}
               onAddGmail={handleAddGmail}
               onRemoveGmail={handleRemoveGmail}
