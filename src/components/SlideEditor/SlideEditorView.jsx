@@ -34,7 +34,8 @@ export default function SlideEditorView({
     const serialized = JSON.stringify(newSlides);
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(serialized);
-    if (newHistory.length > 30) newHistory.shift(); // Limit to 30 steps
+    const maxSteps = newSlides.length > 10 ? 8 : 20;
+    if (newHistory.length > maxSteps) newHistory.shift();
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };

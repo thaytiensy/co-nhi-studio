@@ -706,6 +706,10 @@ export const parsePPTXFile = async (file) => {
                 pStr += node.textContent || '';
               }
             }
+            if (!pStr) {
+              const allTs = Array.from(pEl.getElementsByTagName('a:t')).concat(Array.from(pEl.getElementsByTagName('t')));
+              if (allTs.length > 0) pStr = allTs.map(t => t.textContent || '').join('');
+            }
             if (pStr) textRuns.push(pStr);
           }
 
@@ -758,7 +762,8 @@ export const parsePPTXFile = async (file) => {
           else if (geom.includes('arrow')) shapeType = 'arrow';
           else if (geom === 'line' || geom.includes('connector')) shapeType = 'line';
 
-          elements.push({
+          const isFullBg = (x <= 30 && y <= 30 && w >= CANVAS_WIDTH * 0.88 && h >= CANVAS_HEIGHT * 0.88);
+          const shapeEl = {
             id: `shape-${sIdx}-${i}-${Date.now()}`,
             type: 'shape',
             shapeType,
@@ -769,7 +774,14 @@ export const parsePPTXFile = async (file) => {
             fill: shapeFillColor || 'transparent',
             stroke: shapeStroke ? shapeStroke.color : undefined,
             strokeWidth: shapeStroke ? shapeStroke.width : undefined,
-          });
+            isBackground: isFullBg,
+          };
+
+          if (isFullBg) {
+            backgroundElements.push(shapeEl);
+          } else {
+            elements.push(shapeEl);
+          }
         }
       }
 

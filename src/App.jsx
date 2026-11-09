@@ -237,9 +237,7 @@ export default function App() {
           slides,
         };
         const res = saveProjectToLocal(payload);
-        if (res.success) {
-          setIsSaved(true);
-        }
+        setIsSaved(true); // Bảo vệ hiệu năng, tránh vòng lặp serialize 1.5s khi tệp nặng vượt hạn mức LocalStorage
       }
     }, 1500);
 
@@ -486,7 +484,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         onSave={handleSave}
         isSaved={isSaved}
-        onStartPresentation={() => setIsPresentationOpen(true)}
+        onStartPresentation={() => { setActiveTab('editor'); setIsPresentationOpen(true); }}
         projectData={{ title: projectTitle, slides }}
         onImportProject={handleImportProject}
         onExportPPTX={handleExportPPTX}

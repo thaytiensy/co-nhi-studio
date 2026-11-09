@@ -97,11 +97,31 @@ export default function PresentationModal({
   const [isLoadingAiTips, setIsLoadingAiTips] = useState(false);
 
   // === 5. TRÌNH CHIẾU TỪNG BƯỚC KIỂU POWERPOINT & TỰ ĐỘNG ĐỌC CHỮ ===
-  const [powerPointMode, setPowerPointMode] = useState(true);
+  const [powerPointMode, setPowerPointMode] = useState(false); // Mặc định: Chiếu trọn vẹn toàn bộ nội dung rõ ràng
   const [revealCount, setRevealCount] = useState(1);
   const [autoReadOnAdvance, setAutoReadOnAdvance] = useState(true);
   const [isLaserActive, setIsLaserActive] = useState(false);
   const [laserPos, setLaserPos] = useState({ x: -100, y: -100 });
+  const [dismissedBySlide, setDismissedBySlide] = useState({});
+
+  const currentDismissed = dismissedBySlide[currentIndex] || new Set();
+
+  const handleToggleShapeDismiss = (shapeId) => {
+    setDismissedBySlide(prev => {
+      const slideSet = new Set(prev[currentIndex] || []);
+      if (slideSet.has(shapeId)) {
+        slideSet.delete(shapeId);
+      } else {
+        slideSet.add(shapeId);
+        try { classroomAudio.playSuccessSound(); } catch (_) {}
+      }
+      return { ...prev, [currentIndex]: slideSet };
+    });
+  };
+
+  const handleResetDismissedShapes = () => {
+    setDismissedBySlide(prev => ({ ...prev, [currentIndex]: new Set() }));
+  };
 
   // Định dạng mm:ss
   const formatTime = (secs) => {
@@ -648,16 +668,28 @@ export default function PresentationModal({
             }
 
             if (el.type === 'shape') {
+              const isDismissed = currentDismissed.has(el.id);
+              if (isDismissed) return null;
+
               return (
                 <div
                   key={el.id}
-                  className="absolute pointer-events-none animate-in fade-in zoom-in-95 duration-200"
+                  onClick={(e) => {
+                    if (el.shapeType !== 'line') {
+                      e.stopPropagation();
+                      handleToggleShapeDismiss(el.id);
+                    }
+                  }}
+                  className={`absolute animate-in fade-in zoom-in-95 duration-200 ${
+                    el.shapeType === 'line' ? 'pointer-events-none' : 'cursor-pointer pointer-events-auto hover:opacity-85 active:scale-95 transition-all'
+                  }`}
                   style={{
                     left: `${el.x}px`,
                     top: `${el.y}px`,
                     width: `${el.width}px`,
                     height: `${el.height}px`,
                   }}
+                  title={el.shapeType !== 'line' ? 'Nhấp vào hình này để lật mở / ẩn hình che bài' : undefined}
                 >
                   {el.shapeType === 'circle' ? (
                     <div
@@ -1033,14 +1065,31 @@ export default function PresentationModal({
 
         {/* Nút Bật/Tắt Trình Chiếu Kiểu PowerPoint */}
         <button
-          onClick={() => setPowerPointMode(!powerPointMode)}
+          onClick={() => {
+            const nextMode = !powerPointMode;
+            setPowerPointMode(nextMode);
+            if (nextMode) {
+              setRevealCount(1);
+            }
+          }}
           className={`px-3 py-1.5 text-xs font-black rounded-full flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-            powerPointMode ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-slate-800 text-slate-400 hover:text-white'
+            powerPointMode ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-slate-800 text-slate-300 hover:text-white'
           }`}
           title="Bật/Tắt chế độ trình chiếu từng bước kiểu PowerPoint: Mỗi lần bấm chuột sẽ chuyển ô chữ, hình và tự động đọc nếu có chữ"
         >
-          <span>🎬 PowerPoint: {powerPointMode ? 'Từng Bước' : 'Hiện Toàn Bộ'}</span>
+          <span>🎬 {powerPointMode ? 'Từng Bước' : 'Chiếu Trọn Vẹn'}</span>
         </button>
+
+        {/* Nút Khôi Phục Thẻ Che nếu có hình đã ẩn */}
+        {currentDismissed.size > 0 && (
+          <button
+            onClick={handleResetDismissedShapes}
+            className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/30 text-amber-300 border border-amber-400/50 hover:bg-amber-500/50 transition-all flex items-center gap-1 cursor-pointer animate-in fade-in"
+            title="Khôi phục lại các hình che / mảnh ghép đã lật mở trên trang này"
+          >
+            <span>🔄 Hiện lại ({currentDismissed.size})</span>
+          </button>
+        )}
 
         {/* Nút Bật/Tắt Con Trỏ Laser VIP */}
         <button
