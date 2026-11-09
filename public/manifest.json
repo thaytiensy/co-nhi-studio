@@ -1,18 +1,52 @@
 {
-  "name": "Cọ Nhí Studio - Mĩ Thuật Tiểu Học GDPT 2018",
+  "id": "/",
+  "name": "Cọ Nhí Studio - Phần Mềm Soạn Giảng Mĩ Thuật Chuẩn VIP PRO",
   "short_name": "Cọ Nhí Studio",
-  "description": "Phần mềm soạn giảng và trình chiếu mĩ thuật chuyên biệt cho Thầy/Cô tiểu học",
+  "description": "Phần mềm soạn giảng, trình chiếu mĩ thuật và quản lý sổ điểm TT27 chuyên biệt cho Thầy/Cô tiểu học",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#ffffff",
+  "background_color": "#f8fafc",
   "theme_color": "#f59e0b",
+  "lang": "vi-VN",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icons.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tổng Quan Bento Grid",
+      "short_name": "Dashboard",
+      "description": "Xem tổng quan KPI và lịch báo giảng",
+      "url": "/?tab=dashboard",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Soạn Slide Bài Giảng",
+      "short_name": "Soạn Slide",
+      "description": "Mở không gian thiết kế bài giảng",
+      "url": "/?tab=editor",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Sổ Đánh Giá TT27 SMAS",
+      "short_name": "Sổ Điểm",
+      "description": "Đánh giá học sinh và xuất file SMAS",
+      "url": "/?tab=evaluation",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     }
   ]
 }

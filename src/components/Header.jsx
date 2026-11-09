@@ -20,7 +20,8 @@ import {
   Unlock,
   Mail,
   ShieldCheck,
-  LogOut
+  LogOut,
+  LayoutDashboard
 } from 'lucide-react';
 import { exportProjectFile } from '../utils/storageService';
 
@@ -46,6 +47,7 @@ export default function Header({
   const [showFileMenu, setShowFileMenu] = useState(false);
 
   const tabs = [
+    { id: 'dashboard', name: 'Tổng Quan Bento', icon: LayoutDashboard, color: 'text-amber-600' },
     { id: 'editor', name: 'Soạn Slide', icon: Presentation, color: 'text-amber-600' },
     { id: 'drawing', name: 'Bảng Vẽ Thị Phạm', icon: Brush, color: 'text-emerald-600' },
     { id: 'games', name: 'Trò Chơi Mĩ Thuật', icon: Gamepad2, color: 'text-indigo-600' },

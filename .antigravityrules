@@ -1,0 +1,24 @@
+# CỌ NHÍ STUDIO - BỘ TIÊU CHUẨN KỸ THUẬT SIÊU VIP PRO (.antigravityrules)
+
+# 1. NGUYÊN TẮC CỐT LÕI (CORE PRINCIPLES)
+- ZERO_PLACEHOLDER: 100% tính năng, nút bấm và form nhập liệu phải có mã nguồn thực thi hoàn chỉnh. Tuyệt đối không dùng comment giữ chỗ (// TODO) hay nút bấm giả lập.
+- ZERO_API_KEY: Ứng dụng hoạt động đầy đủ tính năng sư phạm, soạn giảng, trò chơi, thị phạm, đánh giá học sinh TT27 và xuất báo cáo mà không bắt buộc người dùng cuối phải nhập API Key.
+- DATA_INTEGRITY: Không làm gãy vỡ, thụt lùi bất kỳ tính năng cốt lõi nào hiện có (Soạn slide, Trình chiếu F5, Bảng vẽ thị phạm, Trò chơi mĩ thuật, Cam chấm tranh, Sổ điểm SMAS).
+
+# 2. BỘ 3 THƯ VIỆN LÕI (src/lib/)
+- STORAGE_ENGINE (src/lib/storage.ts): Quản lý LocalStorage tự động với cơ chế Auto-save Debounce 300ms, bảo toàn dữ liệu khi F5 tải lại trang. Cung cấp hàm xuất backup (.json), nhập restore (.json), phục hồi dữ liệu mẫu mặc định và đồng bộ qua CustomEvent/StorageEvent.
+- EXPORT_ENGINE (src/lib/export-engine.ts): Xuất báo cáo chuyên nghiệp ra Word (.doc) và Excel (.csv) chuẩn phông chữ Times New Roman, đầy đủ Quốc hiệu Tiêu ngữ, tên cơ quan chủ quản (UBND Xã Ia Krêl - Trường PTDTBT TH Lê Quý Đôn), bảng kẻ khung rõ nét và mục ký tên người lập biểu (Đỗ Tiến Sỹ).
+- SMART_COMMAND (src/lib/smart-command.ts): Bộ phân tích câu lệnh tiếng Việt tự nhiên chạy 100% offline tại trình duyệt, nhận diện từ khóa tìm kiếm, lọc theo tuần/lớp/trạng thái/mức đạt, thêm nhanh bài dạy, xuất Word/Excel, sao lưu/khôi phục.
+
+# 3. GIAO DIỆN & TRẢI NGHIỆM NGƯỜI DÙNG (UI/UX)
+- BENTO_GRID: Thiết kế giao diện Bento Grid & Glassmorphism hiện đại với Tailwind CSS và Lucide Icons.
+- REALTIME_KPI: Hệ thống thẻ KPI thời gian thực ở đầu trang hiển thị tổng số slide, tiến độ bài dạy, số học sinh đánh giá TT27 và phân bổ mức T/H/C.
+- SKELETON_LOADING: Hiệu ứng Skeleton shimmer khi nạp dữ liệu giúp giao diện mượt mà.
+- TOAST_NOTIFICATIONS: Thông báo Toast popup góc màn hình phản hồi trực quan cho mọi thao tác người dùng.
+- RESPONSIVE_NAVIGATION: Sidebar thông minh thu gọn/mở rộng cho máy tính và Bottom Navigation Bar cố định phía dưới cho điện thoại/máy tính bảng.
+- PWA_OFFLINE: Cấu hình PWA (manifest.json, sw.js) hỗ trợ cài đặt ứng dụng trên Windows/macOS/Android/iOS và hiển thị trạng thái Trực tuyến/Ngoại tuyến trực tiếp.
+
+# 4. KIỂM ĐỊNH TỰ ĐỘNG & BIÊN DỊCH (CI/CD STANDARDS)
+- TypeScript Type-Checking: `npx tsc --noEmit` đạt 0 lỗi (0 errors).
+- Production Build: `npm run build` hoàn tất 100% thành công với 0 lỗi đóng gói.
+- Regression Test Suite: `npm test` giữ vững 100% passing tests.

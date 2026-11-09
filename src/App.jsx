@@ -6,6 +6,7 @@ import LoginGateModal from './components/Admin/LoginGateModal';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 
 // Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
+const BentoDashboard = React.lazy(() => import('./components/Dashboard/BentoDashboard'));
 const DrawingBoard = React.lazy(() => import('./components/DrawingBoard/DrawingBoard'));
 const ArtGames = React.lazy(() => import('./components/ArtGames/ArtGames'));
 const ArtCameraRubric = React.lazy(() => import('./components/ArtCamera/ArtCameraRubric'));
@@ -15,6 +16,8 @@ const PPTXPreviewModal = React.lazy(() => import('./components/SlideEditor/PPTXP
 const VideoGuideModal = React.lazy(() => import('./components/VideoGuide/VideoGuideModal'));
 const AdminModal = React.lazy(() => import('./components/Admin/AdminModal'));
 const InstallAppModal = React.lazy(() => import('./components/Install/InstallAppModal'));
+import SmartSidebar from './components/Navigation/SmartSidebar';
+import BottomNavBar from './components/Navigation/BottomNavBar';
 import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
 import { Sparkles } from 'lucide-react';
@@ -65,7 +68,8 @@ export default function App() {
   const [slides, setSlides] = useState(INITIAL_SLIDES);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [slideEditorResetKey, setSlideEditorResetKey] = useState(0);
-  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'drawing', 'games', 'camera', 'evaluation'
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'editor', 'drawing', 'games', 'camera', 'evaluation'
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
     const [isVideoGuideOpen, setIsVideoGuideOpen] = useState(false);
@@ -504,72 +508,113 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      {/* 2. Main Tab Body */}
-      <main className="flex-1 flex overflow-hidden relative">
-        {activeTab === 'editor' && (
-          <SlideEditorView
-            key={slideEditorResetKey}
-            slides={slides}
-            setSlides={handleSlidesChange}
-            currentSlideIndex={currentSlideIndex}
-            setCurrentSlideIndex={setCurrentSlideIndex}
-            onSave={handleSave}
-            isPresentationOpen={isPresentationOpen}
-            setIsPresentationOpen={setIsPresentationOpen}
-            showAssistant={isAssistantOpen}
-            setShowAssistant={setIsAssistantOpen}
+      {/* 2. Main Workspace Layout with SmartSidebar and Content Area */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {!isPresentationOpen && (
+          <SmartSidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            isCollapsed={isSidebarCollapsed}
+            setIsCollapsed={setIsSidebarCollapsed}
+            onOpenInstallModal={() => {
+              setHasOpenedInstallModal(true);
+              setIsInstallModalOpen(true);
+            }}
+            isAppInstalled={isAppInstalled}
+            onOpenAdminModal={() => {
+              setHasOpenedAdminModal(true);
+              setIsAdminModalOpen(true);
+            }}
+            userSession={currentUserSession}
+            onLogout={handleLogout}
           />
         )}
 
-        <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
-          {activeTab === 'drawing' && (
-            <DrawingBoard
-              onInsertDrawingToSlide={handleInsertDrawingToSlide}
-              onNavigateToEditor={() => setActiveTab('editor')}
-            />
-          )}
-
-          {activeTab === 'games' && (
-            <ArtGames 
-              projectTitle={projectTitle}
-              currentSlide={slides[currentSlideIndex]}
-              onInsertGameToSlide={handleInsertGameToSlide}
-              onCreateGameSlide={handleCreateGameSlide}
-            />
-          )}
-
-          {activeTab === 'camera' && (
-            <ArtCameraRubric
-              onInsertGradedArtworkToSlide={handleInsertGradedArtworkToSlide}
-              onNavigateToEditor={() => setActiveTab('editor')}
-            />
-          )}
-
-          {activeTab === 'evaluation' && (
-            <StudentEvaluationSMAS />
-          )}
-
-          {/* Slide-over Assistant Drawer for non-editor screens */}
-          {isAssistantOpen && activeTab !== 'editor' && !isPresentationOpen && (
-            <div className="fixed inset-y-0 right-0 w-80 md:w-96 bg-white shadow-2xl z-40 border-l border-slate-200 animate-in slide-in-from-right duration-200">
-              <OfflinePedagogyAssistant
-                currentSlide={activeSlide}
-                currentGrade={activeSlideGrade}
-                onInsertToNotes={(text) => {
-                  const currentSlide = slides[currentSlideIndex] || slides[0];
-                  if (!currentSlide) return;
-                  const existing = currentSlide.notes || '';
-                  const newNotes = existing ? `${existing}\n\n${text}` : text;
-                  const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
-                  handleSlidesChange(updated);
-                  alert('Đã chèn nội dung vào ghi chú slide hiện tại!');
+        <main className="flex-1 flex overflow-hidden relative">
+          <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
+            {activeTab === 'dashboard' && (
+              <BentoDashboard
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onStartPresentation={() => setIsPresentationOpen(true)}
+                onOpenInstallModal={() => {
+                  setHasOpenedInstallModal(true);
+                  setIsInstallModalOpen(true);
                 }}
-                onClose={() => setIsAssistantOpen(false)}
+                isAppInstalled={isAppInstalled}
+                installPrompt={installPrompt}
+                userSession={currentUserSession}
               />
-            </div>
-          )}
-        </React.Suspense>
-      </main>
+            )}
+
+            {activeTab === 'editor' && (
+              <SlideEditorView
+                key={slideEditorResetKey}
+                slides={slides}
+                setSlides={handleSlidesChange}
+                currentSlideIndex={currentSlideIndex}
+                setCurrentSlideIndex={setCurrentSlideIndex}
+                onSave={handleSave}
+                isPresentationOpen={isPresentationOpen}
+                setIsPresentationOpen={setIsPresentationOpen}
+                showAssistant={isAssistantOpen}
+                setShowAssistant={setIsAssistantOpen}
+              />
+            )}
+
+            {activeTab === 'drawing' && (
+              <DrawingBoard
+                onInsertDrawingToSlide={handleInsertDrawingToSlide}
+                onNavigateToEditor={() => setActiveTab('editor')}
+              />
+            )}
+
+            {activeTab === 'games' && (
+              <ArtGames 
+                projectTitle={projectTitle}
+                currentSlide={slides[currentSlideIndex]}
+                onInsertGameToSlide={handleInsertGameToSlide}
+                onCreateGameSlide={handleCreateGameSlide}
+              />
+            )}
+
+            {activeTab === 'camera' && (
+              <ArtCameraRubric
+                onInsertGradedArtworkToSlide={handleInsertGradedArtworkToSlide}
+                onNavigateToEditor={() => setActiveTab('editor')}
+              />
+            )}
+
+            {activeTab === 'evaluation' && (
+              <StudentEvaluationSMAS />
+            )}
+
+            {/* Slide-over Assistant Drawer for non-editor screens */}
+            {isAssistantOpen && activeTab !== 'editor' && !isPresentationOpen && (
+              <div className="fixed inset-y-0 right-0 w-80 md:w-96 bg-white shadow-2xl z-40 border-l border-slate-200 animate-in slide-in-from-right duration-200">
+                <OfflinePedagogyAssistant
+                  currentSlide={activeSlide}
+                  currentGrade={activeSlideGrade}
+                  onInsertToNotes={(text) => {
+                    const currentSlide = slides[currentSlideIndex] || slides[0];
+                    if (!currentSlide) return;
+                    const existing = currentSlide.notes || '';
+                    const newNotes = existing ? `${existing}\n\n${text}` : text;
+                    const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
+                    handleSlidesChange(updated);
+                    alert('Đã chèn nội dung vào ghi chú slide hiện tại!');
+                  }}
+                  onClose={() => setIsAssistantOpen(false)}
+                />
+              </div>
+            )}
+          </React.Suspense>
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      {!isPresentationOpen && (
+        <BottomNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
+      )}
 
       {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) */}
       {!isPresentationOpen && (
