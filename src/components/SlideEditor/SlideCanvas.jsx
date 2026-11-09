@@ -161,26 +161,92 @@ export default function SlideCanvas({
   }, [isDragging, dragAction, startPos, originalElement, scale, selectedElementId]);
 
   const renderShape = (el) => {
+    // 1. Hình vẽ tự do / Vector Path trích xuất từ PowerPoint (custGeom)
+    if (el.customPath) {
+      return (
+        <svg className="w-full h-full" viewBox={el.customPath.viewBox} preserveAspectRatio="none">
+          <path
+            d={el.customPath.d}
+            fill={el.fill && el.fill !== 'transparent' ? el.fill : 'none'}
+            stroke={el.stroke || el.fill || '#1e293b'}
+            strokeWidth={Math.max(2, el.strokeWidth || 3)}
+            strokeDasharray={el.strokeDash}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={el.opacity ?? 1}
+          />
+        </svg>
+      );
+    }
+
     switch (el.shapeType) {
       case 'circle':
         return (
-          <div
-            className="w-full h-full rounded-full"
-            style={{
-              backgroundColor: el.fill || '#3b82f6',
-              border: el.stroke ? `${el.strokeWidth || 2}px solid ${el.stroke}` : 'none',
-              opacity: el.opacity ?? 1,
-            }}
-          />
+          <svg className="w-full h-full" viewBox="0 0 100 100">
+            <circle
+              cx="50"
+              cy="50"
+              r="44"
+              fill={el.fill && el.fill !== 'transparent' ? el.fill : 'none'}
+              stroke={el.stroke || '#06b6d4'}
+              strokeWidth={Math.max(2, el.strokeWidth || 4)}
+              strokeDasharray={el.strokeDash}
+              opacity={el.opacity ?? 1}
+            />
+          </svg>
+        );
+      case 'wave':
+        return (
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path
+              d="M 5,50 Q 16.25,12 27.5,50 T 50,50 T 72.5,50 T 95,50"
+              fill="none"
+              stroke={el.stroke || el.fill || '#eab308'}
+              strokeWidth={Math.max(3, el.strokeWidth || 5)}
+              strokeDasharray={el.strokeDash}
+              strokeLinecap="round"
+              opacity={el.opacity ?? 1}
+            />
+          </svg>
+        );
+      case 'zigzag':
+        return (
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polyline
+              points="5,82 20,18 35,82 50,18 65,82 80,18 95,82"
+              fill="none"
+              stroke={el.stroke || el.fill || '#ef4444'}
+              strokeWidth={Math.max(3, el.strokeWidth || 5)}
+              strokeDasharray={el.strokeDash}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={el.opacity ?? 1}
+            />
+          </svg>
+        );
+      case 'arc':
+        return (
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path
+              d="M 10,85 Q 50,15 90,85"
+              fill="none"
+              stroke={el.stroke || el.fill || '#f59e0b'}
+              strokeWidth={Math.max(3, el.strokeWidth || 5)}
+              strokeDasharray={el.strokeDash}
+              strokeLinecap="round"
+              opacity={el.opacity ?? 1}
+            />
+          </svg>
         );
       case 'triangle':
         return (
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <polygon
               points="50,5 95,95 5,95"
-              fill={el.fill || '#10b981'}
-              stroke={el.stroke || 'none'}
-              strokeWidth={el.strokeWidth || 0}
+              fill={el.fill && el.fill !== 'transparent' ? el.fill : 'none'}
+              stroke={el.stroke || (el.fill ? 'none' : '#10b981')}
+              strokeWidth={el.strokeWidth || (el.fill ? 0 : 3)}
+              strokeDasharray={el.strokeDash}
               opacity={el.opacity ?? 1}
             />
           </svg>
@@ -190,9 +256,10 @@ export default function SlideCanvas({
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <polygon
               points="50,5 64,36 98,36 70,57 81,91 50,70 19,91 30,57 2,36 36,36"
-              fill={el.fill || '#f59e0b'}
-              stroke={el.stroke || 'none'}
-              strokeWidth={el.strokeWidth || 0}
+              fill={el.fill && el.fill !== 'transparent' ? el.fill : 'none'}
+              stroke={el.stroke || (el.fill ? 'none' : '#f59e0b')}
+              strokeWidth={el.strokeWidth || (el.fill ? 0 : 3)}
+              strokeDasharray={el.strokeDash}
               opacity={el.opacity ?? 1}
             />
           </svg>
@@ -202,9 +269,10 @@ export default function SlideCanvas({
           <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
             <polygon
               points="0,20 60,20 60,0 100,30 60,60 60,40 0,40"
-              fill={el.fill || '#6366f1'}
-              stroke={el.stroke || 'none'}
-              strokeWidth={el.strokeWidth || 0}
+              fill={el.fill && el.fill !== 'transparent' ? el.fill : 'none'}
+              stroke={el.stroke || (el.fill ? 'none' : '#6366f1')}
+              strokeWidth={el.strokeWidth || (el.fill ? 0 : 3)}
+              strokeDasharray={el.strokeDash}
               opacity={el.opacity ?? 1}
             />
           </svg>
@@ -218,7 +286,8 @@ export default function SlideCanvas({
               x2={el.width >= el.height ? 100 : 50}
               y2={el.width >= el.height ? 50 : 100}
               stroke={el.stroke || el.fill || '#1e293b'}
-              strokeWidth={Math.max(4, el.strokeWidth || 4)}
+              strokeWidth={Math.max(3, el.strokeWidth || 4)}
+              strokeDasharray={el.strokeDash}
               strokeLinecap="round"
             />
           </svg>
@@ -229,9 +298,9 @@ export default function SlideCanvas({
           <div
             className="w-full h-full"
             style={{
-              backgroundColor: el.fill || '#f1f5f9',
+              backgroundColor: el.fill || 'transparent',
               borderRadius: el.shapeType === 'roundedRect' ? '16px' : '4px',
-              border: el.stroke ? `${el.strokeWidth || 2}px solid ${el.stroke}` : 'none',
+              border: el.stroke ? `${el.strokeWidth || 2}px ${el.strokeDash ? 'dashed' : 'solid'} ${el.stroke}` : 'none',
               opacity: el.opacity ?? 1,
             }}
           />
@@ -317,6 +386,8 @@ export default function SlideCanvas({
                         fontSize: `${el.fontSize || 16}px`,
                         fontWeight: el.fontWeight || 'normal',
                         fontStyle: el.fontStyle || 'normal',
+                        textDecoration: el.textDecoration || 'none',
+                        fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Playpen Sans', cursive, sans-serif` : undefined,
                         color: el.color || '#000000',
                         textAlign: el.textAlign || 'left',
                         whiteSpace: 'pre-wrap',

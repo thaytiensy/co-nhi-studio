@@ -79,28 +79,96 @@ function extractColor(parentEl, fallback = null) {
   return fallback;
 }
 
-// Kiểm tra hình khối có màu nền thực sự hay là trong suốt / noFill
-function hasFill(sp) {
-  const spPr = sp.getElementsByTagName('p:spPr')[0] || sp.getElementsByTagName('spPr')[0] || sp;
-  const noFill = spPr.getElementsByTagName('a:noFill')[0] || spPr.getElementsByTagName('noFill')[0];
-  if (noFill) return false;
-  const solidFill = spPr.getElementsByTagName('a:solidFill')[0] || spPr.getElementsByTagName('solidFill')[0];
-  const gradFill = spPr.getElementsByTagName('a:gradFill')[0] || spPr.getElementsByTagName('gradFill')[0];
-  const blipFill = spPr.getElementsByTagName('a:blipFill')[0] || spPr.getElementsByTagName('blipFill')[0];
-  return Boolean(solidFill || gradFill || blipFill);
+// Lấy màu nền trực tiếp của hình khối (tuyệt đối không nhầm với màu viền a:ln)
+function getShapeDirectFill(spPr) {
+  if (!spPr) return null;
+  const childNodes = Array.from(spPr.childNodes || []);
+  const noFill = childNodes.find(n => (n.nodeName || '').toLowerCase().endsWith('nofill'));
+  if (noFill) return null;
+
+  const solidFill = childNodes.find(n => (n.nodeName || '').toLowerCase().endsWith('solidfill'));
+  if (solidFill) return extractColor(solidFill, null);
+
+  const gradFill = childNodes.find(n => (n.nodeName || '').toLowerCase().endsWith('gradfill'));
+  if (gradFill) return extractColor(gradFill, null);
+
+  const blipFill = childNodes.find(n => (n.nodeName || '').toLowerCase().endsWith('blipfill'));
+  if (blipFill) return '#f1f5f9';
+
+  return null;
 }
 
-// Lấy thông tin viền nét vẽ
-function getLineStroke(sp) {
-  const spPr = sp.getElementsByTagName('p:spPr')[0] || sp.getElementsByTagName('spPr')[0] || sp;
+// Kiểm tra hình khối có màu nền trực tiếp
+function hasFill(spPr) {
+  return Boolean(getShapeDirectFill(spPr));
+}
+
+// Lấy thông tin viền nét vẽ (màu sắc, độ dày, nét đứt)
+function getLineStroke(spPr) {
+  if (!spPr) return null;
   const ln = spPr.getElementsByTagName('a:ln')[0] || spPr.getElementsByTagName('ln')[0];
   if (!ln) return null;
   const noFill = ln.getElementsByTagName('a:noFill')[0] || ln.getElementsByTagName('noFill')[0];
   if (noFill) return null;
+
   const clr = extractColor(ln, '#1e293b');
   const wAttr = ln.getAttribute('w');
-  const wPx = wAttr ? Math.max(1, Math.round(parseInt(wAttr, 10) / 12700)) : 2;
-  return { color: clr, width: wPx };
+  const wPx = wAttr ? Math.max(2, Math.round(parseInt(wAttr, 10) / 12700)) : 3;
+
+  // Kiểm tra nét đứt (prstDash)
+  const prstDash = ln.getElementsByTagName('a:prstDash')[0] || ln.getElementsByTagName('prstDash')[0];
+  let strokeDash = undefined;
+  if (prstDash) {
+    const dashVal = (prstDash.getAttribute('val') || '').toLowerCase();
+    if (dashVal.includes('dash') || dashVal.includes('dot')) {
+      strokeDash = '12 8';
+    }
+  }
+
+  return { color: clr, width: wPx, dash: strokeDash };
+}
+
+// Trích xuất hình học tự do (Freeform / Custom Geometry / Vector Stroke Path)
+function extractCustomPath(spPr) {
+  if (!spPr) return null;
+  const custGeom = spPr.getElementsByTagName('a:custGeom')[0] || spPr.getElementsByTagName('custGeom')[0];
+  if (!custGeom) return null;
+  const pathEl = custGeom.getElementsByTagName('a:path')[0] || custGeom.getElementsByTagName('path')[0];
+  if (!pathEl) return null;
+
+  const pathW = parseInt(pathEl.getAttribute('w') || '100', 10);
+  const pathH = parseInt(pathEl.getAttribute('h') || '100', 10);
+  const cmds = [];
+  const childNodes = Array.from(pathEl.childNodes || []);
+
+  for (const n of childNodes) {
+    const name = (n.nodeName || '').toLowerCase();
+    if (name.endsWith('moveto')) {
+      const pt = n.getElementsByTagName('a:pt')[0] || n.getElementsByTagName('pt')[0];
+      if (pt) cmds.push(`M ${pt.getAttribute('x')} ${pt.getAttribute('y')}`);
+    } else if (name.endsWith('lnto')) {
+      const pt = n.getElementsByTagName('a:pt')[0] || n.getElementsByTagName('pt')[0];
+      if (pt) cmds.push(`L ${pt.getAttribute('x')} ${pt.getAttribute('y')}`);
+    } else if (name.endsWith('cubicbezto')) {
+      const pts = Array.from(n.getElementsByTagName('a:pt')).concat(Array.from(n.getElementsByTagName('pt')));
+      if (pts.length >= 3) {
+        cmds.push(`C ${pts[0].getAttribute('x')} ${pts[0].getAttribute('y')}, ${pts[1].getAttribute('x')} ${pts[1].getAttribute('y')}, ${pts[2].getAttribute('x')} ${pts[2].getAttribute('y')}`);
+      }
+    } else if (name.endsWith('quadbezto')) {
+      const pts = Array.from(n.getElementsByTagName('a:pt')).concat(Array.from(n.getElementsByTagName('pt')));
+      if (pts.length >= 2) {
+        cmds.push(`Q ${pts[0].getAttribute('x')} ${pts[0].getAttribute('y')}, ${pts[1].getAttribute('x')} ${pts[1].getAttribute('y')}`);
+      }
+    } else if (name.endsWith('close')) {
+      cmds.push('Z');
+    }
+  }
+
+  if (cmds.length === 0) return null;
+  return {
+    d: cmds.join(' '),
+    viewBox: `0 0 ${pathW} ${pathH}`
+  };
 }
 
 // Trích xuất chính xác tọa độ & kích thước từ <a:xfrm> trong OpenXML
@@ -666,6 +734,9 @@ export const parsePPTXFile = async (file) => {
         let fullText = '';
         let maxFontSize = 18;
         let isBold = false;
+        let isItalic = false;
+        let isUnderline = false;
+        let fontFamily = '';
         let textColor = '#1e293b';
         let textAlignment = 'left';
 
@@ -699,8 +770,17 @@ export const parsePPTXFile = async (file) => {
                   const sz = parseInt(rPr.getAttribute('sz') || '0', 10);
                   if (sz > 0) maxFontSize = Math.max(maxFontSize, Math.round(sz / 100));
                   if (rPr.getAttribute('b') === '1') isBold = true;
+                  if (rPr.getAttribute('i') === '1') isItalic = true;
+                  const uVal = rPr.getAttribute('u');
+                  if (uVal && uVal !== 'none') isUnderline = true;
                   const clr = extractColor(rPr, null);
                   if (clr) textColor = clr;
+
+                  const latin = rPr.getElementsByTagName('a:latin')[0] || rPr.getElementsByTagName('latin')[0];
+                  const ea = rPr.getElementsByTagName('a:ea')[0] || rPr.getElementsByTagName('ea')[0];
+                  const cs = rPr.getElementsByTagName('a:cs')[0] || rPr.getElementsByTagName('cs')[0];
+                  const tf = (latin?.getAttribute('typeface') || ea?.getAttribute('typeface') || cs?.getAttribute('typeface') || '').trim();
+                  if (tf && !fontFamily) fontFamily = tf;
                 }
               } else if (nodeName.endsWith(':t') || nodeName === 't') {
                 pStr += node.textContent || '';
@@ -722,9 +802,11 @@ export const parsePPTXFile = async (file) => {
         }
 
         const spPr = sp.getElementsByTagName('p:spPr')[0] || sp.getElementsByTagName('spPr')[0] || sp;
-        const isShapeFilled = hasFill(spPr);
-        const shapeFillColor = isShapeFilled ? extractColor(spPr, null) : null;
+        const directFill = getShapeDirectFill(spPr);
         const shapeStroke = getLineStroke(spPr);
+        const customPath = extractCustomPath(spPr);
+        const isShapeFilled = Boolean(directFill);
+        const shapeFillColor = directFill;
 
         if (fullText.trim()) {
           let adjustedW = w;
@@ -743,6 +825,9 @@ export const parsePPTXFile = async (file) => {
             text: fullText,
             fontSize: Math.min(maxFontSize, 42),
             fontWeight: isBold ? 'bold' : 'normal',
+            fontStyle: isItalic ? 'italic' : 'normal',
+            textDecoration: isUnderline ? 'underline' : 'none',
+            fontFamily: fontFamily || undefined,
             color: textColor,
             textAlign: textAlignment || (x < 250 && adjustedW > 450 ? 'center' : 'left'),
             background: shapeFillColor || undefined,
@@ -752,28 +837,35 @@ export const parsePPTXFile = async (file) => {
 
         // Nếu KHÔNG có text: CHỈ RENDER KHI CÓ FILL THẬT HOẶC CÓ VIỀN NÉT VẼ!
         // Không có fill và không có nét viền -> Khối trong suốt layout, BỎ QUA!
-        if (isShapeFilled || shapeStroke) {
-          const prstGeom = sp.getElementsByTagName('a:prstGeom')[0] || sp.getElementsByTagName('prstGeom')[0];
-          const geom = prstGeom ? (prstGeom.getAttribute('prst') || 'rect') : 'rect';
+        if (customPath || directFill || shapeStroke) {
+          const prstGeom = spPr.getElementsByTagName('a:prstGeom')[0] || spPr.getElementsByTagName('prstGeom')[0];
+          const geom = (prstGeom ? prstGeom.getAttribute('prst') : '') || '';
           let shapeType = 'roundedRect';
-          if (geom.includes('ellipse') || geom.includes('circle')) shapeType = 'circle';
+          if (customPath) shapeType = 'customPath';
+          else if (geom.includes('ellipse') || geom.includes('circle')) shapeType = 'circle';
           else if (geom.includes('triangle')) shapeType = 'triangle';
           else if (geom.includes('star')) shapeType = 'star';
           else if (geom.includes('arrow')) shapeType = 'arrow';
           else if (geom === 'line' || geom.includes('connector')) shapeType = 'line';
+          else if (geom === 'wave' || geom.includes('wave')) shapeType = 'wave';
+          else if (geom === 'zigzag') shapeType = 'zigzag';
+          else if (geom.includes('arc')) shapeType = 'arc';
+          else if (geom === 'rect') shapeType = 'rect';
 
           const isFullBg = (x <= 30 && y <= 30 && w >= CANVAS_WIDTH * 0.88 && h >= CANVAS_HEIGHT * 0.88);
           const shapeEl = {
             id: `shape-${sIdx}-${i}-${Date.now()}`,
             type: 'shape',
             shapeType,
+            customPath: customPath || undefined,
             x,
             y,
             width: w,
             height: h,
-            fill: shapeFillColor || 'transparent',
-            stroke: shapeStroke ? shapeStroke.color : undefined,
-            strokeWidth: shapeStroke ? shapeStroke.width : undefined,
+            fill: directFill || 'transparent',
+            stroke: shapeStroke ? shapeStroke.color : (directFill ? undefined : '#1e293b'),
+            strokeWidth: shapeStroke ? shapeStroke.width : (directFill ? undefined : 3),
+            strokeDash: shapeStroke ? shapeStroke.dash : undefined,
             isBackground: isFullBg,
           };
 
@@ -813,9 +905,10 @@ export const parsePPTXFile = async (file) => {
           y: Math.max(0, Math.min(CANVAS_HEIGHT - 20, rawY)),
           width: Math.max(12, rawW),
           height: Math.max(6, rawH),
-          fill: stroke.color,
+          fill: 'transparent',
           stroke: stroke.color,
           strokeWidth: stroke.width,
+          strokeDash: stroke.dash,
         });
       }
 

@@ -80,6 +80,9 @@ export default function SlideEditorView({
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElementId && !isInputActive) {
         e.preventDefault();
         handleDeleteElement();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && selectedElementId && !isInputActive) {
+        e.preventDefault();
+        handleDuplicateElement();
       }
     };
 
@@ -140,17 +143,65 @@ export default function SlideEditorView({
 
   // Add shape element
   const handleAddShape = (shapeType = 'roundedRect') => {
+    const isLine = shapeType === 'line';
+    const isWave = shapeType === 'wave';
+    const isZigzag = shapeType === 'zigzag';
+    const isArc = shapeType === 'arc';
+    const isStrokeShape = isLine || isWave || isZigzag || isArc;
+
+    let defaultFill = '#fde68a';
+    let defaultStroke = '#d97706';
+    let defaultStrokeWidth = 0;
+    let defaultW = 160;
+    let defaultH = 100;
+
+    if (shapeType === 'circle') {
+      defaultFill = 'transparent';
+      defaultStroke = '#06b6d4';
+      defaultStrokeWidth = 4;
+      defaultW = 140;
+      defaultH = 140;
+    } else if (isStrokeShape) {
+      defaultFill = 'transparent';
+      defaultStrokeWidth = 5;
+      defaultW = 260;
+      defaultH = shapeType === 'line' ? 40 : 70;
+      if (shapeType === 'line') defaultStroke = '#0284c7';
+      else if (shapeType === 'wave') defaultStroke = '#eab308';
+      else if (shapeType === 'zigzag') defaultStroke = '#ef4444';
+      else if (shapeType === 'arc') defaultStroke = '#a855f7';
+    } else if (shapeType === 'triangle') {
+      defaultFill = '#10b981';
+      defaultStroke = '#059669';
+      defaultStrokeWidth = 0;
+      defaultW = 150;
+      defaultH = 120;
+    } else if (shapeType === 'star') {
+      defaultFill = '#f59e0b';
+      defaultStroke = '#d97706';
+      defaultStrokeWidth = 0;
+      defaultW = 140;
+      defaultH = 140;
+    } else if (shapeType === 'arrow') {
+      defaultFill = '#6366f1';
+      defaultStroke = '#4f46e5';
+      defaultStrokeWidth = 0;
+      defaultW = 180;
+      defaultH = 80;
+    }
+
     const newEl = {
       id: 'shape-' + Date.now(),
       type: 'shape',
       shapeType,
       x: 200,
       y: 150,
-      width: shapeType === 'circle' ? 140 : 160,
-      height: shapeType === 'circle' ? 140 : 100,
-      fill: shapeType === 'triangle' ? '#10b981' : shapeType === 'star' ? '#f59e0b' : shapeType === 'arrow' ? '#6366f1' : '#fde68a',
-      stroke: '#d97706',
-      strokeWidth: 0,
+      width: defaultW,
+      height: defaultH,
+      fill: defaultFill,
+      stroke: defaultStroke,
+      strokeWidth: defaultStrokeWidth,
+      strokeDash: undefined,
       opacity: 1,
     };
 
@@ -256,6 +307,32 @@ export default function SlideEditorView({
     });
     updateSlidesWithHistory(updatedSlides);
     setSelectedElementId(newEl.id);
+  };
+
+  // Duplicate element (PowerPoint Ctrl+D)
+  const handleDuplicateElement = (idToDup) => {
+    const targetId = idToDup || selectedElementId;
+    if (!targetId || !currentSlide?.elements) return;
+    const el = currentSlide.elements.find(e => e.id === targetId);
+    if (!el) return;
+
+    const duplicated = {
+      ...JSON.parse(JSON.stringify(el)),
+      id: `${el.type || 'el'}-${Date.now()}`,
+      x: Math.min(CANVAS_WIDTH - (el.width || 100), (el.x || 0) + 24),
+      y: Math.min(CANVAS_HEIGHT - (el.height || 100), (el.y || 0) + 24),
+    };
+
+    const updatedElements = [...currentSlide.elements, duplicated];
+    const updatedSlides = slides.map((s, idx) => {
+      if (idx === currentSlideIndex) {
+        return { ...s, elements: updatedElements };
+      }
+      return s;
+    });
+
+    updateSlidesWithHistory(updatedSlides);
+    setSelectedElementId(duplicated.id);
   };
 
   // Delete element
@@ -430,6 +507,7 @@ export default function SlideEditorView({
           onAddShape={handleAddShape}
           onAddImage={handleAddImage}
           onDeleteElement={handleDeleteElement}
+          onDuplicateElement={handleDuplicateElement}
           onReorderElement={handleReorderElement}
           slideBackground={currentSlide?.background}
           onChangeBackground={handleChangeBackground}
