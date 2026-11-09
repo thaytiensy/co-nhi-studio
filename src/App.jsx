@@ -6,7 +6,6 @@ import LoginGateModal from './components/Admin/LoginGateModal';
 import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
 
 // Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
-const BentoDashboard = React.lazy(() => import('./components/Dashboard/BentoDashboard'));
 const DrawingBoard = React.lazy(() => import('./components/DrawingBoard/DrawingBoard'));
 const ArtGames = React.lazy(() => import('./components/ArtGames/ArtGames'));
 const ArtCameraRubric = React.lazy(() => import('./components/ArtCamera/ArtCameraRubric'));
@@ -68,7 +67,7 @@ export default function App() {
   const [slides, setSlides] = useState(INITIAL_SLIDES);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [slideEditorResetKey, setSlideEditorResetKey] = useState(0);
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'editor', 'drawing', 'games', 'camera', 'evaluation'
+  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'drawing', 'games', 'camera', 'evaluation'
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
@@ -532,20 +531,6 @@ export default function App() {
 
         <main className="flex-1 flex overflow-hidden relative">
           <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
-            {activeTab === 'dashboard' && (
-              <BentoDashboard
-                onNavigateTab={(tab) => setActiveTab(tab)}
-                onStartPresentation={() => setIsPresentationOpen(true)}
-                onOpenInstallModal={() => {
-                  setHasOpenedInstallModal(true);
-                  setIsInstallModalOpen(true);
-                }}
-                isAppInstalled={isAppInstalled}
-                installPrompt={installPrompt}
-                userSession={currentUserSession}
-              />
-            )}
-
             {activeTab === 'editor' && (
               <SlideEditorView
                 key={slideEditorResetKey}

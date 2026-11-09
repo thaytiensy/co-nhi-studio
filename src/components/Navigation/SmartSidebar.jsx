@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard,
   Presentation,
   Brush,
   Gamepad2,
@@ -42,14 +41,6 @@ export default function SmartSidebar({
   }, []);
 
   const navItems = [
-    {
-      id: 'dashboard',
-      name: 'Tổng Quan Bento',
-      icon: LayoutDashboard,
-      color: 'text-amber-600',
-      activeBg: 'bg-amber-50 text-amber-900 border-amber-300 font-black',
-      badge: 'Hub'
-    },
     {
       id: 'editor',
       name: 'Soạn Slide',

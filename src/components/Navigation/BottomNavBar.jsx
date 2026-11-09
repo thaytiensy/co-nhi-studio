@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  LayoutDashboard,
   Presentation,
   Brush,
   Gamepad2,
@@ -10,7 +9,6 @@ import {
 
 export default function BottomNavBar({ activeTab, setActiveTab }) {
   const navTabs = [
-    { id: 'dashboard', name: 'Tổng Quan', icon: LayoutDashboard },
     { id: 'editor', name: 'Soạn Slide', icon: Presentation },
     { id: 'drawing', name: 'Bảng Vẽ', icon: Brush },
     { id: 'games', name: 'Trò Chơi', icon: Gamepad2 },
