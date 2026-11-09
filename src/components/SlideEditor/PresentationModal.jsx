@@ -100,6 +100,8 @@ export default function PresentationModal({
   const [powerPointMode, setPowerPointMode] = useState(true);
   const [revealCount, setRevealCount] = useState(1);
   const [autoReadOnAdvance, setAutoReadOnAdvance] = useState(true);
+  const [isLaserActive, setIsLaserActive] = useState(false);
+  const [laserPos, setLaserPos] = useState({ x: -100, y: -100 });
 
   // Định dạng mm:ss
   const formatTime = (secs) => {
@@ -342,6 +344,12 @@ export default function PresentationModal({
         return;
       }
 
+      // Phím L / l: Bật/Tắt con trỏ Laser đỏ phát sáng
+      if (e.key === 'l' || e.key === 'L') {
+        setIsLaserActive(prev => !prev);
+        return;
+      }
+
       // Phím H / ? : Xem danh mục phím tắt
       if (e.key === 'h' || e.key === 'H' || e.key === '?') {
         setShowShortcutsHelp(prev => !prev);
@@ -372,7 +380,10 @@ export default function PresentationModal({
     onClose
   ]);
 
-  const handleMouseMove = () => {
+  const handleMouseMove = (e) => {
+    if (e) {
+      setLaserPos({ x: e.clientX, y: e.clientY });
+    }
     setControlsVisible(true);
     if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     hideTimeoutRef.current = setTimeout(() => {
@@ -511,7 +522,9 @@ export default function PresentationModal({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onClick={handleContainerClick}
-      className="fixed inset-0 bg-black z-50 flex items-center justify-center select-none overflow-hidden cursor-pointer"
+      className={`fixed inset-0 bg-black z-50 flex items-center justify-center select-none overflow-hidden ${
+        isLaserActive ? 'cursor-none' : 'cursor-pointer'
+      }`}
     >
       {/* =========================================================================
           1. THANH ĐỒNG HỒ SƯ PHẠM 35 PHÚT (PEDAGOGY TIMER DOCK - TOP)
@@ -623,6 +636,9 @@ export default function PresentationModal({
                     color: el.color || '#000000',
                     textAlign: el.textAlign || 'left',
                     whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    backgroundColor: el.background || 'transparent',
                     lineHeight: 1.25,
                   }}
                 >
@@ -635,7 +651,7 @@ export default function PresentationModal({
               return (
                 <div
                   key={el.id}
-                  className="absolute pointer-events-none animate-in fade-in zoom-in-95 duration-200 relative"
+                  className="absolute pointer-events-none animate-in fade-in zoom-in-95 duration-200"
                   style={{
                     left: `${el.x}px`,
                     top: `${el.y}px`,
@@ -680,6 +696,18 @@ export default function PresentationModal({
                         stroke={el.stroke || 'none'}
                         strokeWidth={el.strokeWidth || 0}
                         opacity={el.opacity ?? 1}
+                      />
+                    </svg>
+                  ) : el.shapeType === 'line' ? (
+                    <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <line
+                        x1={el.width >= el.height ? 0 : 50}
+                        y1={el.width >= el.height ? 50 : 0}
+                        x2={el.width >= el.height ? 100 : 50}
+                        y2={el.width >= el.height ? 50 : 100}
+                        stroke={el.stroke || el.fill || '#1e293b'}
+                        strokeWidth={Math.max(4, el.strokeWidth || 4)}
+                        strokeLinecap="round"
                       />
                     </svg>
                   ) : (
@@ -954,6 +982,17 @@ export default function PresentationModal({
         </div>
       )}
 
+      {/* Con trỏ Laser VIP phát sáng */}
+      {isLaserActive && (
+        <div
+          className="fixed pointer-events-none z-50 -translate-x-1/2 -translate-y-1/2"
+          style={{ left: `${laserPos.x}px`, top: `${laserPos.y}px` }}
+        >
+          <div className="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_16px_5px_rgba(239,68,68,0.95)] animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+      )}
+
       {/* =========================================================================
           5. THANH ĐIỀU KHIỂN DƯỚI ĐÁY MÀN HÌNH (FLOATING CONTROL BAR - BOTTOM)
       ========================================================================= */}
@@ -1001,6 +1040,17 @@ export default function PresentationModal({
           title="Bật/Tắt chế độ trình chiếu từng bước kiểu PowerPoint: Mỗi lần bấm chuột sẽ chuyển ô chữ, hình và tự động đọc nếu có chữ"
         >
           <span>🎬 PowerPoint: {powerPointMode ? 'Từng Bước' : 'Hiện Toàn Bộ'}</span>
+        </button>
+
+        {/* Nút Bật/Tắt Con Trỏ Laser VIP */}
+        <button
+          onClick={() => setIsLaserActive(!isLaserActive)}
+          className={`px-2.5 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all border cursor-pointer ${
+            isLaserActive ? 'bg-red-500/20 text-red-400 border-red-500/60 ring-2 ring-red-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+          }`}
+          title="Bật/Tắt con trỏ Laser đỏ phát sáng để chỉ vào tranh khi giảng bài (Phím L)"
+        >
+          <span>🔴 Laser</span>
         </button>
 
         {/* Nút Bật/Tắt Tự Động Đọc Chữ Khi Chuyển Bước */}
@@ -1273,6 +1323,10 @@ export default function PresentationModal({
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-300">Mở bảng vẽ thị phạm nhanh</span>
                 <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím W</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Bật/Tắt con trỏ Laser đỏ phát sáng</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím L</kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-300">Bật/Tắt thanh Đồng hồ 35 phút</span>

@@ -22,6 +22,7 @@ import confetti from 'canvas-confetti';
 import { ART_CURRICULUM_THEMES, generateGameQuestionsByTheme } from '../../data/artGamesCurriculumBank';
 import { generateNaturalArtGame, parseNaturalGamePrompt } from '../../utils/aiNaturalLanguageService';
 import { buildAnswerFeedback } from '../../utils/gameFeedbackService';
+import { classroomAudio } from '../../utils/classroomAudioService';
 
 const DEFAULT_GAMES = {
   // Game 1: Color Mixing & Matching
@@ -144,6 +145,10 @@ export default function ArtGames({
 
   // Question Editor Drawer States
   const [isEditingQuestions, setIsEditingQuestions] = useState(false);
+  const [gameGeneratorMode, setGameGeneratorMode] = useState("natural");
+  const [naturalGamePrompt, setNaturalGamePrompt] = useState("");
+  const [isAiGeneratingGame, setIsAiGeneratingGame] = useState(false);
+  const [naturalGameAnalysis, setNaturalGameAnalysis] = useState(null);
 
   // Get current active questions
   const getActiveQuestionList = () => {
@@ -168,11 +173,16 @@ export default function ArtGames({
 
     if (idx === currentQ.correctAnswer) {
       setScore(prev => prev + 10);
-      confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: { y: 0.7 }
-      });
+      try { classroomAudio.playSuccessSound(); } catch (_) {}
+      try {
+        confetti({
+          particleCount: 60,
+          spread: 70,
+          origin: { y: 0.7 }
+        });
+      } catch (_) {}
+    } else {
+      try { classroomAudio.playFailureSound(); } catch (_) {}
     }
   };
 
@@ -183,11 +193,13 @@ export default function ArtGames({
       setIsAnswered(false);
     } else {
       setShowResult(true);
-      confetti({
-        particleCount: 120,
-        spread: 100,
-        origin: { y: 0.6 }
-      });
+      try {
+        confetti({
+          particleCount: 120,
+          spread: 100,
+          origin: { y: 0.6 }
+        });
+      } catch (_) {}
     }
   };
 

@@ -209,6 +209,20 @@ export default function SlideCanvas({
             />
           </svg>
         );
+      case 'line':
+        return (
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <line
+              x1={el.width >= el.height ? 0 : 50}
+              y1={el.width >= el.height ? 50 : 0}
+              x2={el.width >= el.height ? 100 : 50}
+              y2={el.width >= el.height ? 50 : 100}
+              stroke={el.stroke || el.fill || '#1e293b'}
+              strokeWidth={Math.max(4, el.strokeWidth || 4)}
+              strokeLinecap="round"
+            />
+          </svg>
+        );
       case 'roundedRect':
       default:
         return (

@@ -40,6 +40,69 @@ const getMediaMimeType = (filePath) => {
   return mimeMap[ext] || 'application/octet-stream';
 };
 
+
+// Bổ trợ nhận diện màu sắc chuẩn OpenXML (srgbClr, schemeClr, sysClr)
+function extractColor(parentEl, fallback = null) {
+  if (!parentEl) return fallback;
+  const srgb = parentEl.getElementsByTagName('a:srgbClr')[0] || parentEl.getElementsByTagName('srgbClr')[0];
+  if (srgb && srgb.getAttribute('val')) {
+    const val = srgb.getAttribute('val');
+    if (/^[0-9a-fA-F]{6}$/.test(val)) return '#' + val;
+  }
+  const sys = parentEl.getElementsByTagName('a:sysClr')[0] || parentEl.getElementsByTagName('sysClr')[0];
+  if (sys) {
+    const lastClr = sys.getAttribute('lastClr');
+    if (lastClr && /^[0-9a-fA-F]{6}$/.test(lastClr)) return '#' + lastClr;
+    const val = sys.getAttribute('val');
+    if (val === 'windowText') return '#1e293b';
+    if (val === 'window') return '#ffffff';
+  }
+  const scheme = parentEl.getElementsByTagName('a:schemeClr')[0] || parentEl.getElementsByTagName('schemeClr')[0];
+  if (scheme && scheme.getAttribute('val')) {
+    const val = scheme.getAttribute('val');
+    const schemeMap = {
+      accent1: '#4f46e5',
+      accent2: '#f59e0b',
+      accent3: '#10b981',
+      accent4: '#ef4444',
+      accent5: '#8b5cf6',
+      accent6: '#06b6d4',
+      tx1: '#1e293b',
+      tx2: '#475569',
+      bg1: '#ffffff',
+      bg2: '#f8fafc',
+      hlink: '#2563eb',
+      folHlink: '#7c3aed'
+    };
+    return schemeMap[val] || fallback;
+  }
+  return fallback;
+}
+
+// Kiểm tra hình khối có màu nền thực sự hay là trong suốt / noFill
+function hasFill(sp) {
+  const spPr = sp.getElementsByTagName('p:spPr')[0] || sp.getElementsByTagName('spPr')[0] || sp;
+  const noFill = spPr.getElementsByTagName('a:noFill')[0] || spPr.getElementsByTagName('noFill')[0];
+  if (noFill) return false;
+  const solidFill = spPr.getElementsByTagName('a:solidFill')[0] || spPr.getElementsByTagName('solidFill')[0];
+  const gradFill = spPr.getElementsByTagName('a:gradFill')[0] || spPr.getElementsByTagName('gradFill')[0];
+  const blipFill = spPr.getElementsByTagName('a:blipFill')[0] || spPr.getElementsByTagName('blipFill')[0];
+  return Boolean(solidFill || gradFill || blipFill);
+}
+
+// Lấy thông tin viền nét vẽ
+function getLineStroke(sp) {
+  const spPr = sp.getElementsByTagName('p:spPr')[0] || sp.getElementsByTagName('spPr')[0] || sp;
+  const ln = spPr.getElementsByTagName('a:ln')[0] || spPr.getElementsByTagName('ln')[0];
+  if (!ln) return null;
+  const noFill = ln.getElementsByTagName('a:noFill')[0] || ln.getElementsByTagName('noFill')[0];
+  if (noFill) return null;
+  const clr = extractColor(ln, '#1e293b');
+  const wAttr = ln.getAttribute('w');
+  const wPx = wAttr ? Math.max(1, Math.round(parseInt(wAttr, 10) / 12700)) : 2;
+  return { color: clr, width: wPx };
+}
+
 // Trích xuất chính xác tọa độ & kích thước từ <a:xfrm> trong OpenXML
 // Tránh nhầm lẫn với thẻ <a:extLst><a:ext uri="...">
 function extractTransform(element) {
@@ -589,77 +652,111 @@ export const parsePPTXFile = async (file) => {
           const rawW = emuToX(tf.extCx);
           const rawH = emuToY(tf.extCy);
 
-          x = Math.max(0, Math.min(CANVAS_WIDTH - 30, rawX));
-          y = Math.max(0, Math.min(CANVAS_HEIGHT - 25, rawY));
+          x = Math.max(0, Math.min(CANVAS_WIDTH - 20, rawX));
+          y = Math.max(0, Math.min(CANVAS_HEIGHT - 20, rawY));
           w = Math.max(30, Math.min(CANVAS_WIDTH - x, rawW));
           h = Math.max(20, Math.min(CANVAS_HEIGHT - y, rawH));
         }
 
+        // Kiểm tra placeholder
+        const ph = sp.getElementsByTagName('p:ph')[0] || sp.getElementsByTagName('ph')[0];
+
         // Lấy nội dung chữ trong p:txBody
-        const txBody = sp.getElementsByTagName('p:txBody')[0];
+        const txBody = sp.getElementsByTagName('p:txBody')[0] || sp.getElementsByTagName('txBody')[0];
+        let fullText = '';
+        let maxFontSize = 18;
+        let isBold = false;
+        let textColor = '#1e293b';
+        let textAlignment = 'left';
+
         if (txBody) {
           const paragraphs = txBody.getElementsByTagName('a:p');
           const textRuns = [];
-          let maxFontSize = 18;
-          let isBold = false;
-          let textColor = '#1e293b';
 
           for (let p = 0; p < paragraphs.length; p++) {
             const pEl = paragraphs[p];
-            const tEls = pEl.getElementsByTagName('a:t');
+            const pPr = pEl.getElementsByTagName('a:pPr')[0] || pEl.getElementsByTagName('pPr')[0];
+            if (pPr && pPr.getAttribute('algn')) {
+              const algn = pPr.getAttribute('algn');
+              if (algn === 'ctr') textAlignment = 'center';
+              else if (algn === 'r') textAlignment = 'right';
+              else if (algn === 'just') textAlignment = 'justify';
+            }
+
             let pStr = '';
-            for (let t = 0; t < tEls.length; t++) {
-              pStr += tEls[t].textContent;
+            const childNodes = Array.from(pEl.childNodes || []);
+            for (const node of childNodes) {
+              const nodeName = node.nodeName || '';
+              if (nodeName.endsWith(':br') || nodeName === 'br') {
+                pStr += '\n';
+              } else if (nodeName.endsWith(':r') || nodeName === 'r') {
+                const tEls = node.getElementsByTagName('a:t');
+                for (let t = 0; t < tEls.length; t++) {
+                  pStr += tEls[t].textContent || '';
+                }
+                const rPr = node.getElementsByTagName('a:rPr')[0] || node.getElementsByTagName('rPr')[0];
+                if (rPr) {
+                  const sz = parseInt(rPr.getAttribute('sz') || '0', 10);
+                  if (sz > 0) maxFontSize = Math.max(maxFontSize, Math.round(sz / 100));
+                  if (rPr.getAttribute('b') === '1') isBold = true;
+                  const clr = extractColor(rPr, null);
+                  if (clr) textColor = clr;
+                }
+              } else if (nodeName.endsWith(':t') || nodeName === 't') {
+                pStr += node.textContent || '';
+              }
             }
             if (pStr) textRuns.push(pStr);
-
-            const rPr = pEl.getElementsByTagName('a:rPr')[0];
-            if (rPr) {
-              const sz = parseInt(rPr.getAttribute('sz') || '0', 10);
-              if (sz > 0) {
-                maxFontSize = Math.max(maxFontSize, Math.round(sz / 100));
-              }
-              if (rPr.getAttribute('b') === '1') isBold = true;
-              const clr = rPr.getElementsByTagName('a:srgbClr')[0];
-              if (clr && clr.getAttribute('val')) {
-                textColor = '#' + clr.getAttribute('val');
-              }
-            }
           }
 
-          const fullText = textRuns.join('\n');
-          if (fullText.trim()) {
-            elements.push({
-              id: `text-${sIdx}-${i}-${Date.now()}`,
-              type: 'text',
-              x,
-              y,
-              width: w,
-              height: h,
-              text: fullText,
-              fontSize: Math.min(maxFontSize, 42),
-              fontWeight: isBold ? 'bold' : 'normal',
-              color: textColor,
-              textAlign: x < 250 && w > 450 ? 'center' : 'left',
-            });
-            continue;
-          }
+          fullText = textRuns.join('\n');
         }
 
-        // Nếu là hình khối thuần túy không chữ (Shape)
-        const prstGeom = sp.getElementsByTagName('a:prstGeom')[0];
-        if (prstGeom) {
-          const geom = prstGeom.getAttribute('prst') || 'rect';
+        // Nếu là placeholder nhưng không có chữ -> BỎ QUA HOÀN TOÀN (Tuyệt đối không render thành khối xám!)
+        if (ph && !fullText.trim()) {
+          continue;
+        }
+
+        const spPr = sp.getElementsByTagName('p:spPr')[0] || sp.getElementsByTagName('spPr')[0] || sp;
+        const isShapeFilled = hasFill(spPr);
+        const shapeFillColor = isShapeFilled ? extractColor(spPr, null) : null;
+        const shapeStroke = getLineStroke(spPr);
+
+        if (fullText.trim()) {
+          let adjustedW = w;
+          const minTextWidth = Math.min(CANVAS_WIDTH - x, Math.max(w, fullText.length * 13));
+          if (w < 120 && fullText.length > 8) {
+            adjustedW = minTextWidth;
+          }
+
+          elements.push({
+            id: `text-${sIdx}-${i}-${Date.now()}`,
+            type: 'text',
+            x,
+            y,
+            width: adjustedW,
+            height: Math.max(h, 24),
+            text: fullText,
+            fontSize: Math.min(maxFontSize, 42),
+            fontWeight: isBold ? 'bold' : 'normal',
+            color: textColor,
+            textAlign: textAlignment || (x < 250 && adjustedW > 450 ? 'center' : 'left'),
+            background: shapeFillColor || undefined,
+          });
+          continue;
+        }
+
+        // Nếu KHÔNG có text: CHỈ RENDER KHI CÓ FILL THẬT HOẶC CÓ VIỀN NÉT VẼ!
+        // Không có fill và không có nét viền -> Khối trong suốt layout, BỎ QUA!
+        if (isShapeFilled || shapeStroke) {
+          const prstGeom = sp.getElementsByTagName('a:prstGeom')[0] || sp.getElementsByTagName('prstGeom')[0];
+          const geom = prstGeom ? (prstGeom.getAttribute('prst') || 'rect') : 'rect';
           let shapeType = 'roundedRect';
           if (geom.includes('ellipse') || geom.includes('circle')) shapeType = 'circle';
           else if (geom.includes('triangle')) shapeType = 'triangle';
           else if (geom.includes('star')) shapeType = 'star';
-
-          let fillColor = '#cbd5e1';
-          const fillClr = sp.getElementsByTagName('a:srgbClr')[0];
-          if (fillClr && fillClr.getAttribute('val')) {
-            fillColor = '#' + fillClr.getAttribute('val');
-          }
+          else if (geom.includes('arrow')) shapeType = 'arrow';
+          else if (geom === 'line' || geom.includes('connector')) shapeType = 'line';
 
           elements.push({
             id: `shape-${sIdx}-${i}-${Date.now()}`,
@@ -669,9 +766,45 @@ export const parsePPTXFile = async (file) => {
             y,
             width: w,
             height: h,
-            fill: fillColor,
+            fill: shapeFillColor || 'transparent',
+            stroke: shapeStroke ? shapeStroke.color : undefined,
+            strokeWidth: shapeStroke ? shapeStroke.width : undefined,
           });
         }
+      }
+
+      // 4b. Trích xuất đường nét vẽ, đường thẳng & mũi tên (p:cxnSp)
+      const cxnShapes = slideDoc.getElementsByTagName('p:cxnSp');
+      for (let c = 0; c < cxnShapes.length; c++) {
+        const cxn = cxnShapes[c];
+        const tf = extractTransform(cxn);
+        if (tf.extCx === null && tf.extCy === null) continue;
+
+        const rawX = tf.offX !== null ? emuToX(tf.offX) : 0;
+        const rawY = tf.offY !== null ? emuToY(tf.offY) : 0;
+        let rawW = tf.extCx !== null ? emuToX(tf.extCx) : 100;
+        let rawH = tf.extCy !== null ? emuToY(tf.extCy) : 10;
+
+        if (rawW < 6) rawW = 6;
+        if (rawH < 6) rawH = 6;
+
+        const stroke = getLineStroke(cxn) || { color: '#1e293b', width: 3 };
+        const prstGeom = cxn.getElementsByTagName('a:prstGeom')[0];
+        const geom = prstGeom ? prstGeom.getAttribute('prst') : 'line';
+        const isArrow = geom?.includes('arrow') || Boolean(cxn.getElementsByTagName('a:tailEnd')[0] || cxn.getElementsByTagName('a:headEnd')[0]);
+
+        elements.push({
+          id: `cxn-${sIdx}-${c}-${Date.now()}`,
+          type: 'shape',
+          shapeType: isArrow ? 'arrow' : 'line',
+          x: Math.max(0, Math.min(CANVAS_WIDTH - 20, rawX)),
+          y: Math.max(0, Math.min(CANVAS_HEIGHT - 20, rawY)),
+          width: Math.max(12, rawW),
+          height: Math.max(6, rawH),
+          fill: stroke.color,
+          stroke: stroke.color,
+          strokeWidth: stroke.width,
+        });
       }
 
       // 4b. Trích xuất bảng biểu & khung đồ họa (p:graphicFrame)
