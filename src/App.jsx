@@ -15,6 +15,7 @@ const PPTXPreviewModal = React.lazy(() => import('./components/SlideEditor/PPTXP
 const VideoGuideModal = React.lazy(() => import('./components/VideoGuide/VideoGuideModal'));
 const AdminModal = React.lazy(() => import('./components/Admin/AdminModal'));
 const InstallAppModal = React.lazy(() => import('./components/Install/InstallAppModal'));
+const BentoDashboardView = React.lazy(() => import('./components/Dashboard/BentoDashboardView'));
 import SmartSidebar from './components/Navigation/SmartSidebar';
 import BottomNavBar from './components/Navigation/BottomNavBar';
 import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
@@ -67,7 +68,16 @@ export default function App() {
   const [slides, setSlides] = useState(INITIAL_SLIDES);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [slideEditorResetKey, setSlideEditorResetKey] = useState(0);
-  const [activeTab, setActiveTab] = useState('editor'); // 'editor', 'drawing', 'games', 'camera', 'evaluation'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && ['dashboard', 'editor', 'drawing', 'games', 'camera', 'evaluation'].includes(tabParam)) {
+        return tabParam;
+      }
+    }
+    return 'editor';
+  });
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
   const [isPresentationOpen, setIsPresentationOpen] = useState(false);
@@ -537,6 +547,17 @@ export default function App() {
 
         <main className="flex-1 flex overflow-hidden relative">
           <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
+            {activeTab === 'dashboard' && (
+              <BentoDashboardView
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onOpenSlideWithTitle={(title) => {
+                  setProjectTitle(title);
+                  setActiveTab('editor');
+                }}
+                slides={slides}
+              />
+            )}
+
             {activeTab === 'editor' && (
               <SlideEditorView
                 key={slideEditorResetKey}

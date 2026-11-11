@@ -77,7 +77,7 @@ export const QUICK_ACTION_CHIPS: QuickActionChip[] = [
     id: 'chip-export-word',
     label: '📝 Xuất Báo Cáo Word',
     command: 'xuất word',
-    description: 'Tải văn bản Word (.doc) có Quốc hiệu Tiêu ngữ và chữ ký Đỗ Tiến Sỹ',
+    description: 'Tải văn bản Word (.doc) có Quốc hiệu Tiêu ngữ chuẩn thể thức',
     category: 'export',
     badgeColor: 'bg-indigo-50 text-indigo-800 border-indigo-300'
   },
@@ -109,7 +109,7 @@ export const QUICK_ACTION_CHIPS: QuickActionChip[] = [
     id: 'chip-load-sample',
     label: '⚡ Nạp Dữ Liệu Mẫu',
     command: 'nạp dữ liệu mẫu',
-    description: 'Phục hồi bộ dữ liệu mẫu trường TH Lê Quý Đôn',
+    description: 'Phục hồi bộ dữ liệu mẫu chuẩn GDPT 2018',
     category: 'system',
     badgeColor: 'bg-yellow-50 text-yellow-900 border-yellow-300'
   }
@@ -179,10 +179,10 @@ export function parseSmartCommand(rawInput: string): SmartCommandResult {
   }
 
   // 5. Phân tích lệnh Nạp Dữ Liệu Mẫu
-  if (/(?:du lieu mau|nap mau|khoi phuc mac dinh|reset mau|le quy don)/i.test(norm)) {
+  if (/(?:du lieu mau|nap mau|khoi phuc mac dinh|reset mau|gdpt 2018)/i.test(norm)) {
     return {
       type: 'load_sample',
-      message: 'Khôi phục dữ liệu mẫu thực tế Trường PTDTBT TH Lê Quý Đôn.',
+      message: 'Khôi phục dữ liệu mẫu thực tế chuẩn GDPT 2018.',
       confidence: 0.95
     };
   }

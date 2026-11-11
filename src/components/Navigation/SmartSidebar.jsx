@@ -14,7 +14,8 @@ import {
   LogOut,
   ShieldCheck,
   Unlock,
-  Sparkles
+  Sparkles,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function SmartSidebar({
@@ -42,6 +43,14 @@ export default function SmartSidebar({
   }, []);
 
   const navItems = [
+    {
+      id: 'dashboard',
+      name: 'Tổng Quan',
+      icon: LayoutDashboard,
+      color: 'text-amber-600',
+      activeBg: 'bg-amber-50 text-amber-900 border-amber-300 font-black',
+      badge: 'VIP'
+    },
     {
       id: 'editor',
       name: 'Soạn Slide',
@@ -95,7 +104,7 @@ export default function SmartSidebar({
             </div>
             <div className="truncate">
               <span className="font-black text-xs text-slate-800 tracking-tight block truncate">Cọ Nhí Studio</span>
-              <span className="text-[10px] font-bold text-amber-700 block truncate">TH Lê Quý Đôn</span>
+              <span className="text-[10px] font-bold text-amber-700 block truncate">Mĩ Thuật GDPT 2018</span>
             </div>
           </div>
         )}

@@ -7,7 +7,7 @@
 
 # 2. BỘ 3 THƯ VIỆN LÕI (src/lib/)
 - STORAGE_ENGINE (src/lib/storage.ts): Quản lý LocalStorage tự động với cơ chế Auto-save Debounce 300ms, bảo toàn dữ liệu khi F5 tải lại trang. Cung cấp hàm xuất backup (.json), nhập restore (.json), phục hồi dữ liệu mẫu mặc định và đồng bộ qua CustomEvent/StorageEvent.
-- EXPORT_ENGINE (src/lib/export-engine.ts): Xuất báo cáo chuyên nghiệp ra Word (.doc) và Excel (.csv) chuẩn phông chữ Times New Roman, đầy đủ Quốc hiệu Tiêu ngữ, tên cơ quan chủ quản (UBND Xã Ia Krêl - Trường PTDTBT TH Lê Quý Đôn), bảng kẻ khung rõ nét và mục ký tên người lập biểu (Đỗ Tiến Sỹ).
+- EXPORT_ENGINE (src/lib/export-engine.ts): Xuất báo cáo chuyên nghiệp ra Word (.doc) và Excel (.csv) chuẩn phông chữ Times New Roman, đầy đủ Quốc hiệu Tiêu ngữ, tên cơ quan chủ quản (Phòng Giáo dục và Đào tạo - Trường Tiểu học), bảng kẻ khung rõ nét và mục ký tên người lập biểu (Giáo viên).
 - SMART_COMMAND (src/lib/smart-command.ts): Bộ phân tích câu lệnh tiếng Việt tự nhiên chạy 100% offline tại trình duyệt, nhận diện từ khóa tìm kiếm, lọc theo tuần/lớp/trạng thái/mức đạt, thêm nhanh bài dạy, xuất Word/Excel, sao lưu/khôi phục.
 
 # 3. GIAO DIỆN & TRẢI NGHIỆM NGƯỜI DÙNG (UI/UX)

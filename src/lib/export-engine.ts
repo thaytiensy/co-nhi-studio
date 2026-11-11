@@ -1,8 +1,8 @@
 /**
  * Cọ Nhí Studio - Bộ xuất báo cáo chuyên nghiệp chuẩn SIÊU VIP PRO
  * Hỗ trợ xuất file Word (.doc) và Excel (.csv) chuẩn phông Times New Roman,
- * đầy đủ Quốc hiệu Tiêu ngữ, tên đơn vị UBND Xã Ia Krêl - Trường PTDTBT TH Lê Quý Đôn,
- * bảng biểu kẻ khung sắc nét và chữ ký người lập biểu Đỗ Tiến Sỹ.
+ * đầy đủ Quốc hiệu Tiêu ngữ, tên cơ quan đơn vị,
+ * bảng biểu kẻ khung sắc nét và chữ ký người lập biểu.
  */
 
 import { getStoredData } from './storage.ts';
@@ -43,9 +43,9 @@ export function exportWordReport(options: ExportReportOptions = {}): string {
   const currentData = getStoredData();
   const settings: StudioSettings = {
     ...currentData.settings,
-    agencyName: options.agencyName || currentData.settings?.agencyName || 'UBND XÃ IA KRÊL',
-    schoolName: options.schoolName || currentData.settings?.schoolName || 'TRƯỜNG PTDTBT TH LÊ QUÝ ĐÔN',
-    teacherName: options.teacherName || currentData.settings?.teacherName || 'Đỗ Tiến Sỹ',
+    agencyName: options.agencyName || currentData.settings?.agencyName || 'PHÒNG GIÁO DỤC VÀ ĐÀO TẠO',
+    schoolName: options.schoolName || currentData.settings?.schoolName || 'TRƯỜNG TIỂU HỌC',
+    teacherName: options.teacherName || currentData.settings?.teacherName || 'Giáo viên',
     academicYear: options.academicYear || currentData.settings?.academicYear || '2026 - 2027',
     currentSemester: options.semester || currentData.settings?.currentSemester || 'Học kì I'
   };
@@ -161,7 +161,7 @@ export function exportWordReport(options: ExportReportOptions = {}): string {
         <td style="width: 55%; text-align: center;">
           <div style="font-size: 12pt; font-weight: bold;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
           <div style="font-size: 12pt; font-weight: bold; text-decoration: underline;">Độc lập - Tự do - Hạnh phúc</div>
-          <div style="font-size: 11pt; font-style: italic; margin-top: 4pt;">Ia Krêl, ${dateStr}</div>
+          <div style="font-size: 11pt; font-style: italic; margin-top: 4pt;">${dateStr}</div>
         </td>
       </tr>
     </table>
@@ -278,9 +278,9 @@ export function exportCsvReport(options: ExportReportOptions = {}): string {
   const currentData = getStoredData();
   const settings: StudioSettings = {
     ...currentData.settings,
-    agencyName: options.agencyName || currentData.settings?.agencyName || 'UBND XÃ IA KRÊL',
-    schoolName: options.schoolName || currentData.settings?.schoolName || 'TRƯỜNG PTDTBT TH LÊ QUÝ ĐÔN',
-    teacherName: options.teacherName || currentData.settings?.teacherName || 'Đỗ Tiến Sỹ',
+    agencyName: options.agencyName || currentData.settings?.agencyName || 'PHÒNG GIÁO DỤC VÀ ĐÀO TẠO',
+    schoolName: options.schoolName || currentData.settings?.schoolName || 'TRƯỜNG TIỂU HỌC',
+    teacherName: options.teacherName || currentData.settings?.teacherName || 'Giáo viên',
     academicYear: options.academicYear || currentData.settings?.academicYear || '2026 - 2027',
     currentSemester: options.semester || currentData.settings?.currentSemester || 'Học kì I'
   };

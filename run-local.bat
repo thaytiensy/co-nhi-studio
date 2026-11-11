@@ -5,8 +5,8 @@ color 0E
 
 echo ======================================================================
 echo    🎨 CỌ NHÍ STUDIO - PHẦN MỀM SOẠN GIẢNG MĨ THUẬT TIỂU HỌC GDPT 2018
-echo       UBND XÃ IA KRÊL - TRƯỜNG PTDTBT TH LÊ QUÝ ĐÔN
-echo       Tác giả / Giáo viên: Đỗ Tiến Sỹ
+echo       PHIÊN BẢN CHUẨN GDPT 2018 - SOẠN GIẢNG & TRÌNH CHIẾU MĨ THUẬT
+echo       DÀNH CHO GIÁO VIÊN TIỂU HỌC TOÀN QUỐC
 echo ======================================================================
 echo.
 echo [1/3] Đang kiểm tra môi trường Node.js...

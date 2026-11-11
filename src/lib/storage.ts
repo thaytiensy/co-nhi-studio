@@ -64,9 +64,9 @@ export interface StudioStorageState {
 export const STORAGE_KEY = 'conhi_studio_vip_storage_v1';
 
 export const DEFAULT_SETTINGS: StudioSettings = {
-  teacherName: 'Đỗ Tiến Sỹ',
-  schoolName: 'Trường PTDTBT TH Lê Quý Đôn',
-  agencyName: 'UBND Xã Ia Krêl',
+  teacherName: 'Giáo viên',
+  schoolName: 'Trường Tiểu học',
+  agencyName: 'Phòng Giáo dục và Đào tạo',
   subject: 'Mĩ thuật',
   academicYear: '2026-2027',
   currentSemester: 'Học kì I'
@@ -107,7 +107,7 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     objectives: 'Vẽ và cắt dán ngôi nhà sàn truyền thống từ các hình vuông, tam giác, chữ nhật.',
     materials: 'Giấy thủ công màu, hồ dán an toàn, kéo đầu tròn.',
     status: 'Đã dạy',
-    notes: 'Liên hệ văn hóa nhà rông Tây Nguyên tại xã Ia Krêl.'
+    notes: 'Liên hệ văn hóa nhà rông truyền thống địa phương.'
   },
   {
     id: 'plan-4',
@@ -227,7 +227,7 @@ export const DEFAULT_STUDIO_DATA: StudioStorageState = {
           {
             id: 'el-vip-1',
             type: 'text',
-            text: 'MĨ THUẬT TIỂU HỌC GDPT 2018\nTrường PTDTBT TH Lê Quý Đôn - Xã Ia Krêl\nGiáo viên: Đỗ Tiến Sỹ',
+            text: 'MĨ THUẬT TIỂU HỌC GDPT 2018\nPhần Mềm Soạn Giảng & Trình Chiếu Mĩ Thuật\nChuẩn Chương Trình GDPT 2018',
             x: 100,
             y: 80,
             width: 760,
@@ -335,7 +335,7 @@ export function exportBackupJson(customData?: StudioStorageState, filename?: str
   const a = document.createElement('a');
   const dateStr = new Date().toISOString().slice(0, 10);
   a.href = url;
-  a.download = filename || `Sao_Luu_Co_Nhi_Studio_TH_LeQuyDon_${dateStr}.json`;
+  a.download = filename || `Sao_Luu_Co_Nhi_Studio_${dateStr}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

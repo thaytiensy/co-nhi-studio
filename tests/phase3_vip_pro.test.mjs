@@ -15,8 +15,8 @@ describe('SIÊU VIP PRO - Kiểm Thử Bộ 3 Thư Viện Lõi & Tính Năng M�
     const defaultData = restoreDefaultData();
     assert.ok(defaultData.plans.length >= 10, 'Phải có ít nhất 10 bài dạy mẫu');
     assert.ok(defaultData.evaluations.length >= 10, 'Phải có ít nhất 10 học sinh đánh giá mẫu');
-    assert.equal(defaultData.settings.teacherName, 'Đỗ Tiến Sỹ');
-    assert.equal(defaultData.settings.schoolName, 'Trường PTDTBT TH Lê Quý Đôn');
+    assert.ok(defaultData.settings.teacherName, 'Phải có tên giáo viên mặc định');
+    assert.ok(defaultData.settings.schoolName, 'Phải có tên trường mặc định');
 
     const kpi = computeKPI(defaultData);
     assert.ok(kpi.totalPlans >= 10);
@@ -29,16 +29,16 @@ describe('SIÊU VIP PRO - Kiểm Thử Bộ 3 Thư Viện Lõi & Tính Năng M�
   it('2. Thư viện export-engine.ts: Kiểm tra văn bản Word (.doc) và Excel (.csv)', () => {
     // Kiểm tra cấu trúc dữ liệu xuất báo cáo
     const options = {
-      agencyName: 'UBND XÃ IA KRÊL',
-      schoolName: 'TRƯỜNG PTDTBT TH LÊ QUÝ ĐÔN',
-      teacherName: 'Đỗ Tiến Sỹ',
+      agencyName: 'PHÒNG GIÁO DỤC VÀ ĐÀO TẠO',
+      schoolName: 'TRƯỜNG TIỂU HỌC',
+      teacherName: 'Giáo viên',
       academicYear: '2026 - 2027',
       semester: 'Học kì I'
     };
 
-    assert.equal(options.agencyName, 'UBND XÃ IA KRÊL');
-    assert.equal(options.schoolName, 'TRƯỜNG PTDTBT TH LÊ QUÝ ĐÔN');
-    assert.equal(options.teacherName, 'Đỗ Tiến Sỹ');
+    assert.equal(options.agencyName, 'PHÒNG GIÁO DỤC VÀ ĐÀO TẠO');
+    assert.equal(options.schoolName, 'TRƯỜNG TIỂU HỌC');
+    assert.equal(options.teacherName, 'Giáo viên');
   });
 
   it('3. Thư viện smart-command.ts: Phân tích câu lệnh tự nhiên tiếng Việt tại trình duyệt', () => {
@@ -73,5 +73,19 @@ describe('SIÊU VIP PRO - Kiểm Thử Bộ 3 Thư Viện Lõi & Tính Năng M�
     assert.ok(QUICK_ACTION_CHIPS.length >= 8);
     assert.ok(QUICK_ACTION_CHIPS.some(c => c.id === 'chip-export-word'));
     assert.ok(QUICK_ACTION_CHIPS.some(c => c.id === 'chip-export-excel'));
+  });
+
+  it('4. Dịch vụ Firebase Database & Đồng bộ dữ liệu', async () => {
+    const { getFirebaseDatabaseStatus, syncStorageToFirebase } = await import('../src/utils/firebaseDatabaseService.js');
+    const status = getFirebaseDatabaseStatus();
+    assert.ok(status);
+    assert.ok(typeof status.isConfigured === 'boolean');
+    assert.ok(typeof status.isOnline === 'boolean');
+    assert.ok(['local_only', 'offline', 'idle', 'synced', 'syncing'].includes(status.status));
+
+    // Kiểm tra sync khi chạy local không throw error
+    const syncRes = await syncStorageToFirebase();
+    assert.ok(syncRes);
+    assert.ok(typeof syncRes.success === 'boolean');
   });
 });
