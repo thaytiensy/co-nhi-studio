@@ -35,6 +35,18 @@ export default function OfflinePedagogyAssistant({
   const [selectedPersonaId, setSelectedPersonaId] = useState('conhi');
   const [userQuery, setUserQuery] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [aiProvider, setAiProvider] = useState('offline');
+  const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      id: 'welcome',
+      sender: 'assistant',
+      time: 'Vừa xong',
+      title: 'Chào Thầy/Cô Mĩ Thuật!',
+      content: 'Em là Trợ giảng ART AI của Cọ Nhí Studio, bám sát Bộ sách Mĩ thuật Kết nối tri thức với cuộc sống (Lớp 1 - 5) & Thông tư 27. Thầy/Cô có thể trò chuyện tự nhiên bằng tiếng Việt để nhận gợi ý mục tiêu bài học, câu hỏi gợi mở, hoạt động khởi động và 4 bước vẽ chuẩn sư phạm.\n\nCác gợi ý là bản nháp sư phạm để Thầy/Cô duyệt và áp dụng trực tiếp vào bài dạy.',
+      actions: true
+    }
+  ]);
   const streamingIntervalRef = React.useRef(null);
   const messagesEndRef = React.useRef(null);
   const chatContainerRef = React.useRef(null);
@@ -134,10 +146,6 @@ export default function OfflinePedagogyAssistant({
     setCurrentGender(gender);
   };
 
-  // Groq chat chỉ đi qua API server; không lưu khóa trong trình duyệt.
-  const [aiProvider, setAiProvider] = useState('online');
-  const [isLoading, setIsLoading] = useState(false);
-
   // Hiệu ứng streaming/typewriter gõ chữ từng từ giống như AI thực thụ
   const streamAssistantMessage = (title, fullContent, providerName) => {
     const msgId = Date.now().toString();
@@ -176,18 +184,6 @@ export default function OfflinePedagogyAssistant({
       }
     }, 28);
   };
-
-  // Chat message history
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      sender: 'assistant',
-      time: 'Vừa xong',
-      title: 'Chào Thầy/Cô Mĩ Thuật!',
-      content: 'Em là Trợ giảng ART AI của Cọ Nhí Studio. Thầy/Cô có thể trò chuyện tự nhiên bằng tiếng Việt; Groq Free giữ ngữ cảnh các lượt chat và hỗ trợ gợi ý dạy Mĩ thuật tiểu học. Chế độ Cục Bộ Offline dùng ngân hàng nội dung có sẵn khi không cần kết nối AI.\n\nCác câu trả lời AI là bản nháp để giáo viên xem lại; chat văn bản không tự tạo ảnh.',
-      actions: true
-    }
-  ]);
 
   const themesForGrade = PEDAGOGY_BANK.themes[selectedGrade] || [];
   const currentTheme = themesForGrade.find(t => t.id === selectedThemeId) || themesForGrade[0];
@@ -454,13 +450,16 @@ export default function OfflinePedagogyAssistant({
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border border-white rounded-full"></span>
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <h3 className="font-extrabold text-xs md:text-sm text-slate-800">Cô Trợ Giảng AI 3D</h3>
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                  Kết Nối Tri Thức
+                </span>
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
                   GDPT 2018
                 </span>
               </div>
-              <p className="text-[10px] font-bold text-slate-500">Bài Học 3D • Sư Phạm Mĩ Thuật Chuyên Sâu</p>
+              <p className="text-[10px] font-bold text-slate-500">Mĩ Thuật Lớp 1 - 5 • SGK Kết Nối Tri Thức Với Cuộc Sống</p>
             </div>
           </div>
           {onClose && (
@@ -566,7 +565,7 @@ export default function OfflinePedagogyAssistant({
           </div>
 
           <div>
-            <label className="text-[10px] font-extrabold text-slate-500 uppercase">Chủ Đề Kết Nối:</label>
+            <label className="text-[10px] font-extrabold text-slate-500 uppercase">Chủ Đề SGK Kết Nối Tri Thức:</label>
             <select
               value={selectedThemeId}
               onChange={(e) => setSelectedThemeId(e.target.value)}

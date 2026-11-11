@@ -5,6 +5,7 @@
  * bảng biểu kẻ khung sắc nét và chữ ký người lập biểu.
  */
 
+import * as XLSX from 'xlsx';
 import { getStoredData } from './storage.ts';
 import type { TeachingPlanItem, StudentEvaluationItem, StudioSettings } from './storage.ts';
 
@@ -272,9 +273,10 @@ export function exportWordReport(options: ExportReportOptions = {}): string {
 }
 
 /**
- * Xuất bảng báo cáo ra file Excel (.csv) có BOM \uFEFF hiển thị tiếng Việt hoàn hảo
+ * Xuất bảng báo cáo ra file Excel (.xlsx) chuẩn Microsoft Excel
+ * Gồm 2 Sheet: Kế Hoạch Dạy Học & Bảng Đánh Giá Học Sinh TT27
  */
-export function exportCsvReport(options: ExportReportOptions = {}): string {
+export function exportExcelReport(options: ExportReportOptions = {}): string {
   const currentData = getStoredData();
   const settings: StudioSettings = {
     ...currentData.settings,
@@ -293,79 +295,75 @@ export function exportCsvReport(options: ExportReportOptions = {}): string {
     evaluations = evaluations.filter(e => e.className.toLowerCase() === options.filterClass?.toLowerCase());
   }
 
-  const escapeCsv = (str: any) => {
-    const s = String(str ?? '').replace(/"/g, '""');
-    return `"${s}"`;
-  };
+  const wb = XLSX.utils.book_new();
 
-  const rows: string[] = [];
-  rows.push(`${escapeCsv(settings.agencyName)} - ${escapeCsv(settings.schoolName)}`);
-  rows.push(`${escapeCsv('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM - Độc lập - Tự do - Hạnh phúc')}`);
-  rows.push(`${escapeCsv('BẢNG BÁO CÁO TIẾN ĐỘ & ĐÁNH GIÁ MÔN MĨ THUẬT')}`);
-  rows.push(`${escapeCsv(`Năm học: ${settings.academicYear} • ${settings.currentSemester} • Giáo viên: ${settings.teacherName}`)}`);
-  rows.push('');
+  // Sheet 1: Kế Hoạch Dạy Học GDPT 2018 (SGK Kết Nối Tri Thức)
+  const planRows = plans.map((p, idx) => ({
+    'STT': idx + 1,
+    'Tuần': `Tuần ${p.week}`,
+    'Tiết': p.period,
+    'Khối': `Khối ${p.grade}`,
+    'Lớp': p.className,
+    'Tên bài học (Kết Nối Tri Thức)': p.title,
+    'Yêu cầu cần đạt': p.objectives,
+    'Đồ dùng dạy học': p.materials,
+    'Trạng thái': p.status,
+    'Ghi chú': p.notes
+  }));
+  const wsPlans = XLSX.utils.json_to_sheet(planRows);
+  wsPlans['!cols'] = [
+    { wch: 6 },
+    { wch: 10 },
+    { wch: 8 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 38 },
+    { wch: 45 },
+    { wch: 32 },
+    { wch: 14 },
+    { wch: 25 }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsPlans, 'Ke_Hoach_Day_Hoc');
 
-  rows.push(escapeCsv('--- I. KẾ HOẠCH DẠY HỌC THEO TUẦN (GDPT 2018) ---'));
-  rows.push([
-    escapeCsv('STT'),
-    escapeCsv('Tuần'),
-    escapeCsv('Tiết'),
-    escapeCsv('Khối'),
-    escapeCsv('Lớp'),
-    escapeCsv('Tên Bài Học'),
-    escapeCsv('Yêu Cầu Cần Đạt'),
-    escapeCsv('Đồ Dùng Dạy Học'),
-    escapeCsv('Trạng Thái'),
-    escapeCsv('Ghi Chú')
-  ].join(','));
+  // Sheet 2: Đánh Giá Học Sinh Chuẩn Thông Tư 27
+  const evalRows = evaluations.map((e, idx) => ({
+    'STT': idx + 1,
+    'Mã học sinh': e.studentCode || `HS${String(idx + 1).padStart(3, '0')}`,
+    'Họ và tên': e.name,
+    'Lớp': e.className,
+    'Tuần': e.week ? `Tuần ${e.week}` : 'Thường xuyên',
+    'Mức đánh giá': e.level || 'H',
+    'Nội dung nhận xét': e.comment || ''
+  }));
+  const wsEvals = XLSX.utils.json_to_sheet(evalRows);
+  wsEvals['!cols'] = [
+    { wch: 6 },
+    { wch: 14 },
+    { wch: 26 },
+    { wch: 10 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 75 }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsEvals, 'Danh_Gia_Hoc_Sinh_TT27');
 
-  plans.forEach((p, idx) => {
-    rows.push([
-      escapeCsv(idx + 1),
-      escapeCsv(`Tuần ${p.week}`),
-      escapeCsv(p.period),
-      escapeCsv(`Khối ${p.grade}`),
-      escapeCsv(p.className),
-      escapeCsv(p.title),
-      escapeCsv(p.objectives),
-      escapeCsv(p.materials),
-      escapeCsv(p.status),
-      escapeCsv(p.notes)
-    ].join(','));
-  });
-
-  rows.push('');
-  rows.push(escapeCsv('--- II. BẢNG ĐÁNH GIÁ CHẤT LƯỢNG HỌC SINH THEO THÔNG TƯ 27 ---'));
-  rows.push([
-    escapeCsv('STT'),
-    escapeCsv('Mã Học Sinh'),
-    escapeCsv('Họ và Tên Học Sinh'),
-    escapeCsv('Lớp'),
-    escapeCsv('Tuần'),
-    escapeCsv('Mức Đạt Được (TT27)'),
-    escapeCsv('Lời Nhận Xét Mĩ Thuật Của Giáo Viên')
-  ].join(','));
-
-  evaluations.forEach((e, idx) => {
-    rows.push([
-      escapeCsv(idx + 1),
-      escapeCsv(e.studentCode || `HS${String(idx + 1).padStart(3, '0')}`),
-      escapeCsv(e.name),
-      escapeCsv(e.className),
-      escapeCsv(e.week ? `Tuần ${e.week}` : 'Thường xuyên'),
-      escapeCsv(e.level === 'T' ? 'Hoàn thành tốt (T)' : e.level === 'H' ? 'Hoàn thành (H)' : 'Chưa hoàn thành (C)'),
-      escapeCsv(e.comment)
-    ].join(','));
-  });
-
-  rows.push('');
-  rows.push([escapeCsv('XÁC NHẬN CỦA BAN GIÁM HIỆU'), '', '', '', '', escapeCsv('NGƯỜI LẬP BIỂU')].join(','));
-  rows.push(['', '', '', '', '', escapeCsv(settings.teacherName)].join(','));
-
-  const csvContent = '\uFEFF' + rows.join('\r\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
   const todayStr = new Date().toISOString().slice(0, 10);
-  const filename = `Bang_Bao_Cao_Mi_Thuat_${settings.schoolName.replace(/[^a-zA-Z0-9]/g, '_')}_${todayStr}.csv`;
-  triggerFileDownload(blob, filename);
+  const safeSchool = (settings.schoolName || 'Tieu_Hoc').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `Bang_Bao_Cao_Mi_Thuat_${safeSchool}_${todayStr}.xlsx`;
+
+  if (typeof window !== 'undefined') {
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    triggerFileDownload(blob, filename);
+  }
+
   return filename;
+}
+
+/**
+ * Xuất bảng báo cáo ra file Excel (.xlsx) chuẩn quy cách
+ * Giữ nguyên tên hàm exportCsvReport để tương thích ngược hoàn hảo với các bài kiểm thử và module hiện có
+ */
+export function exportCsvReport(options: ExportReportOptions = {}): string {
+  return exportExcelReport(options);
 }

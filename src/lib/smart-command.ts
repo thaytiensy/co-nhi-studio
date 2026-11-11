@@ -85,7 +85,7 @@ export const QUICK_ACTION_CHIPS: QuickActionChip[] = [
     id: 'chip-export-excel',
     label: '📊 Xuất Bảng Tính Excel',
     command: 'xuất excel',
-    description: 'Tải file Excel (.csv) chuẩn tiếng Việt UTF-8 BOM',
+    description: 'Tải file Excel (.xlsx) chuẩn cấu trúc nhập liệu SMAS Viettel',
     category: 'export',
     badgeColor: 'bg-teal-50 text-teal-800 border-teal-300'
   },

@@ -185,47 +185,47 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
     if (isComprehensive) {
       return {
         'STT': idx + 1,
-        'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
-        'Họ và Tên': st.name,
+        'Mã học sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và tên': st.name,
         'Lớp': cls,
-        'Mức Giữa Kỳ (GK)': st.gkLevel || st.level || 'H',
-        'Nhận Xét Giữa Kỳ (GK)': st.gkComment || st.comment || '',
-        'Mức Cuối Kỳ (CK)': st.ckLevel || st.level || 'H',
-        'Nhận Xét Cuối Kỳ (CK)': st.ckComment || st.comment || '',
-        'Mức Đạt Được (T/H/C)': st.level || 'H',
-        'Nhận Xét Mĩ Thuật (TT27)': st.comment || ''
+        'Mức giữa kì (GK)': parseLevel(st.gkLevel || st.level || 'H'),
+        'Nhận xét giữa kì': st.gkComment || st.comment || '',
+        'Mức cuối kì (CK)': parseLevel(st.ckLevel || st.level || 'H'),
+        'Nhận xét cuối kì': st.ckComment || st.comment || '',
+        'Mức cả năm': parseLevel(st.level || 'H'),
+        'Nội dung nhận xét cả năm': st.comment || ''
       };
     }
 
     if (isMidTermMode) {
       return {
         'STT': idx + 1,
-        'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
-        'Họ và Tên': st.name,
+        'Mã học sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và tên': st.name,
         'Lớp': cls,
-        'Mức Đạt Giữa Kỳ': st.gkLevel || st.level || 'H',
-        'Nhận Xét Giữa Kỳ (TT27)': st.gkComment || st.comment || ''
+        'Mức đánh giá giữa kì': parseLevel(st.gkLevel || st.level || 'H'),
+        'Nội dung nhận xét giữa kì': st.gkComment || st.comment || ''
       };
     }
 
     if (isFinalTermMode) {
       return {
         'STT': idx + 1,
-        'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
-        'Họ và Tên': st.name,
+        'Mã học sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và tên': st.name,
         'Lớp': cls,
-        'Mức Đạt Cuối Kỳ': st.ckLevel || st.level || 'H',
-        'Nhận Xét Cuối Kỳ (TT27)': st.ckComment || st.comment || ''
+        'Mức đánh giá cuối kì': parseLevel(st.ckLevel || st.level || 'H'),
+        'Nội dung nhận xét cuối kì': st.ckComment || st.comment || ''
       };
     }
 
     return {
       'STT': idx + 1,
-      'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
-      'Họ và Tên': st.name,
+      'Mã học sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+      'Họ và tên': st.name,
       'Lớp': cls,
-      'Mức Đạt Được': st.level || 'H',
-      'Nhận Xét Mĩ Thuật (TT27)': st.comment || ''
+      'Mức đánh giá': parseLevel(st.level || 'H'),
+      'Nội dung nhận xét': st.comment || ''
     };
   };
 

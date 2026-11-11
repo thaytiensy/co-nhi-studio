@@ -71,6 +71,46 @@ class AdminModalErrorBoundary extends React.Component {
   }
 }
 
+class SafeTabErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error('[SafeTabErrorBoundary] Caught error:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-amber-300 p-6 text-center">
+            <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-3">
+              ⚠️
+            </div>
+            <h3 className="font-extrabold text-slate-800 text-base mb-1">Đang khôi phục mô-đun</h3>
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Hệ thống đã tự động bảo vệ giao diện để không bị trắng màn hình. Thầy/Cô bấm nút bên dưới để khôi phục lại tính năng.
+            </p>
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+            >
+              🔄 Khôi Phục & Thử Lại
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [projectTitle, setProjectTitle] = useState('Bài Giảng Mĩ Thuật');
   const [slides, setSlides] = useState(INITIAL_SLIDES);
@@ -644,65 +684,67 @@ export default function App() {
         )}
 
         <main className="flex-1 flex overflow-hidden relative">
-          <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
-            {activeTab === 'dashboard' && (
-              <BentoDashboardView
-                onNavigateTab={(tab) => setActiveTab(tab)}
-                onOpenSlideWithTitle={(title) => {
-                  setProjectTitle(title);
-                  setActiveTab('editor');
-                }}
-                slides={slides}
-              />
-            )}
+          <SafeTabErrorBoundary>
+            <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
+              {activeTab === 'dashboard' && (
+                <BentoDashboardView
+                  onNavigateTab={(tab) => setActiveTab(tab)}
+                  onOpenSlideWithTitle={(title) => {
+                    setProjectTitle(title);
+                    setActiveTab('editor');
+                  }}
+                  slides={slides}
+                />
+              )}
 
-            {activeTab === 'editor' && (
-              <SlideEditorView
-                key={slideEditorResetKey}
-                slides={slides}
-                setSlides={handleSlidesChange}
-                currentSlideIndex={currentSlideIndex}
-                setCurrentSlideIndex={setCurrentSlideIndex}
-                onSave={handleSave}
-                isPresentationOpen={isPresentationOpen}
-                setIsPresentationOpen={setIsPresentationOpen}
-                showAssistant={isAssistantOpen}
-                setShowAssistant={setIsAssistantOpen}
-              />
-            )}
+              {activeTab === 'editor' && (
+                <SlideEditorView
+                  key={slideEditorResetKey}
+                  slides={slides}
+                  setSlides={handleSlidesChange}
+                  currentSlideIndex={currentSlideIndex}
+                  setCurrentSlideIndex={setCurrentSlideIndex}
+                  onSave={handleSave}
+                  isPresentationOpen={isPresentationOpen}
+                  setIsPresentationOpen={setIsPresentationOpen}
+                  showAssistant={isAssistantOpen}
+                  setShowAssistant={setIsAssistantOpen}
+                />
+              )}
 
-            {activeTab === 'drawing' && (
-              <DrawingBoard
-                onInsertDrawingToSlide={handleInsertDrawingToSlide}
-                onNavigateToEditor={() => setActiveTab('editor')}
-              />
-            )}
+              {activeTab === 'drawing' && (
+                <DrawingBoard
+                  onInsertDrawingToSlide={handleInsertDrawingToSlide}
+                  onNavigateToEditor={() => setActiveTab('editor')}
+                />
+              )}
 
-            {activeTab === 'games' && (
-              <ArtGames 
-                projectTitle={projectTitle}
-                currentSlide={slides[currentSlideIndex]}
-                onInsertGameToSlide={handleInsertGameToSlide}
-                onCreateGameSlide={handleCreateGameSlide}
-              />
-            )}
+              {activeTab === 'games' && (
+                <ArtGames 
+                  projectTitle={projectTitle}
+                  currentSlide={slides[currentSlideIndex]}
+                  onInsertGameToSlide={handleInsertGameToSlide}
+                  onCreateGameSlide={handleCreateGameSlide}
+                />
+              )}
 
-            {activeTab === 'camera' && (
-              <ArtCameraRubric
-                onInsertGradedArtworkToSlide={handleInsertGradedArtworkToSlide}
-                onNavigateToEditor={() => setActiveTab('editor')}
-                onNavigateToSmas={() => setActiveTab('evaluation')}
-              />
-            )}
+              {activeTab === 'camera' && (
+                <ArtCameraRubric
+                  onInsertGradedArtworkToSlide={handleInsertGradedArtworkToSlide}
+                  onNavigateToEditor={() => setActiveTab('editor')}
+                  onNavigateToSmas={() => setActiveTab('evaluation')}
+                />
+              )}
 
-            {activeTab === 'evaluation' && (
-              <StudentEvaluationSMAS
-                onNavigateToCamera={() => setActiveTab('camera')}
-              />
-            )}
+              {activeTab === 'evaluation' && (
+                <StudentEvaluationSMAS
+                  onNavigateToCamera={() => setActiveTab('camera')}
+                />
+              )}
 
-            {/* Slide-over Assistant Drawer for non-editor screens */}
-          </React.Suspense>
+              {/* Slide-over Assistant Drawer for non-editor screens */}
+            </React.Suspense>
+          </SafeTabErrorBoundary>
         </main>
       </div>
 
@@ -715,22 +757,24 @@ export default function App() {
             title="Bấm ra ngoài để đóng Trợ Giảng"
           />
           <div className="fixed inset-y-0 right-0 w-full sm:w-96 md:w-[430px] bg-white shadow-2xl z-50 border-l border-slate-200 animate-in slide-in-from-right duration-200 flex flex-col">
-            <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải Cô Trợ Giảng AI...</div>}>
-              <OfflinePedagogyAssistant
-                currentSlide={slides[currentSlideIndex] || slides[0]}
-                currentGrade={activeSlideGrade}
-                onInsertToNotes={(text) => {
-                  const currentSlide = slides[currentSlideIndex] || slides[0];
-                  if (!currentSlide) return;
-                  const existing = currentSlide.notes || '';
-                  const newNotes = existing ? `${existing}\n\n${text}` : text;
-                  const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
-                  handleSlidesChange(updated);
-                  alert('✓ Đã chèn nội dung vào ghi chú trang slide hiện tại!');
-                }}
-                onClose={() => setIsAssistantOpen(false)}
-              />
-            </React.Suspense>
+            <SafeTabErrorBoundary>
+              <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải Cô Trợ Giảng AI...</div>}>
+                <OfflinePedagogyAssistant
+                  currentSlide={slides[currentSlideIndex] || slides[0]}
+                  currentGrade={activeSlideGrade}
+                  onInsertToNotes={(text) => {
+                    const currentSlide = slides[currentSlideIndex] || slides[0];
+                    if (!currentSlide) return;
+                    const existing = currentSlide.notes || '';
+                    const newNotes = existing ? `${existing}\n\n${text}` : text;
+                    const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
+                    handleSlidesChange(updated);
+                    alert('✓ Đã chèn nội dung vào ghi chú trang slide hiện tại!');
+                  }}
+                  onClose={() => setIsAssistantOpen(false)}
+                />
+              </React.Suspense>
+            </SafeTabErrorBoundary>
           </div>
         </>
       )}
@@ -740,12 +784,12 @@ export default function App() {
         <BottomNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
 
-      {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) với hình ảnh Cô Trợ Giảng AI */}
+      {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) với hình ảnh Cô Trợ Giảng AI Chuẩn Thiết Kế */}
       {!isPresentationOpen && !isAssistantOpen && (
         <button
           onClick={() => setIsAssistantOpen(true)}
-          className="fixed bottom-6 right-6 z-40 pl-1.5 pr-4 py-1.5 rounded-full shadow-2xl hover:shadow-amber-500/30 border-2 border-amber-300 flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 group bg-gradient-to-r from-slate-900 via-amber-950 to-amber-900 text-white cursor-pointer ring-4 ring-amber-400/20 backdrop-blur-md"
-          title="Mở Cô Trợ Giảng AI 3D (Cục bộ GDPT 2018)"
+          className="fixed bottom-6 right-6 z-40 pl-1.5 pr-4 py-1.5 rounded-full shadow-[0_4px_25px_rgba(245,158,11,0.45)] hover:shadow-amber-500/50 border-2 border-amber-400 flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 group bg-gradient-to-r from-[#201305] via-[#2f1906] to-[#1a0e03] text-white cursor-pointer ring-2 ring-amber-400/40 backdrop-blur-md"
+          title="Mở Cô Trợ Giảng AI 3D (Cục bộ SGK Kết Nối Tri Thức)"
         >
           <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-400 shadow-md shrink-0 bg-slate-950">
             <img
@@ -758,11 +802,11 @@ export default function App() {
           <div className="flex flex-col text-left">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span className="text-xs font-black tracking-wide text-amber-100">
+              <span className="text-xs font-black tracking-wide text-amber-100 drop-shadow-xs">
                 Trợ Giảng AI
               </span>
             </div>
-            <span className="text-[10px] text-amber-300/90 font-bold">
+            <span className="text-[10px] text-amber-300 font-bold tracking-tight">
               Bài Học 3D • Sư Phạm
             </span>
           </div>

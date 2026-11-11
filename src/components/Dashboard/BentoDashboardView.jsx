@@ -37,7 +37,7 @@ import {
   exportBackupJson,
   importRestoreJson
 } from '../../lib/storage';
-import { exportWordReport, exportCsvReport } from '../../lib/export-engine';
+import { exportWordReport, exportExcelReport, exportCsvReport } from '../../lib/export-engine';
 import { parseSmartCommand, QUICK_ACTION_CHIPS } from '../../lib/smart-command';
 import {
   getFirebaseDatabaseStatus,
@@ -142,8 +142,8 @@ export default function BentoDashboardView({
         break;
       }
       case 'export_excel': {
-        exportCsvReport();
-        showToast(parsed.message || 'Đã xuất bảng tính Excel (.csv) thành công!', 'success');
+        exportExcelReport();
+        showToast(parsed.message || 'Đã xuất bảng tính Excel (.xlsx) chuẩn SMAS thành công!', 'success');
         break;
       }
       case 'backup_json': {
@@ -370,9 +370,12 @@ export default function BentoDashboardView({
         {/* 1. Header Banner & Status Bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 backdrop-blur-md p-5 rounded-3xl border border-slate-200/80 shadow-xs">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" /> SIÊU VIP PRO
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300">
+                Bộ Sách Kết Nối Tri Thức Với Cuộc Sống
               </span>
               <span className="text-xs font-bold text-slate-500">Mĩ Thuật GDPT 2018</span>
             </div>
@@ -858,8 +861,8 @@ export default function BentoDashboardView({
 
                 <button
                   onClick={() => {
-                    exportCsvReport();
-                    showToast('Đã tải bảng điểm Excel (.csv) chuẩn SMAS!', 'success');
+                    exportExcelReport();
+                    showToast('Đã tải bảng điểm Excel (.xlsx) chuẩn SMAS!', 'success');
                   }}
                   className="p-3 rounded-2xl bg-teal-50/80 hover:bg-teal-100 border border-teal-200 text-left transition-all cursor-pointer group active:scale-95"
                 >
@@ -868,7 +871,7 @@ export default function BentoDashboardView({
                   </div>
                   <div className="mt-2">
                     <span className="text-xs font-black text-teal-950 block">Xuất Bảng Excel</span>
-                    <span className="text-[10px] text-teal-700 block">UTF-8 BOM Tiếng Việt</span>
+                    <span className="text-[10px] text-teal-700 block">Định dạng .xlsx chuẩn SMAS</span>
                   </div>
                 </button>
 

@@ -142,7 +142,7 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     title: 'Chủ đề 3: Trang trí đồ vật - Họa tiết hoa văn thổ cẩm',
     grade: 3,
     className: '3B',
-    objectives: 'Quan sát và sao chép đối xứng hoa văn dệt thổ cẩm truyền thống Gia Rai.',
+    objectives: 'Quan sát và sao chép đối xứng hoa văn dệt thổ cẩm truyền thống các dân tộc.',
     materials: 'Bút chì, thước kẻ hoa văn, sáp màu nhũ.',
     status: 'Đang dạy',
     notes: 'Tích hợp giáo dục gìn giữ bản sắc văn hóa địa phương.'

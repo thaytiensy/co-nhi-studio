@@ -57,6 +57,14 @@ export function buildSlideTeacherSpeech({ slideTitle = '', slideContent = '', sl
     inquiryQuestion = `Các em có nhận thấy những nét thẳng tạo cảm giác khỏe khoắn, còn nét cong uốn lượn mang lại vẻ mềm mại, uyển chuyển thế nào không?`;
     techniqueTip = `Bí quyết trang trí: Kết hợp nhịp điệu lặp lại giữa nét to, nét nhỏ, nét thẳng và nét lượn sóng sẽ giúp họa tiết trở nên bắt mắt và cân đối hơn rất nhiều.`;
     encouragement = `Đừng ngần ngại thử nghiệm những nét vẽ mới lạ, chính sự táo bạo sẽ tạo nên phong cách nghệ thuật của riêng em!`;
+  } else if (/đại dương|biển|cá|san hô|sinh vật biển/i.test(fullText)) {
+    inquiryQuestion = `Đáy đại dương bao la có những sinh vật và màu sắc kì diệu nào đang cùng chung sống hòa thuận dưới làn nước trong xanh?`;
+    techniqueTip = `Bí quyết vẽ sinh vật biển theo SGK Kết nối tri thức: Vẽ hình dáng chú cá lớn ở giữa, điểm thêm những chú cá nhỏ bơi theo đàn, thêm rong rêu uốn lượn và bong bóng nước để bức tranh thêm phần sinh động.`;
+    encouragement = `Hãy cùng chung tay bảo vệ môi trường biển quê hương luôn trong lành qua bức tranh tuyệt đẹp của các em!`;
+  } else if (/gia đình|bữa cơm|mẹ|bố|ông bà|nhà em/i.test(fullText)) {
+    inquiryQuestion = `Khoảnh khắc sum họp ấm cúng bên gia đình gợi cho các em những nụ cười và ánh mắt yêu thương như thế nào?`;
+    techniqueTip = `Bí quyết thể hiện tình cảm gia đình: Đặt các nhân vật quây quần bên nhau, vẽ chi tiết nét mặt vui tươi và chọn những gam màu ấm áp như vàng, cam, hồng để lan tỏa sự yêu thương nhé.`;
+    encouragement = `Tình cảm gia đình là điều thiêng liêng nhất, mỗi nét vẽ đều là món quà ý nghĩa em gửi tặng những người thân yêu!`;
   }
 
   // Kết hợp thành bài giảng hoàn chỉnh 3-4 đoạn mạch lạc
@@ -370,14 +378,14 @@ export default function SpeakerNotes({
                 ? 'bg-amber-100 text-amber-900 border border-amber-400 animate-pulse'
                 : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 active:scale-95'
             }`}
-            title="AI Thầy Cọ Nhí tự động phân tích trang slide và soạn thảo lời giảng truyền cảm hứng theo GDPT 2018"
+            title="AI Thầy Cọ Nhí tự động phân tích trang slide và soạn thảo lời giảng truyền cảm hứng theo SGK Kết Nối Tri Thức Với Cuộc Sống"
           >
             <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isGeneratingAiSpeech ? 'animate-spin' : ''}`} />
             <span>
               {isGeneratingAiSpeech 
                 ? 'AI đang soạn lời giảng...' 
                 : speechSuccessNotice 
-                ? '✓ Đã tạo lời giảng AI!' 
+                ? '✓ Đã tạo lời giảng (Kết Nối Tri Thức)!' 
                 : '✨ Gợi Ý Lời Giảng AI'}
             </span>
           </button>

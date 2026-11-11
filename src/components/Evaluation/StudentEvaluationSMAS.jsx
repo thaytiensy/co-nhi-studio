@@ -139,6 +139,28 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     return [];
   });
 
+  // Quản lý danh sách lớp dạy có thể chỉnh sửa theo ý muốn giáo viên theo không gian riêng (Khai báo trước allClasses)
+  const [teachingClasses, setTeachingClasses] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(getTeachingClassesKey()) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return DEFAULT_TEACHING_CLASSES;
+  });
+
+  const saveTeachingClasses = (newClasses) => {
+    const cleaned = Array.from(new Set(newClasses.map(c => String(c).trim().replace(/^Lớp\s+/i, '')).filter(Boolean)));
+    setTeachingClasses(cleaned);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(getTeachingClassesKey(), JSON.stringify(cleaned));
+      }
+    } catch (_) {}
+  };
+
   // Tab lọc xem theo kỳ: 'TX' (Thường xuyên), 'GK' (Giữa kì), 'CK' (Cuối kì)
   const [activePeriodTab, setActivePeriodTab] = useState('TX');
   const [showSynthesisModal, setShowSynthesisModal] = useState(false);
@@ -194,28 +216,6 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   const displayedStudents = selectedClassFilter === 'all'
     ? students
     : students.filter(s => (s.className || className || '').trim() === selectedClassFilter.trim());
-
-  // Quản lý danh sách lớp dạy có thể chỉnh sửa theo ý muốn giáo viên theo không gian riêng
-  const [teachingClasses, setTeachingClasses] = useState(() => {
-    try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem(getTeachingClassesKey()) : null;
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (_) {}
-    return DEFAULT_TEACHING_CLASSES;
-  });
-
-  const saveTeachingClasses = (newClasses) => {
-    const cleaned = Array.from(new Set(newClasses.map(c => String(c).trim().replace(/^Lớp\s+/i, '')).filter(Boolean)));
-    setTeachingClasses(cleaned);
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(getTeachingClassesKey(), JSON.stringify(cleaned));
-      }
-    } catch (_) {}
-  };
 
   const [showClassManagerModal, setShowClassManagerModal] = useState(false);
   const [editingClassList, setEditingClassList] = useState([]);
@@ -699,14 +699,17 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
             <ClipboardCheck className="w-5 h-5" />
           </span>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="font-extrabold text-base text-slate-800">Nhận Xét Học Sinh & Xuất Bảng SMAS</h2>
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">
+                Bộ Sách Kết Nối Tri Thức Với Cuộc Sống
+              </span>
               <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
                 Thông tư 27/2020/TT-BGDĐT
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Gợi ý nhận xét thường xuyên & định kỳ môn Mĩ thuật • Xuất file Excel chuẩn cấu trúc nhập liệu SMAS
+              Môn Mĩ thuật Tiểu học (Lớp 1 - 5) • Bộ sách Kết nối tri thức với cuộc sống • Chuẩn Thông tư 27 & Xuất Excel SMAS Viettel
             </p>
           </div>
         </div>
