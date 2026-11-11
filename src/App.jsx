@@ -225,6 +225,7 @@ export default function App() {
 
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isAssistantMaximized, setIsAssistantMaximized] = useState(false);
 
   // PPTX Import states
   const [pptxPreviewData, setPptxPreviewData] = useState(null);
@@ -764,20 +765,26 @@ export default function App() {
         </main>
       </div>
 
-      {/* Slide-over Assistant Drawer for ALL screens */}
+      {/* Floating Modern Assistant Chatbox for ALL screens */}
       {isAssistantOpen && !isPresentationOpen && (
         <>
           <div
-            className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xs z-40 transition-opacity"
+            className="fixed inset-0 bg-slate-900/25 backdrop-blur-2xs z-40 transition-opacity"
             onClick={() => setIsAssistantOpen(false)}
             title="Bấm ra ngoài để đóng Trợ Giảng"
           />
-          <div className="fixed inset-y-0 right-0 w-full sm:w-96 md:w-[430px] bg-white shadow-2xl z-50 border-l border-slate-200 animate-in slide-in-from-right duration-200 flex flex-col">
+          <div className={`fixed z-50 transition-all duration-200 flex flex-col ${
+            isAssistantMaximized
+              ? 'inset-y-0 right-0 w-full sm:w-[500px] h-full rounded-none sm:rounded-l-3xl shadow-2xl border-l border-amber-300 bg-white overflow-hidden animate-in slide-in-from-right'
+              : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[430px] max-w-[calc(100vw-2rem)] h-[640px] max-h-[88vh] rounded-3xl shadow-2xl border-2 border-amber-400/80 bg-white ring-4 ring-amber-400/20 overflow-hidden animate-in zoom-in-95'
+          }`}>
             <SafeTabErrorBoundary>
               <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải Cô Trợ Giảng AI...</div>}>
                 <OfflinePedagogyAssistant
                   currentSlide={slides[currentSlideIndex] || slides[0]}
                   currentGrade={activeSlideGrade}
+                  isMaximized={isAssistantMaximized}
+                  onToggleMaximize={() => setIsAssistantMaximized(prev => !prev)}
                   onInsertToNotes={(text) => {
                     const currentSlide = slides[currentSlideIndex] || slides[0];
                     if (!currentSlide) return;

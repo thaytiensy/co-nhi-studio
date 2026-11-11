@@ -230,4 +230,27 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
     assert.ok(smasSource.includes('length: 35'), 'Phải tạo đủ 35 cột tuần');
     assert.ok(smasSource.includes('handleToggleWeeklyLevel'), 'Phải có hàm đổi nhanh mức T/H/C/—');
   });
+
+  it('11. Chat box Trợ Giảng AI thông minh phản hồi tự nhiên như người với người', async () => {
+    const { getNaturalPedagogyResponse } = await import('../src/utils/naturalPedagogyChatService.js');
+
+    // Chào hỏi tự nhiên
+    const greetRes = getNaturalPedagogyResponse('Chào cô trợ giảng nhé!');
+    assert.ok(greetRes.includes('Cô Trợ Giảng AI'), 'Phải chào hỏi lễ phép, ấm áp');
+    assert.ok(greetRes.includes('Cọ Nhí'), 'Phải nhận diện thương hiệu Cọ Nhí');
+
+    // Tư vấn tâm lý học sinh sợ sai
+    const psychRes = getNaturalPedagogyResponse('Học sinh sợ vẽ sai, rụt rè thì giáo viên nên làm gì?');
+    assert.ok(psychRes.includes('Nét vẽ biến hóa') || psychRes.includes('Khen ngợi'), 'Phải đưa ra lời khuyên tâm lý sư phạm chân thành');
+
+    // Trò chơi khởi động
+    const gameRes = getNaturalPedagogyResponse('Gợi ý trò chơi khởi động 5 phút');
+    assert.ok(gameRes.includes('Trò chơi') || gameRes.includes('khởi động'), 'Phải gợi ý trò chơi hấp dẫn');
+
+    // Kiểm tra cấu trúc module Chat Box xịn
+    const assistantContent = fs.readFileSync('src/components/Assistant/OfflinePedagogyAssistant.jsx', 'utf8');
+    assert.ok(assistantContent.includes('ChatHeader'), 'Phải sử dụng component ChatHeader');
+    assert.ok(assistantContent.includes('ChatMessageItem'), 'Phải sử dụng component ChatMessageItem');
+    assert.ok(assistantContent.includes('ChatInputBar'), 'Phải sử dụng component ChatInputBar');
+  });
 });
