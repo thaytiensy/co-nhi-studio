@@ -6,7 +6,6 @@ import {
   Presentation,
   Users,
   Database,
-  Search,
   Plus,
   FileText,
   FileSpreadsheet,
@@ -38,7 +37,6 @@ import {
   importRestoreJson
 } from '../../lib/storage';
 import { exportWordReport, exportExcelReport, exportCsvReport } from '../../lib/export-engine';
-import { parseSmartCommand, QUICK_ACTION_CHIPS } from '../../lib/smart-command';
 import {
   getFirebaseDatabaseStatus,
   syncStorageToFirebase,
@@ -52,7 +50,6 @@ export default function BentoDashboardView({
   slides = []
 }) {
   const [data, setData] = useState(() => getStoredData());
-  const [commandInput, setCommandInput] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -127,75 +124,6 @@ export default function BentoDashboardView({
       return matchGrade && matchStatus;
     });
   }, [data.plans, selectedGrade, statusFilter]);
-
-  // Thực thi câu lệnh tự nhiên từ Smart Command Bar
-  const handleRunCommand = (cmdText = commandInput) => {
-    const query = (cmdText || '').trim();
-    if (!query) return;
-
-    const parsed = parseSmartCommand(query);
-
-    switch (parsed.type) {
-      case 'export_word': {
-        exportWordReport();
-        showToast(parsed.message || 'Đã xuất file Word (.doc) thành công!', 'success');
-        break;
-      }
-      case 'export_excel': {
-        exportExcelReport();
-        showToast(parsed.message || 'Đã xuất bảng tính Excel (.xlsx) chuẩn SMAS thành công!', 'success');
-        break;
-      }
-      case 'backup_json': {
-        exportBackupJson(data);
-        showToast(parsed.message || 'Đã sao lưu toàn bộ dữ liệu ra file .json!', 'success');
-        break;
-      }
-      case 'restore_json': {
-        if (fileInputRef.current) fileInputRef.current.click();
-        showToast(parsed.message || 'Vui lòng chọn file .json để khôi phục.', 'info');
-        break;
-      }
-      case 'load_sample': {
-        handleRestoreDefaults();
-        showToast(parsed.message || 'Đã phục hồi dữ liệu mẫu chuẩn GDPT 2018!', 'success');
-        break;
-      }
-      case 'add_plan': {
-        setIsAddingPlan(true);
-        showToast(parsed.message || 'Mở biểu mẫu thêm kế hoạch bài dạy mới.', 'info');
-        break;
-      }
-      case 'filter_grade': {
-        if (parsed.targetGrade) setSelectedGrade(parsed.targetGrade);
-        showToast(parsed.message || `Đã lọc theo ${parsed.targetGrade}`, 'info');
-        break;
-      }
-      case 'filter_status': {
-        if (parsed.targetStatus) setStatusFilter(parsed.targetStatus);
-        showToast(parsed.message || `Đã lọc theo trạng thái ${parsed.targetStatus}`, 'info');
-        break;
-      }
-      case 'filter_evaluation': {
-        showToast(parsed.message || 'Đang hiển thị đánh giá học sinh.', 'info');
-        break;
-      }
-      case 'navigate_tab': {
-        if (parsed.targetTab && onNavigateTab) {
-          onNavigateTab(parsed.targetTab);
-          showToast(parsed.message || `Chuyển tới khu vực ${parsed.targetTab}`, 'info');
-        }
-        break;
-      }
-      case 'search_plan':
-      default: {
-        showToast(parsed.message || `Đã nhận diện: "${query}"`, 'info');
-        break;
-      }
-    }
-
-    setCommandInput('');
-  };
 
   // Nạp lại dữ liệu mẫu mặc định
   const handleRestoreDefaults = () => {
@@ -511,60 +439,6 @@ export default function BentoDashboardView({
             <p className="mt-3 text-[11px] text-slate-500 line-clamp-2">
               Dữ liệu tự động bảo toàn khi F5 tải lại trang hoặc mở trình duyệt mới.
             </p>
-          </div>
-        </div>
-
-        {/* 3. Smart Command Bar with Quick Action Chips */}
-        <div className="bg-white/80 backdrop-blur-md p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Thanh Lệnh Thông Minh (Smart Command Bar)
-              </span>
-            </div>
-            <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">
-              Nhận diện câu lệnh tiếng Việt tự nhiên 100% Cục bộ
-            </span>
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleRunCommand();
-            }}
-            className="flex items-center gap-2"
-          >
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={commandInput}
-                onChange={(e) => setCommandInput(e.target.value)}
-                placeholder="Nhập yêu cầu: 'xuất word', 'sao lưu', 'lọc lớp 1', 'thêm bài dạy', 'nạp dữ liệu mẫu'..."
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 hover:bg-slate-100 focus:bg-white text-xs md:text-sm font-semibold rounded-2xl border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all placeholder:text-slate-400"
-              />
-            </div>
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs md:text-sm rounded-2xl shadow-xs hover:shadow-md cursor-pointer transition-all active:scale-95 shrink-0"
-            >
-              Thực Thi
-            </button>
-          </form>
-
-          {/* Quick Action Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 pb-0.5">
-            {QUICK_ACTION_CHIPS.map((chip) => (
-              <button
-                key={chip.id}
-                onClick={() => handleRunCommand(chip.command)}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-bold whitespace-nowrap cursor-pointer transition-all hover:scale-105 active:scale-95 shrink-0 shadow-2xs ${chip.badgeColor}`}
-                title={chip.description}
-              >
-                {chip.label}
-              </button>
-            ))}
           </div>
         </div>
 
