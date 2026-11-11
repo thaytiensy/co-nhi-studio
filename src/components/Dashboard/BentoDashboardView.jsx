@@ -43,13 +43,16 @@ import {
   fetchStorageFromFirebase,
   subscribeToFirebaseStatus
 } from '../../utils/firebaseDatabaseService';
+import PlanPPTXImportModal from './PlanPPTXImportModal';
 
 export default function BentoDashboardView({
   onNavigateTab,
   onOpenSlideWithTitle,
+  onImportPlanSlides,
   slides = []
 }) {
   const [data, setData] = useState(() => getStoredData());
+  const [selectedPlanForImport, setSelectedPlanForImport] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -666,7 +669,18 @@ export default function BentoDashboardView({
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                      {/* Nút Nhập Giáo Án PP chuyên biệt cho từng chủ đề */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPlanForImport(plan)}
+                        className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-extrabold text-[11px] md:text-xs flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer border border-amber-400/50"
+                        title={`Nhập dữ liệu giáo án PowerPoint (.pptx) cho "${plan.title}" và chuyển sang tab Soạn Slide`}
+                      >
+                        <Upload className="w-3.5 h-3.5 shrink-0 text-amber-100" />
+                        <span className="whitespace-nowrap">Nhập Giáo Án PP</span>
+                      </button>
+
                       <button
                         onClick={() => handleTogglePlanStatus(plan.id)}
                         className={`p-1.5 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${
@@ -681,11 +695,11 @@ export default function BentoDashboardView({
 
                       <button
                         onClick={() => {
-                          if (onOpenSlideWithTitle) onOpenSlideWithTitle(plan.title);
+                          if (onOpenSlideWithTitle) onOpenSlideWithTitle(plan.title, plan);
                           else if (onNavigateTab) onNavigateTab('editor');
                         }}
                         className="p-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-colors cursor-pointer"
-                        title="Mở soạn slide cho bài này"
+                        title="Chuyển sang tab Soạn Slide bài học này"
                       >
                         <Presentation className="w-4 h-4" />
                       </button>
@@ -882,6 +896,24 @@ export default function BentoDashboardView({
           </div>
         </div>
       </div>
+
+      {/* Modal Nhập Giáo Án PowerPoint Bài Dạy Cho Từng Chủ Đề */}
+      {selectedPlanForImport && (
+        <PlanPPTXImportModal
+          plan={selectedPlanForImport}
+          onConfirmImport={(slides, title) => {
+            if (onImportPlanSlides) {
+              onImportPlanSlides(slides, title);
+            } else if (onOpenSlideWithTitle) {
+              onOpenSlideWithTitle(title);
+            } else if (onNavigateTab) {
+              onNavigateTab('editor');
+            }
+            showToast(`✓ Đã nạp thành công giáo án cho bài ${title}! Đang chuyển sang tab Soạn Slide.`, 'success');
+          }}
+          onClose={() => setSelectedPlanForImport(null)}
+        />
+      )}
     </div>
   );
 }

@@ -129,4 +129,32 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
     assert.ok(messagesIdx < scrollEffectIdx, 'messages PHẢI được khởi tạo TRƯỚC useEffect để chống lỗi trắng trang TDZ');
     assert.ok(isLoadingIdx < scrollEffectIdx, 'isLoading PHẢI được khởi tạo TRƯỚC useEffect để chống lỗi trắng trang TDZ');
   });
+
+  it('7. Hàm buildStandardSlidesForPlan sinh đủ 4 slide chuẩn sư phạm Công văn 2345/BGDĐT cho chủ đề', async () => {
+    const { buildStandardSlidesForPlan } = await import('../src/utils/planSlideGenerator.ts');
+    const samplePlan = {
+      id: 'plan-test-1',
+      title: 'Chủ đề 1: Mĩ thuật trong nhà trường (Chấm, Nét, Màu cơ bản)',
+      grade: 1,
+      week: 1,
+      period: 1,
+      objectives: 'Nhận biết 3 màu cơ bản: Đỏ, Vàng, Lam.',
+      materials: 'Sáp màu, giấy vẽ A4'
+    };
+
+    const slides = buildStandardSlidesForPlan(samplePlan);
+    assert.equal(slides.length, 4, 'Phải sinh đủ 4 trang slide');
+    assert.ok(slides[0].title.includes('Mĩ thuật trong nhà trường'), 'Slide 1 phải có tiêu đề bài học');
+    assert.ok(slides[1].title.includes('Quan Sát & Khám Phá'), 'Slide 2 là hoạt động Khám phá');
+    assert.ok(slides[2].title.includes('Luyện Tập & Thực Hành'), 'Slide 3 là hoạt động Thực hành');
+    assert.ok(slides[3].title.includes('Trưng Bày & Đánh Giá'), 'Slide 4 là hoạt động Trưng bày TT27');
+    assert.ok(slides[3].elements.some(el => el.text.includes('Thông tư 27')), 'Slide 4 phải đề cập Thông tư 27');
+  });
+
+  it('8. BentoDashboardView chứa nút Nhập Giáo Án PP cho từng chủ đề để chuyển sang tab Soạn Slide', () => {
+    const dashboardSource = fs.readFileSync('src/components/Dashboard/BentoDashboardView.jsx', 'utf8');
+    assert.ok(dashboardSource.includes('Nhập Giáo Án PP'), 'Dashboard phải chứa nút Nhập Giáo Án PP');
+    assert.ok(dashboardSource.includes('PlanPPTXImportModal'), 'Dashboard phải tích hợp PlanPPTXImportModal');
+    assert.ok(dashboardSource.includes('selectedPlanForImport'), 'Dashboard phải quản lý trạng thái selectedPlanForImport');
+  });
 });

@@ -30,6 +30,7 @@ import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSe
 import { auth } from './utils/firebaseClient';
 import { Sparkles } from 'lucide-react';
 import TeacherAssistantPillButton from './components/UI/TeacherAssistantPillButton';
+import { buildStandardSlidesForPlan } from './utils/planSlideGenerator';
 
 // Khởi tạo trang slide trắng tinh (App hoàn toàn sạch, không chứa file mẫu có sẵn)
 const BLANK_INITIAL_SLIDE = {
@@ -690,8 +691,22 @@ export default function App() {
               {activeTab === 'dashboard' && (
                 <BentoDashboardView
                   onNavigateTab={(tab) => setActiveTab(tab)}
-                  onOpenSlideWithTitle={(title) => {
+                  onOpenSlideWithTitle={(title, plan) => {
                     setProjectTitle(title);
+                    if (plan) {
+                      const generated = buildStandardSlidesForPlan(plan);
+                      setSlides(generated);
+                      setCurrentSlideIndex(0);
+                      setSlideEditorResetKey(k => k + 1);
+                    }
+                    setActiveTab('editor');
+                  }}
+                  onImportPlanSlides={(importedSlides, title) => {
+                    setSlides(importedSlides);
+                    setProjectTitle(title);
+                    setCurrentSlideIndex(0);
+                    setSlideEditorResetKey(k => k + 1);
+                    setIsSaved(false);
                     setActiveTab('editor');
                   }}
                   slides={slides}
