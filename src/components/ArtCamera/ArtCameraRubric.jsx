@@ -13,14 +13,26 @@ import {
   Video,
   VideoOff,
   Info,
-  Volume2
+  Volume2,
+  Save,
+  ClipboardCheck,
+  ChevronRight,
+  ExternalLink,
+  Users
 } from 'lucide-react';
 import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { speechService } from '../../utils/speechService';
+import { 
+  calculateRubricLevel, 
+  saveCameraEvaluationToSmas, 
+  readSmasData, 
+  DEFAULT_TEACHING_CLASSES 
+} from '../../utils/smasEvaluationBridge.js';
 
 export default function ArtCameraRubric({
   onInsertGradedArtworkToSlide,
-  onNavigateToEditor
+  onNavigateToEditor,
+  onNavigateToSmas
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -31,9 +43,18 @@ export default function ArtCameraRubric({
   const [cameraError, setCameraError] = useState('');
   const [capturedImage, setCapturedImage] = useState(null);
 
+  // Liên kết Lớp & Học sinh từ Sổ Điểm SMAS
+  const [smasState, setSmasState] = useState(() => readSmasData());
+  const [selectedClass, setSelectedClass] = useState(() => {
+    const data = readSmasData();
+    return data.className || '1A';
+  });
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [studentName, setStudentName] = useState('Nguyễn Văn An');
+  const [evaluationPeriod, setEvaluationPeriod] = useState('TX'); // 'TX' | 'GK' | 'CK'
+
   // Rubric Selection
   const [selectedGrade, setSelectedGrade] = useState(1);
-  const [studentName, setStudentName] = useState('Em Nguyễn Văn An');
 
   // 4 Rubric Criteria Levels (3 = Tốt, 2 = Hoàn thành, 1 = Cần cố gắng)
   const [rubricLevels, setRubricLevels] = useState({
@@ -48,6 +69,7 @@ export default function ArtCameraRubric({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [insertedNotice, setInsertedNotice] = useState(false);
+  const [savedSmasNotice, setSavedSmasNotice] = useState('');
 
   // Mắt thần chiếu lưới bố cục 1/3 & Cảm biến bánh xe màu sắc (Giai đoạn nâng cấp AI)
   const [showGridOverlay, setShowGridOverlay] = useState(false);
@@ -55,6 +77,84 @@ export default function ArtCameraRubric({
   const [colorStats, setColorStats] = useState({ warmPercent: 48, coolPercent: 36, neutralPercent: 16, contrast: 72 });
   const [focalPoint, setFocalPoint] = useState({ x: 0.5, y: 0.45 });
   const [isFullscreenInspection, setIsFullscreenInspection] = useState(false);
+
+  // Đọc lại dữ liệu SMAS khi có thay đổi từ tab khác hoặc cửa sổ khác
+  useEffect(() => {
+    const handleSmasUpdated = (e) => {
+      if (e.detail) {
+        setSmasState(e.detail);
+      } else {
+        setSmasState(readSmasData());
+      }
+    };
+    window.addEventListener('conhi-smas-updated', handleSmasUpdated);
+    return () => window.removeEventListener('conhi-smas-updated', handleSmasUpdated);
+  }, []);
+
+  // Danh sách các lớp khả dụng (kết hợp mặc định và từ dữ liệu SMAS)
+  const availableClasses = Array.from(new Set([
+    ...DEFAULT_TEACHING_CLASSES,
+    ...(smasState.classOptions || []).map(c => String(c).replace(/^Lớp\s+/i, '').trim()),
+    (smasState.className || '').replace(/^Lớp\s+/i, '').trim(),
+    (selectedClass || '').replace(/^Lớp\s+/i, '').trim()
+  ])).filter(Boolean);
+
+  // Danh sách học sinh theo lớp đang chọn
+  const studentsInSelectedClass = (smasState.students || []).filter(s => {
+    const sClass = (s.className || '').replace(/^Lớp\s+/i, '').trim();
+    const curClass = selectedClass.replace(/^Lớp\s+/i, '').trim();
+    return sClass.toLowerCase() === curClass.toLowerCase();
+  });
+
+  // Tự động cập nhật tên học sinh khi chọn từ danh sách
+  const handleSelectStudentFromList = (stId) => {
+    setSelectedStudentId(stId);
+    if (!stId) return;
+    const found = studentsInSelectedClass.find(s => s.id === stId);
+    if (found) {
+      setStudentName(found.name);
+      // Nếu học sinh đã có mức trước đó, gợi ý mức tương ứng
+      if (found.level === 'T') {
+        setRubricLevels({ requirement: 3, technique: 3, creativity: 3, presentation: 2 });
+      } else if (found.level === 'C') {
+        setRubricLevels({ requirement: 2, technique: 1, creativity: 1, presentation: 1 });
+      } else {
+        setRubricLevels({ requirement: 3, technique: 2, creativity: 2, presentation: 2 });
+      }
+    }
+  };
+
+  // Tính toán mức đạt chuẩn Thông tư 27 (T, H, C) và tổng điểm từ 4 tiêu chí Rubric
+  const overallLevel = calculateRubricLevel(rubricLevels);
+  const totalScore = Number(rubricLevels.requirement) + Number(rubricLevels.technique) + Number(rubricLevels.creativity) + Number(rubricLevels.presentation);
+
+  // Lưu kết quả chấm tranh vào Sổ Điểm SMAS theo chuẩn T, H, C
+  const handleSaveToSmas = () => {
+    if (!studentName.trim()) {
+      alert('Vui lòng nhập hoặc chọn tên học sinh trước khi lưu sổ điểm.');
+      return;
+    }
+
+    const res = saveCameraEvaluationToSmas({
+      studentId: selectedStudentId,
+      studentName: studentName.trim(),
+      className: selectedClass,
+      level: overallLevel,
+      comment: teacherComment,
+      period: evaluationPeriod,
+      rubricLevels,
+      improvementSteps,
+      artworkThumb: capturedImage || ''
+    });
+
+    if (res.success) {
+      const periodLabel = evaluationPeriod === 'GK' ? 'Giữa kì' : evaluationPeriod === 'CK' ? 'Cuối kì' : 'Thường xuyên';
+      setSavedSmasNotice(`✓ Đã lưu sổ SMAS: Em ${studentName} (${selectedClass}) đạt mức [${overallLevel}] - ${periodLabel}!`);
+      // Cập nhật lại state local
+      setSmasState(readSmasData());
+      setTimeout(() => setSavedSmasNotice(''), 5000);
+    }
+  };
 
   // Phân tích cục bộ độ sáng/tông màu; mức rubric do giáo viên tự chọn.
   const handleAnalyzeArtwork = () => {
@@ -596,38 +696,143 @@ export default function ArtCameraRubric({
 
       {/* Right Column: 4 Rubric Criteria & Teacher Feedback */}
       <div className="w-1/2 p-6 overflow-y-auto space-y-5">
-        {/* Student metadata */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+        {/* Banner thông báo lưu Sổ SMAS */}
+        {savedSmasNotice && (
+          <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{savedSmasNotice}</span>
+            </div>
+            {onNavigateToSmas && (
+              <button
+                type="button"
+                onClick={onNavigateToSmas}
+                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shrink-0 flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+              >
+                <span>Xem Sổ SMAS</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Khối Liên Kết Sổ Điểm SMAS & Thông Tin Học Sinh */}
+        <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-2xs space-y-3.5">
           <div className="flex items-center justify-between">
-            <h3 className="font-extrabold text-xs text-slate-700 uppercase tracking-wider">
-              Thông Tin Học Sinh
-            </h3>
-            <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-              Môn Mĩ Thuật Lớp {selectedGrade}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 bg-purple-100 text-purple-700 rounded-lg">
+                <ClipboardCheck className="w-4 h-4" />
+              </span>
+              <h3 className="font-extrabold text-xs text-slate-800 uppercase tracking-wider">
+                Liên Kết Sổ Điểm SMAS
+              </h3>
+            </div>
+            {onNavigateToSmas && (
+              <button
+                type="button"
+                onClick={onNavigateToSmas}
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Mở Sổ Điểm SMAS</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-2.5">
+            {/* 1. Chọn Lớp */}
             <div>
-              <label className="text-[11px] font-bold text-slate-500 block mb-1">Họ tên học sinh:</label>
-              <input
-                type="text"
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500"
-              />
-            </div>
-            <div>
-              <label className="text-[11px] font-bold text-slate-500 block mb-1">Khối lớp:</label>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                Lớp học:
+              </label>
               <select
-                value={selectedGrade}
-                onChange={(e) => setSelectedGrade(Number(e.target.value))}
-                className="w-full px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500"
+                value={selectedClass.replace(/^Lớp\s+/i, '')}
+                onChange={(e) => {
+                  const newCls = e.target.value;
+                  setSelectedClass(newCls);
+                  setSelectedStudentId('');
+                }}
+                className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
               >
-                {PEDAGOGY_BANK.grades.map(g => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
+                {availableClasses.map(c => (
+                  <option key={c} value={c}>Lớp {c}</option>
                 ))}
               </select>
+            </div>
+
+            {/* 2. Chọn Học sinh từ danh sách lớp hoặc nhập tay */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                Chọn học sinh ({studentsInSelectedClass.length}):
+              </label>
+              <select
+                value={selectedStudentId}
+                onChange={(e) => handleSelectStudentFromList(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
+              >
+                <option value="">-- Chọn trong danh sách --</option>
+                {studentsInSelectedClass.map(st => (
+                  <option key={st.id} value={st.id}>
+                    {st.name} ({st.level || 'H'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 3. Kỳ đánh giá */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">
+                Kỳ đánh giá:
+              </label>
+              <select
+                value={evaluationPeriod}
+                onChange={(e) => setEvaluationPeriod(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs font-bold text-purple-900 bg-purple-50 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400"
+              >
+                <option value="TX">Thường xuyên (TX)</option>
+                <option value="GK">Giữa kì I (GK I)</option>
+                <option value="CK">Cuối kì I (CK I)</option>
+                <option value="GK2">Giữa kì II (GK II)</option>
+                <option value="CK2">Cuối kì II (CK II)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-600 block mb-1">
+              Họ và tên học sinh đang chấm:
+            </label>
+            <input
+              type="text"
+              value={studentName}
+              onChange={(e) => {
+                setStudentName(e.target.value);
+                setSelectedStudentId('');
+              }}
+              placeholder="Nhập tên học sinh..."
+              className="w-full px-3 py-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-400"
+            />
+          </div>
+
+          {/* Huy Hiệu Mức Đạt Được TT27 (T, H, C) Thời Gian Thực */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-600">Kết quả xếp loại TT27:</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-2xs ${
+                overallLevel === 'T'
+                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                  : overallLevel === 'H'
+                  ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                  : 'bg-rose-100 text-rose-900 border border-rose-300'
+              }`}>
+                <span>{overallLevel === 'T' ? '🏆 Mức T' : overallLevel === 'H' ? '⭐ Mức H' : '📝 Mức C'}</span>
+                <span>•</span>
+                <span>{overallLevel === 'T' ? 'Hoàn Thành Tốt' : overallLevel === 'H' ? 'Hoàn Thành' : 'Chưa Hoàn Thành'}</span>
+              </span>
+            </div>
+
+            <div className="text-[11px] font-bold text-slate-500">
+              Tổng điểm Rubric: <span className="font-extrabold text-slate-800">{totalScore}/12</span>
             </div>
           </div>
         </div>
@@ -756,15 +961,16 @@ export default function ArtCameraRubric({
         </div>
 
         {/* Synthesized Feedback Box (Editable by Teacher) */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-extrabold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
               <span>✍️</span> Lời Nhận Xét Của Giáo Viên (Thầy/Cô Duyệt & Chỉnh Sửa)
             </h3>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => speechService.speak(teacherComment)}
-                className="px-2 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition-all"
+                className="px-2 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
                 title="Đọc lời nhận xét này bằng giọng tiếng Việt"
               >
                 <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -772,8 +978,9 @@ export default function ArtCameraRubric({
               </button>
 
               <button
+                type="button"
                 onClick={handleCopyComment}
-                className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 rounded-lg flex items-center gap-1 transition-all"
+                className="px-2 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 rounded-lg flex items-center gap-1 transition-all cursor-pointer"
               >
                 {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{isCopied ? 'Đã chép' : 'Sao chép'}</span>
@@ -788,6 +995,46 @@ export default function ArtCameraRubric({
             className="w-full p-3 text-xs text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent font-sans leading-relaxed"
             placeholder="Lời nhận xét được tự động tổng hợp từ rubric ở trên. Thầy/Cô có thể chỉnh sửa tự do theo thực tế..."
           />
+
+          {/* Dải Nút Hành Động Liên Kết SMAS & Trình Chiếu (Zero-Placeholder) */}
+          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+            <button
+              type="button"
+              onClick={handleSaveToSmas}
+              className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs md:text-sm rounded-xl shadow-md hover:shadow-lg flex items-center justify-center gap-2 transition-all transform active:scale-98 cursor-pointer"
+              title="Lưu mức xếp loại T/H/C và nhận xét trực tiếp vào danh sách lớp trong Sổ Điểm SMAS"
+            >
+              <Save className="w-4 h-4" />
+              <span>LƯU ĐIỂM VÀO SỔ SMAS</span>
+              <span className="px-1.5 py-0.5 rounded bg-white/20 text-[11px] font-black">
+                {overallLevel}
+              </span>
+            </button>
+
+            {onNavigateToSmas && (
+              <button
+                type="button"
+                onClick={onNavigateToSmas}
+                className="py-2.5 px-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Mở ngay giao diện Sổ Điểm SMAS để xem và quản lý"
+              >
+                <ClipboardCheck className="w-4 h-4 text-indigo-600" />
+                <span>Xem Sổ SMAS</span>
+              </button>
+            )}
+
+            {capturedImage && (
+              <button
+                type="button"
+                onClick={handleInsertToSlide}
+                className="py-2.5 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Chèn ảnh bài vẽ kèm điểm rubric lên slide bài giảng"
+              >
+                <Presentation className="w-4 h-4 text-slate-600" />
+                <span>Chèn Vào Slide</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

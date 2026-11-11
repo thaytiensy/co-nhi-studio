@@ -124,7 +124,11 @@ export async function getSharedGmails() {
   if (firebaseConfigured && db) {
     try {
       const snapshot = await getDocs(collection(db, ACCESS_COLLECTION));
-      if (!snapshot.empty) return snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+      if (!snapshot.empty) {
+        return snapshot.docs
+          .map((entry) => ({ id: entry.id, ...entry.data() }))
+          .filter((item) => item.email !== 'giaovien@gmail.com');
+      }
     } catch {}
   }
   return getLocalSharedGmails();

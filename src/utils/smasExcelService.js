@@ -168,11 +168,66 @@ export function shuffleClassComments(students = [], targetClass = '') {
   });
 }
 
-export function exportSmasExcel({ students = [], className = '1A', semester = 'Học kì I', multiSheet = false }) {
+export function exportSmasExcel({ students = [], className = '1A', semester = 'Học kì I', multiSheet = false, exportMode = 'standard' }) {
   if (!Array.isArray(students) || students.length === 0) throw new Error('Danh sách học sinh rỗng.');
   const workbook = XLSX.utils.book_new(), safeSem = String(semester || 'HK1').replace(/\s+/g, '_');
-  const cols = [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 14 }, { wch: 70 }];
-  const toRow = (st, idx, cls) => ({ 'STT': idx + 1, 'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`, 'Họ và Tên': st.name, 'Lớp': cls, 'Mức Đạt Được': st.level || 'H', 'Nhận Xét Mĩ Thuật (TT27)': st.comment || '' });
+  
+  // Kiểm tra chế độ xuất: Đầy đủ (comprehensive) hoặc chuẩn kỳ hiện tại
+  const isComprehensive = exportMode === 'comprehensive' || /toan_dien|tat_ca/i.test(exportMode);
+  const isMidTermMode = /giua|gk|ghk/i.test(exportMode) || /giua|gk|ghk/i.test(semester);
+  const isFinalTermMode = /cuoi|ck|chk/i.test(exportMode) || /cuoi|ck|chk/i.test(semester);
+
+  const cols = isComprehensive 
+    ? [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 12 }, { wch: 45 }, { wch: 12 }, { wch: 55 }]
+    : [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 14 }, { wch: 70 }];
+
+  const toRow = (st, idx, cls) => {
+    if (isComprehensive) {
+      return {
+        'STT': idx + 1,
+        'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và Tên': st.name,
+        'Lớp': cls,
+        'Mức Giữa Kỳ (GK)': st.gkLevel || st.level || 'H',
+        'Nhận Xét Giữa Kỳ (GK)': st.gkComment || st.comment || '',
+        'Mức Cuối Kỳ (CK)': st.ckLevel || st.level || 'H',
+        'Nhận Xét Cuối Kỳ (CK)': st.ckComment || st.comment || '',
+        'Mức Đạt Được (T/H/C)': st.level || 'H',
+        'Nhận Xét Mĩ Thuật (TT27)': st.comment || ''
+      };
+    }
+
+    if (isMidTermMode) {
+      return {
+        'STT': idx + 1,
+        'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và Tên': st.name,
+        'Lớp': cls,
+        'Mức Đạt Giữa Kỳ': st.gkLevel || st.level || 'H',
+        'Nhận Xét Giữa Kỳ (TT27)': st.gkComment || st.comment || ''
+      };
+    }
+
+    if (isFinalTermMode) {
+      return {
+        'STT': idx + 1,
+        'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và Tên': st.name,
+        'Lớp': cls,
+        'Mức Đạt Cuối Kỳ': st.ckLevel || st.level || 'H',
+        'Nhận Xét Cuối Kỳ (TT27)': st.ckComment || st.comment || ''
+      };
+    }
+
+    return {
+      'STT': idx + 1,
+      'Mã Học Sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+      'Họ và Tên': st.name,
+      'Lớp': cls,
+      'Mức Đạt Được': st.level || 'H',
+      'Nhận Xét Mĩ Thuật (TT27)': st.comment || ''
+    };
+  };
 
   if (multiSheet) {
     const classMap = new Map();
@@ -182,7 +237,9 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
       ws['!cols'] = cols;
       XLSX.utils.book_append_sheet(workbook, ws, cls.replace(/[:\\/?*[\]]/g, '_').slice(0, 31) || 'Lop');
     }
-    const fileName = `Bang_Nhan_Xet_Mi_Thuat_Tat_Ca_Cac_Lop_${safeSem}.xlsx`;
+    const fileName = isComprehensive
+      ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_Toan_Dien_${safeSem}.xlsx`
+      : `Bang_Nhan_Xet_Mi_Thuat_Tat_Ca_Cac_Lop_${safeSem}.xlsx`;
     XLSX.writeFile(workbook, fileName);
     return fileName;
   }
@@ -191,7 +248,9 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
   const ws = XLSX.utils.json_to_sheet(list.map((st, i) => toRow(st, i, st.className || className || '1A')));
   ws['!cols'] = cols;
   XLSX.utils.book_append_sheet(workbook, ws, 'Bang_Nhan_Xet_Mi_Thuat');
-  const fileName = `Bang_Nhan_Xet_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`;
+  const fileName = isComprehensive
+    ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`
+    : `Bang_Nhan_Xet_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`;
   XLSX.writeFile(workbook, fileName);
   return fileName;
 }

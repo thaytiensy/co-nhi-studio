@@ -10,11 +10,23 @@ import {
   Trash2, 
   FileSpreadsheet, 
   Info,
-  RotateCcw
+  RotateCcw,
+  Camera,
+  Sparkles,
+  Award,
+  ChevronDown,
+  Calendar,
+  TrendingUp,
+  Image as ImageIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel } from '../../utils/smasExcelService';
 import { getScopedStorageKey } from '../../utils/userWorkspaceService';
+import { 
+  batchSynthesizeClassEvaluations, 
+  synthesizePeriodicEvaluation, 
+  PERIODIC_COMMENTS_BANK 
+} from '../../utils/smasEvaluationBridge';
 
 // Ngân hàng nhận xét môn Mĩ thuật chuẩn Thông tư 27/2020/TT-BGDĐT
 const TT27_COMMENTS_BANK = {
@@ -57,7 +69,7 @@ const getSmasStorageKey = () => getScopedStorageKey(BASE_SMAS_STORAGE_KEY);
 const getTeachingClassesKey = () => getScopedStorageKey('conhi_teaching_classes');
 const DEFAULT_TEACHING_CLASSES = ['1A', '1B', '1C', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B'];
 
-export default function StudentEvaluationSMAS() {
+export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   // Trạng thái: Chỉ hiện lớp và học kỳ khi giáo viên đã tải danh sách hoặc đã chọn lớp dạy
   const [hasUploadedOrSelected, setHasUploadedOrSelected] = useState(() => {
     try {
@@ -127,9 +139,30 @@ export default function StudentEvaluationSMAS() {
     return [];
   });
 
+  // Tab lọc xem theo kỳ: 'TX' (Thường xuyên), 'GK' (Giữa kì), 'CK' (Cuối kì)
+  const [activePeriodTab, setActivePeriodTab] = useState('TX');
+  const [showSynthesisModal, setShowSynthesisModal] = useState(false);
+  const [synthesisTargetPeriod, setSynthesisTargetPeriod] = useState('GK');
+  const [selectedStudentForCamModal, setSelectedStudentForCamModal] = useState(null);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [exportNotice, setExportNotice] = useState('');
   const fileInputRef = useRef(null);
+
+  // Lắng nghe sự kiện đồng bộ từ Cam Chấm Tranh
+  useEffect(() => {
+    const handleSmasUpdated = (e) => {
+      if (e.detail && Array.isArray(e.detail.students)) {
+        setStudents(e.detail.students);
+        if (e.detail.className) setClassName(e.detail.className);
+        if (Array.isArray(e.detail.classOptions)) setClassOptions(e.detail.classOptions);
+        setHasUploadedOrSelected(true);
+      }
+    };
+    window.addEventListener('conhi-smas-updated', handleSmasUpdated);
+    return () => window.removeEventListener('conhi-smas-updated', handleSmasUpdated);
+  }, []);
 
   // Tự động lưu LocalStorage bảo toàn 100% dữ liệu thực khi giáo viên chỉnh sửa hoặc tải lại trang F5
   useEffect(() => {
@@ -570,8 +603,67 @@ export default function StudentEvaluationSMAS() {
     setTimeout(() => setExportNotice(''), 3000);
   };
 
-  // Xuất bảng nhận xét ra tệp Excel chuẩn SMAS
-  const handleExportExcel = (multiSheet = false) => {
+  // Thay đổi mức đánh giá định kỳ (Giữa kỳ hoặc Cuối kỳ)
+  const handlePeriodicLevelChange = (id, periodKey, newLevel) => {
+    setStudents(prev => prev.map(student => {
+      if (student.id !== id) return student;
+      const bank = PERIODIC_COMMENTS_BANK[periodKey]?.[newLevel] || PERIODIC_COMMENTS_BANK[periodKey]?.H;
+      const hash = String(student.id || student.name).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const newComment = bank[hash % bank.length] || '';
+      
+      if (periodKey === 'GK') {
+        return {
+          ...student,
+          gkLevel: newLevel,
+          gkComment: (!student.gkComment || student.commentSource === 'periodic_synthesized') ? newComment : student.gkComment
+        };
+      }
+      if (periodKey === 'CK') {
+        return {
+          ...student,
+          ckLevel: newLevel,
+          ckComment: (!student.ckComment || student.commentSource === 'periodic_synthesized') ? newComment : student.ckComment
+        };
+      }
+      return student;
+    }));
+  };
+
+  // Sửa trực tiếp nhận xét định kỳ (Giữa kỳ hoặc Cuối kỳ)
+  const handlePeriodicCommentChange = (id, periodKey, newComment) => {
+    setStudents(prev => prev.map(student => {
+      if (student.id !== id) return student;
+      if (periodKey === 'GK') {
+        return { ...student, gkComment: newComment };
+      }
+      if (periodKey === 'CK') {
+        return { ...student, ckComment: newComment };
+      }
+      return student;
+    }));
+  };
+
+  // Tổng hợp tự động điểm và nhận xét định kỳ (Giữa kỳ hoặc Cuối kỳ)
+  const handleSynthesizePeriodic = (targetPeriod = 'GK') => {
+    if (students.length === 0) {
+      alert('Chưa có học sinh nào trong sổ điểm để tổng hợp.');
+      return;
+    }
+    const result = batchSynthesizeClassEvaluations({
+      students,
+      targetClass: selectedClassFilter,
+      targetPeriod
+    });
+    setStudents(result.students);
+    const periodTitle = targetPeriod === 'CK' ? 'Cuối kì' : 'Giữa kì';
+    const targetClassText = selectedClassFilter === 'all' ? 'Tất cả các lớp' : selectedClassFilter;
+    setExportNotice(`⚡ Đã tổng hợp điểm & nhận xét ${periodTitle} cho ${result.summary.total} học sinh lớp ${targetClassText} (${result.summary.tCount} T, ${result.summary.hCount} H, ${result.summary.cCount} C)!`);
+    setShowSynthesisModal(false);
+    setTimeout(() => setExportNotice(''), 6000);
+  };
+
+  // Xuất bảng nhận xét ra tệp Excel chuẩn SMAS (Hỗ trợ Thường xuyên, Giữa kỳ, Cuối kỳ & Toàn diện)
+  const handleExportExcel = (multiSheet = false, exportMode = 'standard') => {
     if (students.length === 0) {
       alert('Chưa có học sinh nào để xuất tệp Excel.');
       return;
@@ -583,9 +675,16 @@ export default function StudentEvaluationSMAS() {
 
     try {
       const targetClass = selectedClassFilter === 'all' ? (className || '1A') : selectedClassFilter;
-      const fileName = exportSmasExcel({ students, className: targetClass, semester, multiSheet });
+      const fileName = exportSmasExcel({ 
+        students, 
+        className: targetClass, 
+        semester, 
+        multiSheet,
+        exportMode
+      });
+      setShowExportDropdown(false);
       setExportNotice(`✅ Đã xuất tệp Excel: ${fileName}`);
-      setTimeout(() => setExportNotice(''), 4000);
+      setTimeout(() => setExportNotice(''), 5000);
     } catch (err) {
       alert('Lỗi xuất Excel: ' + err.message);
     }
@@ -684,25 +783,93 @@ export default function StudentEvaluationSMAS() {
             </button>
           )}
 
-          {/* Export Excel Buttons (Hiện khi có ít nhất 1 học sinh) */}
+          {/* Nút Tổng Hợp Định Kỳ Giữa Kỳ & Cuối Kỳ */}
           {students.length > 0 && (
-            <div className="flex items-center gap-1.5 animate-in fade-in">
+            <button
+              onClick={() => setShowSynthesisModal(true)}
+              className="px-3 py-1.5 text-xs font-black text-amber-900 bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-200 hover:from-amber-300 hover:to-yellow-300 border border-amber-400 rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer transform active:scale-95"
+              title="Tổng hợp tự động mức xếp loại T/H/C và nhận xét giữa kì / cuối kì theo Thông tư 27"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-800" />
+              <span>⚡ Tổng Hợp Định Kỳ</span>
+            </button>
+          )}
+
+          {/* Nút Cam Chấm Tranh liên kết */}
+          {onNavigateToCamera && (
+            <button
+              onClick={onNavigateToCamera}
+              className="px-2.5 py-1.5 text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+              title="Chuyển sang Cam Chấm Tranh để chấm bài vẽ bằng webcam và lưu điểm vào sổ"
+            >
+              <Camera className="w-3.5 h-3.5 text-rose-600" />
+              <span>Cam Chấm Tranh</span>
+            </button>
+          )}
+
+          {/* Export Excel Dropdown Menu */}
+          {students.length > 0 && (
+            <div className="relative flex items-center gap-1 animate-in fade-in">
               <button
-                onClick={() => handleExportExcel(false)}
+                onClick={() => handleExportExcel(false, 'standard')}
                 className="px-3 py-1.5 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
                 title="Xuất bảng nhận xét của lớp đang chọn ra tệp Excel (.xlsx)"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>{exportNotice || `Xuất ${selectedClassFilter === 'all' ? 'Excel SMAS' : selectedClassFilter}`}</span>
               </button>
+
               <button
-                onClick={() => handleExportExcel(true)}
-                className="px-3 py-1.5 text-xs font-black text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
-                title="Xuất toàn bộ các lớp vào các trang tính (Sheet) riêng biệt trong cùng 1 tệp Excel"
+                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                className="p-1.5 text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition-all cursor-pointer"
+                title="Tùy chọn xuất file Excel khác (Giữa kỳ, Cuối kỳ, Toàn diện, Tất cả các lớp)"
               >
-                <span>📑</span>
-                <span>Xuất Tất Cả Lớp</span>
+                <ChevronDown className="w-4 h-4" />
               </button>
+
+              {showExportDropdown && (
+                <div 
+                  className="absolute right-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs animate-in fade-in"
+                  onClick={() => setShowExportDropdown(false)}
+                >
+                  <button
+                    onClick={() => handleExportExcel(false, 'standard')}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 font-bold text-slate-700 cursor-pointer"
+                  >
+                    <span>📊</span>
+                    <span>Xuất Bảng Chuẩn SMAS Hiện Tại</span>
+                  </button>
+                  <button
+                    onClick={() => handleExportExcel(false, 'gk')}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 font-bold text-blue-700 cursor-pointer"
+                  >
+                    <span>📘</span>
+                    <span>Xuất Bảng Tổng Hợp Giữa Kỳ (GK)</span>
+                  </button>
+                  <button
+                    onClick={() => handleExportExcel(false, 'ck')}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 font-bold text-purple-700 cursor-pointer"
+                  >
+                    <span>🏆</span>
+                    <span>Xuất Bảng Tổng Hợp Cuối Kỳ (CK)</span>
+                  </button>
+                  <button
+                    onClick={() => handleExportExcel(false, 'comprehensive')}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 font-bold text-emerald-700 cursor-pointer"
+                  >
+                    <span>📑</span>
+                    <span>Xuất Bảng Toàn Diện (GK & CK)</span>
+                  </button>
+                  <div className="border-t border-slate-100 my-1"></div>
+                  <button
+                    onClick={() => handleExportExcel(true, 'standard')}
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 font-black text-indigo-700 cursor-pointer"
+                  >
+                    <span>📂</span>
+                    <span>Xuất Tất Cả Các Lớp (Multi-sheet)</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -983,24 +1150,157 @@ export default function StudentEvaluationSMAS() {
         </div>
       ) : (
         /* Render Bảng danh sách học sinh đầy đủ */
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto space-y-4">
+          {/* Thanh Chọn Kỳ Đánh Giá & Dải KPI Thống Kê Chuẩn TT27 */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                <span className="text-[11px] font-extrabold text-slate-500 uppercase px-2">
+                  Xem & Chấm Kỳ:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActivePeriodTab('TX')}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    activePeriodTab === 'TX'
+                      ? 'bg-purple-600 text-white font-black shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                  }`}
+                >
+                  🌟 Thường Xuyên (TX)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePeriodTab('GK')}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    activePeriodTab === 'GK'
+                      ? 'bg-blue-600 text-white font-black shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                  }`}
+                >
+                  📘 Giữa Kì (GK)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePeriodTab('CK')}
+                  className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    activePeriodTab === 'CK'
+                      ? 'bg-indigo-600 text-white font-black shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
+                  }`}
+                >
+                  🏆 Cuối Kì (CK)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSynthesisTargetPeriod(activePeriodTab === 'CK' ? 'CK' : 'GK');
+                    setShowSynthesisModal(true);
+                  }}
+                  className="px-3 py-1.5 text-xs font-black text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-700" />
+                  <span>Tổng Hợp {activePeriodTab === 'CK' ? 'Cuối Kì' : 'Giữa Kì'}</span>
+                </button>
+
+                {onNavigateToCamera && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToCamera}
+                    className="px-3 py-1.5 text-xs font-black text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                  >
+                    <Camera className="w-4 h-4 text-rose-600" />
+                    <span>Mở Cam Chấm Bài</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Dải Thống Kê KPI Tỷ Lệ Đạt (T, H, C) */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100">
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sĩ số lớp</span>
+                <span className="text-base font-black text-slate-800">{displayedStudents.length} học sinh</span>
+              </div>
+
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Mức Tốt (T)</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-base font-black text-emerald-900">
+                    {displayedStudents.filter(s => (activePeriodTab === 'GK' ? (s.gkLevel || s.level) : activePeriodTab === 'CK' ? (s.ckLevel || s.level) : s.level) === 'T').length} em
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700">
+                    {displayedStudents.length > 0 ? Math.round((displayedStudents.filter(s => (activePeriodTab === 'GK' ? (s.gkLevel || s.level) : activePeriodTab === 'CK' ? (s.ckLevel || s.level) : s.level) === 'T').length / displayedStudents.length) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex flex-col">
+                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Mức Hoàn Thành (H)</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-base font-black text-blue-900">
+                    {displayedStudents.filter(s => (activePeriodTab === 'GK' ? (s.gkLevel || s.level) : activePeriodTab === 'CK' ? (s.ckLevel || s.level) : s.level) === 'H').length} em
+                  </span>
+                  <span className="text-[11px] font-bold text-blue-700">
+                    {displayedStudents.length > 0 ? Math.round((displayedStudents.filter(s => (activePeriodTab === 'GK' ? (s.gkLevel || s.level) : activePeriodTab === 'CK' ? (s.ckLevel || s.level) : s.level) === 'H').length / displayedStudents.length) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex flex-col">
+                <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Cần Cố Gắng (C)</span>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-base font-black text-rose-900">
+                    {displayedStudents.filter(s => (activePeriodTab === 'GK' ? (s.gkLevel || s.level) : activePeriodTab === 'CK' ? (s.ckLevel || s.level) : s.level) === 'C').length} em
+                  </span>
+                  <span className="text-[11px] font-bold text-rose-700">
+                    {displayedStudents.length > 0 ? Math.round((displayedStudents.filter(s => (activePeriodTab === 'GK' ? (s.gkLevel || s.level) : activePeriodTab === 'CK' ? (s.ckLevel || s.level) : s.level) === 'C').length / displayedStudents.length) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-purple-50 border border-purple-200 rounded-xl flex flex-col">
+                <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">Đã Chấm Cam</span>
+                <span className="text-base font-black text-purple-900">
+                  {displayedStudents.filter(s => s.camHistory && s.camHistory.length > 0).length} bài vẽ
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-4 w-12 text-center">STT</th>
-                  <th className="py-3 px-4 w-28">Mã HS</th>
-                  <th className="py-3 px-4 w-48">Họ và Tên</th>
-                  <th className="py-3 px-4 w-28">Lớp</th>
-                  <th className="py-3 px-4 w-44">Mức Đạt Được (TT27)</th>
-                  <th className="py-3 px-4">Lời Nhận Xét Mĩ Thuật (Thầy/Cô Duyệt & Sửa)</th>
-                  <th className="py-3 px-4 w-28 text-center">Thao Tác</th>
+                  <th className="py-3 px-3 w-10 text-center">STT</th>
+                  <th className="py-3 px-3 w-24">Mã HS</th>
+                  <th className="py-3 px-3 w-40">Họ và Tên</th>
+                  <th className="py-3 px-3 w-20">Lớp</th>
+                  <th className="py-3 px-3 w-28 text-center">Cam Chấm</th>
+                  <th className={`py-3 px-3 w-32 ${activePeriodTab === 'GK' ? 'bg-blue-50 text-blue-900' : ''}`}>
+                    Mức Giữa Kỳ (GK)
+                  </th>
+                  <th className={`py-3 px-3 w-32 ${activePeriodTab === 'CK' ? 'bg-indigo-50 text-indigo-900' : ''}`}>
+                    Mức Cuối Kỳ (CK)
+                  </th>
+                  <th className="py-3 px-3 w-32">Mức Chung (TT27)</th>
+                  <th className="py-3 px-4">
+                    {activePeriodTab === 'GK' 
+                      ? 'Lời Nhận Xét Giữa Kỳ (GK - TT27)' 
+                      : activePeriodTab === 'CK' 
+                      ? 'Lời Nhận Xét Cuối Kỳ (CK - TT27)' 
+                      : 'Lời Nhận Xét Mĩ Thuật (Thầy/Cô Duyệt & Sửa)'}
+                  </th>
+                  <th className="py-3 px-3 w-24 text-center">Thao Tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {displayedStudents.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-slate-500">
+                    <td colSpan={10} className="py-12 text-center text-slate-500">
                       <p className="font-bold text-sm text-slate-700">Lớp {selectedClassFilter} chưa có học sinh nào</p>
                       <p className="text-xs text-slate-400 mt-1">Bấm nút "Thêm Em" ở phía trên để thêm học sinh hoặc "Tải Danh Sách" để nạp từ tệp Excel</p>
                       <button
@@ -1013,90 +1313,200 @@ export default function StudentEvaluationSMAS() {
                     </td>
                   </tr>
                 ) : (
-                  displayedStudents.map((st, idx) => (
-                    <tr key={st.id || idx} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 px-4 text-center font-bold text-slate-400">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-slate-600">
-                        {st.id}
-                      </td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="text"
-                          value={st.name}
-                          onChange={(e) => handleUpdateStudent(st.id, 'name', e.target.value)}
-                          className="w-full px-2 py-1 font-bold text-slate-800 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        <input
-                          type="text"
-                          list="student-class-options"
-                          value={st.className || className}
-                          onChange={(e) => handleUpdateStudent(st.id, 'className', e.target.value)}
-                          className="w-full min-w-16 px-2 py-1 text-slate-700 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
-                          title="Lớp của học sinh này"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        {/* Level Selector: T, H, C */}
-                        <div className="flex items-center gap-1">
-                          {[
-                            { key: 'T', label: 'Tốt (T)', color: 'bg-emerald-50 text-emerald-800 border-emerald-300' },
-                            { key: 'H', label: 'Đạt (H)', color: 'bg-blue-50 text-blue-800 border-blue-300' },
-                            { key: 'C', label: 'Cần Cố Gắng (C)', color: 'bg-rose-50 text-rose-800 border-rose-300' },
-                          ].map(lvl => (
-                            <button
-                              key={lvl.key}
-                              onClick={() => handleLevelChange(st.id, lvl.key)}
-                              className={`px-2 py-1 text-[11px] font-black rounded-lg border transition-all cursor-pointer ${
-                                st.level === lvl.key
-                                  ? `${lvl.color} ring-1 ring-offset-1 ring-purple-400 font-extrabold shadow-2xs`
-                                  : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
-                              }`}
-                              title={`Chọn mức ${lvl.label}`}
-                            >
-                              {lvl.key}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <textarea
-                          value={st.comment}
-                          onChange={(e) => handleCommentChange(st.id, e.target.value)}
-                          rows={2}
-                          className="w-full p-2 text-xs text-slate-700 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y font-sans leading-relaxed"
-                        />
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Quick Copy */}
-                          <button
-                            onClick={() => handleCopySingle(idx, st.comment)}
-                            className="p-1.5 bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-600 rounded-lg transition-all cursor-pointer"
-                            title="Sao chép lời nhận xét để dán vào SMAS"
-                          >
-                            {copiedIndex === idx ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
+                  displayedStudents.map((st, idx) => {
+                    const currentPeriodLevel = activePeriodTab === 'GK'
+                      ? (st.gkLevel || st.level || 'H')
+                      : activePeriodTab === 'CK'
+                      ? (st.ckLevel || st.level || 'H')
+                      : (st.level || 'H');
 
-                          {/* Delete */}
-                          <button
-                            onClick={() => handleDeleteStudent(st.id)}
-                            className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all cursor-pointer"
-                            title="Xóa học sinh này"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                    const currentPeriodComment = activePeriodTab === 'GK'
+                      ? (st.gkComment || st.comment || '')
+                      : activePeriodTab === 'CK'
+                      ? (st.ckComment || st.comment || '')
+                      : (st.comment || '');
+
+                    const hasCamHistory = Array.isArray(st.camHistory) && st.camHistory.length > 0;
+
+                    return (
+                      <tr key={st.id || idx} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-3 text-center font-bold text-slate-400">
+                          {idx + 1}
+                        </td>
+                        <td className="py-3 px-3 font-mono font-bold text-slate-600">
+                          {st.id}
+                        </td>
+                        <td className="py-3 px-3">
+                          <input
+                            type="text"
+                            value={st.name}
+                            onChange={(e) => handleUpdateStudent(st.id, 'name', e.target.value)}
+                            className="w-full px-2 py-1 font-bold text-slate-800 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                          />
+                        </td>
+                        <td className="py-3 px-3">
+                          <input
+                            type="text"
+                            list="student-class-options"
+                            value={st.className || className}
+                            onChange={(e) => handleUpdateStudent(st.id, 'className', e.target.value)}
+                            className="w-full min-w-14 px-2 py-1 text-slate-700 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400"
+                            title="Lớp của học sinh này"
+                          />
+                        </td>
+
+                        {/* Cột Cam Chấm Tranh liên kết */}
+                        <td className="py-3 px-3 text-center">
+                          {hasCamHistory ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedStudentForCamModal(st)}
+                              className="px-2 py-1 rounded-full text-[10px] font-black bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                              title="Bấm để xem lại ảnh và điểm các bài vẽ đã chấm qua camera"
+                            >
+                              <Camera className="w-3 h-3 text-rose-600" />
+                              <span>{st.camHistory.length} bài</span>
+                            </button>
+                          ) : onNavigateToCamera ? (
+                            <button
+                              type="button"
+                              onClick={onNavigateToCamera}
+                              className="text-[10px] font-bold text-slate-400 hover:text-rose-600 inline-flex items-center gap-0.5 cursor-pointer"
+                              title="Chấm bài vẽ cho em này bằng Camera"
+                            >
+                              <Camera className="w-3 h-3" />
+                              <span>Chấm</span>
+                            </button>
+                          ) : (
+                            <span className="text-slate-300 text-xs">—</span>
+                          )}
+                        </td>
+
+                        {/* Mức Giữa Kỳ (GK) */}
+                        <td className={`py-3 px-3 ${activePeriodTab === 'GK' ? 'bg-blue-50/40' : ''}`}>
+                          <div className="flex items-center gap-1">
+                            {['T', 'H', 'C'].map(lvl => (
+                              <button
+                                key={lvl}
+                                type="button"
+                                onClick={() => handlePeriodicLevelChange(st.id, 'GK', lvl)}
+                                className={`px-1.5 py-0.5 text-[10px] font-black rounded border transition-all cursor-pointer ${
+                                  (st.gkLevel || st.level) === lvl
+                                    ? lvl === 'T'
+                                      ? 'bg-emerald-500 text-white border-emerald-600 shadow-2xs'
+                                      : lvl === 'H'
+                                      ? 'bg-blue-500 text-white border-blue-600 shadow-2xs'
+                                      : 'bg-rose-500 text-white border-rose-600 shadow-2xs'
+                                    : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'
+                                }`}
+                                title={`Mức Giữa kì: ${lvl}`}
+                              >
+                                {lvl}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+
+                        {/* Mức Cuối Kỳ (CK) */}
+                        <td className={`py-3 px-3 ${activePeriodTab === 'CK' ? 'bg-indigo-50/40' : ''}`}>
+                          <div className="flex items-center gap-1">
+                            {['T', 'H', 'C'].map(lvl => (
+                              <button
+                                key={lvl}
+                                type="button"
+                                onClick={() => handlePeriodicLevelChange(st.id, 'CK', lvl)}
+                                className={`px-1.5 py-0.5 text-[10px] font-black rounded border transition-all cursor-pointer ${
+                                  (st.ckLevel || st.level) === lvl
+                                    ? lvl === 'T'
+                                      ? 'bg-emerald-500 text-white border-emerald-600 shadow-2xs'
+                                      : lvl === 'H'
+                                      ? 'bg-blue-500 text-white border-blue-600 shadow-2xs'
+                                      : 'bg-rose-500 text-white border-rose-600 shadow-2xs'
+                                    : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'
+                                }`}
+                                title={`Mức Cuối kì: ${lvl}`}
+                              >
+                                {lvl}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+
+                        {/* Mức Chung TT27 */}
+                        <td className="py-3 px-3">
+                          <div className="flex items-center gap-1">
+                            {[
+                              { key: 'T', label: 'Tốt (T)', color: 'bg-emerald-50 text-emerald-800 border-emerald-300' },
+                              { key: 'H', label: 'Đạt (H)', color: 'bg-blue-50 text-blue-800 border-blue-300' },
+                              { key: 'C', label: 'Cần Cố Gắng (C)', color: 'bg-rose-50 text-rose-800 border-rose-300' },
+                            ].map(lvl => (
+                              <button
+                                key={lvl.key}
+                                type="button"
+                                onClick={() => handleLevelChange(st.id, lvl.key)}
+                                className={`px-1.5 py-0.5 text-[10px] font-black rounded-lg border transition-all cursor-pointer ${
+                                  st.level === lvl.key
+                                    ? `${lvl.color} ring-1 ring-purple-400 font-extrabold shadow-2xs`
+                                    : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100'
+                                }`}
+                                title={`Chọn mức ${lvl.label}`}
+                              >
+                                {lvl.key}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+
+                        {/* Lời Nhận Xét TT27 */}
+                        <td className="py-3 px-4">
+                          <textarea
+                            value={currentPeriodComment}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (activePeriodTab === 'GK') {
+                                handlePeriodicCommentChange(st.id, 'GK', val);
+                              } else if (activePeriodTab === 'CK') {
+                                handlePeriodicCommentChange(st.id, 'CK', val);
+                              } else {
+                                handleCommentChange(st.id, val);
+                              }
+                            }}
+                            rows={2}
+                            className="w-full p-2 text-xs text-slate-700 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y font-sans leading-relaxed"
+                          />
+                        </td>
+
+                        {/* Thao tác */}
+                        <td className="py-3 px-3 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* Quick Copy */}
+                            <button
+                              type="button"
+                              onClick={() => handleCopySingle(idx, currentPeriodComment)}
+                              className="p-1.5 bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-600 rounded-lg transition-all cursor-pointer"
+                              title="Sao chép lời nhận xét để dán vào Web SMAS"
+                            >
+                              {copiedIndex === idx ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteStudent(st.id)}
+                              className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all cursor-pointer"
+                              title="Xóa học sinh này"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1212,6 +1622,253 @@ export default function StudentEvaluationSMAS() {
                   ✓ Lưu Thay Đổi
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL TỔNG HỢP ĐIỂM & NHẬN XÉT ĐỊNH KỲ (GIỮA KỲ & CUỐI KỲ) */}
+      {showSynthesisModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setShowSynthesisModal(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 bg-gradient-to-r from-amber-600 to-yellow-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="p-1.5 bg-white/20 rounded-lg">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-sm md:text-base">Tổng Hợp Đánh Giá Định Kỳ (TT27)</h3>
+                  <p className="text-[11px] text-amber-100">Tự động tổng hợp điểm mức T, H, C & sinh lời nhận xét giữa kì / cuối kì</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowSynthesisModal(false)}
+                className="p-1 rounded-lg hover:bg-white/20 text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-950 space-y-1.5">
+                <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                  <Info className="w-4 h-4 text-amber-700" />
+                  <span>Nguyên tắc tổng hợp Thông tư 27/2020/TT-BGDĐT:</span>
+                </div>
+                <p className="leading-relaxed">
+                  Hệ thống căn cứ vào các lần chấm qua Cam, điểm thường xuyên (TX) và năng lực tạo hình thực tế của từng em để tự động tính mức đánh giá chung (T, H, C) và đưa ra lời nhận xét sư phạm toàn diện, không trùng lặp.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-black text-slate-700 block mb-1.5">
+                  Chọn Kỳ Cần Tổng Hợp:
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSynthesisTargetPeriod('GK')}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      synthesisTargetPeriod === 'GK'
+                        ? 'bg-blue-50 border-blue-400 text-blue-900 ring-2 ring-blue-400/30 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="font-black text-sm flex items-center gap-1.5">
+                      <span>📘</span>
+                      <span>Giữa Học Kì (GK)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Đánh giá tiến độ hình thành kĩ năng, màu sắc và thái độ học tập nửa đầu kỳ.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSynthesisTargetPeriod('CK')}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      synthesisTargetPeriod === 'CK'
+                        ? 'bg-purple-50 border-purple-400 text-purple-900 ring-2 ring-purple-400/30 shadow-xs'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="font-black text-sm flex items-center gap-1.5">
+                      <span>🏆</span>
+                      <span>Cuối Học Kì (CK)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Tổng hợp toàn diện năng lực thẩm mĩ, sản phẩm thực tế và sự sáng tạo cả học kì.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                <span>Phạm vi áp dụng:</span>
+                <span className="font-extrabold text-purple-700">
+                  {selectedClassFilter === 'all' ? 'Tất Cả Các Lớp' : `Lớp ${selectedClassFilter}`} ({displayedStudents.length} học sinh)
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSynthesisModal(false)}
+                className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200/60 rounded-xl cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSynthesizePeriodic(synthesisTargetPeriod)}
+                className="px-5 py-2 text-xs font-black text-white bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-700 hover:to-yellow-700 rounded-xl shadow-md transition-all cursor-pointer transform active:scale-95 flex items-center gap-1.5"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Thực Hiện Tổng Hợp Ngay</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL XEM LỊCH SỬ BÀI VẼ ĐÃ CHẤM QUA CAMERA CỦA HỌC SINH */}
+      {selectedStudentForCamModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setSelectedStudentForCamModal(null)}
+        >
+          <div 
+            className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 bg-gradient-to-r from-rose-600 to-amber-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="p-1.5 bg-white/20 rounded-lg">
+                  <Camera className="w-5 h-5 text-white" />
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-sm md:text-base">
+                    Lịch Sử Chấm Tranh: {selectedStudentForCamModal.name}
+                  </h3>
+                  <p className="text-[11px] text-rose-100">
+                    Lớp {selectedStudentForCamModal.className} • {selectedStudentForCamModal.camHistory?.length || 0} bài vẽ đã chấm bằng Camera
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedStudentForCamModal(null)}
+                className="p-1 rounded-lg hover:bg-white/20 text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              {!selectedStudentForCamModal.camHistory || selectedStudentForCamModal.camHistory.length === 0 ? (
+                <div className="p-8 text-center text-slate-400">
+                  Chưa có bài vẽ nào được chấm bằng Camera cho học sinh này.
+                </div>
+              ) : (
+                selectedStudentForCamModal.camHistory.map((item, idx) => {
+                  const r = item.rubricLevels || {};
+                  const total = (r.requirement || 0) + (r.technique || 0) + (r.creativity || 0) + (r.presentation || 0);
+
+                  return (
+                    <div 
+                      key={item.id || idx}
+                      className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row gap-4 items-start shadow-2xs"
+                    >
+                      {item.artworkThumb ? (
+                        <div className="w-full sm:w-36 h-28 bg-black/10 rounded-xl overflow-hidden shrink-0 border border-slate-200">
+                          <img
+                            src={item.artworkThumb}
+                            alt="Bài vẽ"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full sm:w-36 h-28 bg-slate-200 rounded-xl flex items-center justify-center shrink-0 text-slate-400">
+                          <ImageIcon className="w-8 h-8 opacity-40" />
+                        </div>
+                      )}
+
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                              item.level === 'T'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                : item.level === 'H'
+                                ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                : 'bg-rose-100 text-rose-800 border border-rose-300'
+                            }`}>
+                              Mức {item.level} ({item.level === 'T' ? 'Tốt' : item.level === 'H' ? 'Đạt' : 'Cố gắng'})
+                            </span>
+                            <span className="text-[11px] font-bold text-slate-500">
+                              {item.dateStr || 'Gần đây'}
+                            </span>
+                          </div>
+
+                          <span className="text-xs font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                            Điểm Rubric: <strong>{total}/12</strong>
+                          </span>
+                        </div>
+
+                        {/* Chi tiết 4 tiêu chí */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px] text-slate-600">
+                          <div className="p-1 bg-white rounded border border-slate-200">
+                            Yêu cầu: <strong>{r.requirement || '—'}/3</strong>
+                          </div>
+                          <div className="p-1 bg-white rounded border border-slate-200">
+                            Kỹ thuật: <strong>{r.technique || '—'}/3</strong>
+                          </div>
+                          <div className="p-1 bg-white rounded border border-slate-200">
+                            Sáng tạo: <strong>{r.creativity || '—'}/3</strong>
+                          </div>
+                          <div className="p-1 bg-white rounded border border-slate-200">
+                            Trình bày: <strong>{r.presentation || '—'}/3</strong>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-slate-700 bg-white p-2.5 rounded-xl border border-slate-200 leading-relaxed">
+                          <strong>Nhận xét:</strong> {item.comment}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              {onNavigateToCamera ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStudentForCamModal(null);
+                    onNavigateToCamera();
+                  }}
+                  className="px-4 py-1.5 text-xs font-black text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Chấm Thêm Bài Vẽ Bằng Cam</span>
+                </button>
+              ) : <div></div>}
+
+              <button
+                type="button"
+                onClick={() => setSelectedStudentForCamModal(null)}
+                className="px-4 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200/60 rounded-xl cursor-pointer"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>

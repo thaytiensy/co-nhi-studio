@@ -691,55 +691,81 @@ export default function App() {
               <ArtCameraRubric
                 onInsertGradedArtworkToSlide={handleInsertGradedArtworkToSlide}
                 onNavigateToEditor={() => setActiveTab('editor')}
+                onNavigateToSmas={() => setActiveTab('evaluation')}
               />
             )}
 
             {activeTab === 'evaluation' && (
-              <StudentEvaluationSMAS />
+              <StudentEvaluationSMAS
+                onNavigateToCamera={() => setActiveTab('camera')}
+              />
             )}
 
             {/* Slide-over Assistant Drawer for non-editor screens */}
-            {isAssistantOpen && activeTab !== 'editor' && !isPresentationOpen && (
-              <div className="fixed inset-y-0 right-0 w-80 md:w-96 bg-white shadow-2xl z-40 border-l border-slate-200 animate-in slide-in-from-right duration-200">
-                <OfflinePedagogyAssistant
-                  currentSlide={activeSlide}
-                  currentGrade={activeSlideGrade}
-                  onInsertToNotes={(text) => {
-                    const currentSlide = slides[currentSlideIndex] || slides[0];
-                    if (!currentSlide) return;
-                    const existing = currentSlide.notes || '';
-                    const newNotes = existing ? `${existing}\n\n${text}` : text;
-                    const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
-                    handleSlidesChange(updated);
-                    alert('Đã chèn nội dung vào ghi chú slide hiện tại!');
-                  }}
-                  onClose={() => setIsAssistantOpen(false)}
-                />
-              </div>
-            )}
           </React.Suspense>
         </main>
       </div>
+
+      {/* Slide-over Assistant Drawer for ALL screens */}
+      {isAssistantOpen && !isPresentationOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xs z-40 transition-opacity"
+            onClick={() => setIsAssistantOpen(false)}
+            title="Bấm ra ngoài để đóng Trợ Giảng"
+          />
+          <div className="fixed inset-y-0 right-0 w-full sm:w-96 md:w-[430px] bg-white shadow-2xl z-50 border-l border-slate-200 animate-in slide-in-from-right duration-200 flex flex-col">
+            <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải Cô Trợ Giảng AI...</div>}>
+              <OfflinePedagogyAssistant
+                currentSlide={slides[currentSlideIndex] || slides[0]}
+                currentGrade={activeSlideGrade}
+                onInsertToNotes={(text) => {
+                  const currentSlide = slides[currentSlideIndex] || slides[0];
+                  if (!currentSlide) return;
+                  const existing = currentSlide.notes || '';
+                  const newNotes = existing ? `${existing}\n\n${text}` : text;
+                  const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
+                  handleSlidesChange(updated);
+                  alert('✓ Đã chèn nội dung vào ghi chú trang slide hiện tại!');
+                }}
+                onClose={() => setIsAssistantOpen(false)}
+              />
+            </React.Suspense>
+          </div>
+        </>
+      )}
 
       {/* Mobile Bottom Navigation Bar */}
       {!isPresentationOpen && (
         <BottomNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
 
-      {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) */}
+      {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) với hình ảnh Cô Trợ Giảng AI */}
       {!isPresentationOpen && !isAssistantOpen && (
         <button
           onClick={() => setIsAssistantOpen(true)}
-          className="fixed bottom-6 right-6 z-40 p-3 md:px-4 md:py-2.5 rounded-full shadow-xl hover:shadow-2xl border-2 border-white flex items-center gap-2 transition-all transform active:scale-95 group bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white cursor-pointer"
-          title="Mở Trợ Giảng Sư Phạm Mĩ Thuật (Cục bộ GDPT 2018)"
+          className="fixed bottom-6 right-6 z-40 pl-1.5 pr-4 py-1.5 rounded-full shadow-2xl hover:shadow-amber-500/30 border-2 border-amber-300 flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 group bg-gradient-to-r from-slate-900 via-amber-950 to-amber-900 text-white cursor-pointer ring-4 ring-amber-400/20 backdrop-blur-md"
+          title="Mở Cô Trợ Giảng AI 3D (Cục bộ GDPT 2018)"
         >
-          <div className="relative flex items-center justify-center">
-            <Sparkles className="w-5 h-5 fill-white text-white" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full"></span>
+          <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-400 shadow-md shrink-0 bg-slate-950">
+            <img
+              src="/images/tro-giang-ai.jpg"
+              alt="Cô Trợ Giảng AI"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+            <span className="absolute top-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full animate-pulse shadow-xs"></span>
           </div>
-          <span className="text-xs font-black tracking-wide hidden sm:inline">
-            Trợ Giảng
-          </span>
+          <div className="flex flex-col text-left">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span className="text-xs font-black tracking-wide text-amber-100">
+                Trợ Giảng AI
+              </span>
+            </div>
+            <span className="text-[10px] text-amber-300/90 font-bold">
+              Bài Học 3D • Sư Phạm
+            </span>
+          </div>
         </button>
       )}
 

@@ -444,19 +444,30 @@ export default function OfflinePedagogyAssistant({
       {/* Assistant Header */}
       <div className="p-3.5 bg-white border-b border-slate-200 shadow-xs">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-              🤖
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-amber-400 shadow-sm shrink-0 bg-slate-950">
+              <img
+                src="/images/tro-giang-ai.jpg"
+                alt="Cô Trợ Giảng AI"
+                className="w-full h-full object-cover"
+              />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border border-white rounded-full"></span>
             </div>
             <div>
-              <h3 className="font-extrabold text-xs md:text-sm text-slate-800">Trợ Giảng Mĩ Thuật AI</h3>
-              <p className="text-[10px] font-bold text-slate-500">Chuẩn SGK Kết nối tri thức với cuộc sống</p>
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-extrabold text-xs md:text-sm text-slate-800">Cô Trợ Giảng AI 3D</h3>
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  GDPT 2018
+                </span>
+              </div>
+              <p className="text-[10px] font-bold text-slate-500">Bài Học 3D • Sư Phạm Mĩ Thuật Chuyên Sâu</p>
             </div>
           </div>
           {onClose && (
             <button 
               onClick={onClose} 
-              className="text-slate-400 hover:text-slate-600 p-1 text-sm font-bold"
+              className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+              title="Đóng thanh Trợ Giảng"
             >
               ✕
             </button>
