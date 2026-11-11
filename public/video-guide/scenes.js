@@ -4,7 +4,7 @@
 export const VIDEO_SCENES = [
   {
     id: 1,
-    partNumber: 'PHẦN 1 / 7',
+    partNumber: 'PHẦN 1 / 6',
     title: 'GIỚI THIỆU TỔNG QUAN & KHỞI ĐẦU VỚI TRANG TRẮNG',
     subtitle: 'Nền tảng soạn giảng & trình chiếu mĩ thuật chuyên biệt cho Tiểu học GDPT 2018',
     time: '0:00 - 0:45',
@@ -111,7 +111,7 @@ export const VIDEO_SCENES = [
   },
   {
     id: 2,
-    partNumber: 'PHẦN 2 / 7',
+    partNumber: 'PHẦN 2 / 6',
     title: 'SOẠN SLIDE 16:9, TẢI LÊN & XUẤT POWERPOINT',
     subtitle: 'Thao tác kéo thả trực quan, thanh công cụ xóa ảnh một chạm, tương thích PowerPoint hoàn hảo',
     time: '0:45 - 1:45',
@@ -265,7 +265,7 @@ export const VIDEO_SCENES = [
   },
   {
     id: 3,
-    partNumber: 'PHẦN 3 / 7',
+    partNumber: 'PHẦN 3 / 6',
     title: 'TRỢ LÝ SƯ PHẠM AI & GIỌNG ĐỌC THẦY NAM / CÔ NỮ NEURAL',
     subtitle: 'Soạn mục tiêu Thông tư 32, tổ chức đố vui, phát âm giọng nam trầm ấm & giọng nữ truyền cảm',
     time: '1:45 - 2:45',
@@ -386,163 +386,10 @@ export const VIDEO_SCENES = [
   },
   {
     id: 4,
-    partNumber: 'PHẦN 4 / 7',
-    title: 'XƯỞNG Ý TƯỞNG – SINH BÀI DẠY & TRANH MẪU THEO Ý TƯỞNG',
-    subtitle: 'Gõ một dòng mô tả -> AI tự động xây dựng bài dạy & vẽ tranh sáp màu / màu nước mẫu',
-    time: '2:45 - 3:45',
-    activeTab: 'ideas',
-    audioSrc: '/video-guide/audio/part4.mp3',
-    highlights: [
-      { text: 'Nhập bất kỳ ý tưởng mĩ thuật nào của Thầy Cô', color: '#f59e0b' },
-      { text: 'Tranh minh họa phong cách trẻ thơ trong trẻo', color: '#8b5cf6' },
-      { text: 'Bấm một nút "Chèn vào Slide" tức thì', color: '#10b981' }
-    ],
-    drawPreview: (ctx, t) => {
-      ctx.save();
-      const sx = 280, sy = 160, sw = 1360, sh = 765;
-
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-      ctx.shadowBlur = 25;
-      ctx.fillRect(sx, sy, sw, sh);
-      ctx.shadowColor = 'transparent';
-
-      // Top Input Idea Prompt
-      ctx.fillStyle = '#fffbeb';
-      ctx.strokeStyle = '#fcd34d';
-      ctx.lineWidth = 2;
-      ctx.fillRect(sx + 50, sy + 40, sw - 100, 90);
-      ctx.strokeRect(sx + 50, sy + 40, sw - 100, 90);
-
-      ctx.fillStyle = '#b45309';
-      ctx.font = 'bold 18px sans-serif';
-      ctx.fillText('💡 Nhập ý tưởng bài dạy của Thầy Cô:', sx + 80, sy + 70);
-
-      ctx.fillStyle = '#1e293b';
-      ctx.font = '22px sans-serif';
-      ctx.fillText('"Vẽ con thuyền buồm ra khơi trong ánh bình minh trên biển quê hương"', sx + 80, sy + 105);
-
-      // Left Column: Generated Pedagogical Structure
-      const lx = sx + 50;
-      const ly = sy + 160;
-      const lw = 600;
-
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(lx, ly, lw, 540);
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.strokeRect(lx, ly, lw, 540);
-
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText('📋 Kế Hoạch Bài Học Tự Động', lx + 30, ly + 45);
-
-      const steps = [
-        { title: '1. Khởi động (5 phút):', desc: 'Trò chơi đoán âm thanh tiếng sóng và tiếng hải âu' },
-        { title: '2. Khám phá (10 phút):', desc: 'Quan sát hình ảnh con thuyền buồm và các sắc độ màu trời' },
-        { title: '3. Luyện tập (15 phút):', desc: '4 bước vẽ: Phác thân thuyền -> Cánh buồm -> Mặt biển' },
-        { title: '4. Vận dụng (5 phút):', desc: 'Trưng bày tranh và chia sẻ tình yêu biển đảo quê hương' }
-      ];
-
-      steps.forEach((step, idx) => {
-        const sy_step = ly + 80 + idx * 105;
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#cbd5e1';
-        ctx.fillRect(lx + 25, sy_step, lw - 50, 90);
-        ctx.strokeRect(lx + 25, sy_step, lw - 50, 90);
-
-        ctx.fillStyle = '#d97706';
-        ctx.font = 'bold 17px sans-serif';
-        ctx.fillText(step.title, lx + 45, sy_step + 32);
-
-        ctx.fillStyle = '#334155';
-        ctx.font = '15px sans-serif';
-        ctx.fillText(step.desc, lx + 45, sy_step + 62);
-      });
-
-      // Right Column: AI Generated Sample Artwork
-      const rx = sx + 700;
-      const ry = sy + 160;
-      const rw = sw - 750;
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(rx, ry, rw, 540);
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.strokeRect(rx, ry, rw, 540);
-
-      // Artwork Canvas Preview inside
-      const aw = rw - 50;
-      const ah = 400;
-      const ax = rx + 25;
-      const ay = ry + 25;
-
-      const oceanGrad = ctx.createLinearGradient(ax, ay, ax, ay + ah);
-      oceanGrad.addColorStop(0, '#fef08a');
-      oceanGrad.addColorStop(0.3, '#fed7aa');
-      oceanGrad.addColorStop(0.5, '#67e8f9');
-      oceanGrad.addColorStop(1, '#0e7490');
-      ctx.fillStyle = oceanGrad;
-      ctx.fillRect(ax, ay, aw, ah);
-
-      // Rising Sun
-      ctx.beginPath();
-      ctx.arc(ax + aw / 2, ay + 140, 60, 0, Math.PI * 2);
-      ctx.fillStyle = '#f97316';
-      ctx.fill();
-
-      // Big Sailboat
-      ctx.beginPath();
-      ctx.moveTo(ax + aw / 2 - 20, ay + 260);
-      ctx.lineTo(ax + aw / 2 + 50, ay + 150);
-      ctx.lineTo(ax + aw / 2 + 50, ay + 260);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(ax + aw / 2 + 65, ay + 260);
-      ctx.lineTo(ax + aw / 2 + 110, ay + 180);
-      ctx.lineTo(ax + aw / 2 + 65, ay + 260);
-      ctx.fillStyle = '#fde047';
-      ctx.fill();
-
-      // Boat hull
-      ctx.fillStyle = '#b45309';
-      ctx.fillRect(ax + aw / 2 - 60, ay + 260, 190, 30);
-
-      // Sea birds
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 3;
-      for (let b = 0; b < 4; b++) {
-        const bx = ax + 100 + b * 110;
-        const by = ay + 70 + (b % 2) * 20;
-        ctx.beginPath();
-        ctx.arc(bx, by, 12, Math.PI, 0);
-        ctx.arc(bx + 24, by, 12, Math.PI, 0);
-        ctx.stroke();
-      }
-
-      // CTA Button: "Chèn vào Slide"
-      const btnPulse = 1 + Math.sin(t * 4) * 0.03;
-      ctx.save();
-      ctx.translate(rx + rw / 2, ry + 475);
-      ctx.scale(btnPulse, btnPulse);
-      ctx.fillStyle = '#10b981';
-      ctx.fillRect(-180, -30, 360, 60);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 20px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('📥 Chèn Tranh Vào Slide Bài Giảng', 0, 0);
-      ctx.restore();
-
-      ctx.restore();
-    }
-  },
-  {
-    id: 5,
-    partNumber: 'PHẦN 5 / 7',
+    partNumber: 'PHẦN 4 / 6',
     title: 'BẢNG VẼ THỊ PHẠM 11 KHỐI 3D & MINI-GAME MĨ THUẬT',
     subtitle: 'Nét vẽ Bézier mượt mà, bộ 11 hình khối không gian, 3 trò chơi tương tác sôi nổi',
-    time: '3:45 - 4:45',
+    time: '2:45 - 3:45',
     activeTab: 'drawing',
     audioSrc: '/video-guide/audio/part5.mp3',
     highlights: [
@@ -681,11 +528,11 @@ export const VIDEO_SCENES = [
     }
   },
   {
-    id: 6,
-    partNumber: 'PHẦN 6 / 7',
+    id: 5,
+    partNumber: 'PHẦN 5 / 6',
     title: 'CAM CHẤM TRANH RUBRIC TT27 & XUẤT SMAS',
     subtitle: 'Mắt thần thẩm định bố cục, màu sắc ngoại tuyến; soạn sẵn nhận xét ấm áp và xuất file Excel',
-    time: '4:45 - 5:45',
+    time: '3:45 - 4:45',
     activeTab: 'camera',
     audioSrc: '/video-guide/audio/part6.mp3',
     highlights: [
@@ -824,11 +671,11 @@ export const VIDEO_SCENES = [
     }
   },
   {
-    id: 7,
-    partNumber: 'PHẦN 7 / 7',
+    id: 6,
+    partNumber: 'PHẦN 6 / 6',
     title: 'TRÌNH CHIẾU F5 TOÀN MÀN HÌNH & TRUY CẬP TRỰC TUYẾN',
     subtitle: 'Trình chiếu sắc nét, đồng hồ đếm giờ, địa chỉ trực tuyến chính thức: co-nhi-studio.vercel.app',
-    time: '5:45 - 7:00',
+    time: '4:45 - 6:00',
     activeTab: 'presentation',
     audioSrc: '/video-guide/audio/part7.mp3',
     highlights: [

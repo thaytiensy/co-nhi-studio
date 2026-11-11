@@ -16,7 +16,7 @@ export default function VideoGuideModal({ isOpen, onClose }) {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm md:text-base text-slate-100">
-                  Video Giới Thiệu & Hướng Dẫn Sử Dụng (7 Phút)
+                  Video Giới Thiệu & Hướng Dẫn Sử Dụng (6 Phút)
                 </h3>
                 <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
                   Thuyết Minh Neural Nam Minh

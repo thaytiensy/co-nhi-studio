@@ -534,17 +534,17 @@ export default function SlideEditorView({
           slide={currentSlide}
           notes={currentSlide?.notes}
           onChangeNotes={handleChangeNotes}
-          onOpenAssistant={() => setShowAssistant(true)}
+          onOpenAssistant={() => setShowAssistant(prev => !prev)}
         />
       </div>
 
       {/* 3. Right Collapsible Offline Assistant Sidebar */}
       {showAssistant && (
-        <div className="w-80 shrink-0 h-full">
+        <div className="w-80 md:w-96 shrink-0 h-full border-l border-slate-200 bg-white z-20 flex flex-col overflow-hidden animate-in slide-in-from-right duration-200 shadow-lg">
           <React.Suspense fallback={<div className="p-6 text-sm text-slate-400 text-center">Đang tải Trợ giảng...</div>}>
             <OfflinePedagogyAssistant
               currentSlide={currentSlide}
-              currentGrade={1}
+              currentGrade={Number(String(currentSlide?.title || '').match(/(?:lớp|khối)\s*([1-5])/i)?.[1]) || 1}
               onInsertToNotes={handleInsertToNotes}
               onClose={() => setShowAssistant(false)}
             />

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Giới Thiệu & Hướng Dẫn – Cọ Nhí Studio (7 Phút)</title>
+  <title>Video Giới Thiệu & Hướng Dẫn – Cọ Nhí Studio (6 Phút)</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +36,7 @@
               Video Hướng Dẫn
             </span>
           </div>
-          <p class="text-[11px] text-slate-400">7 Phút Giới Thiệu Toàn Diện Bài Soạn & Giảng Dạy Mĩ Thuật Tiểu Học</p>
+          <p class="text-[11px] text-slate-400">6 Phút Giới Thiệu Toàn Diện Bài Soạn & Giảng Dạy Mĩ Thuật Tiểu Học</p>
         </div>
       </a>
     </div>
@@ -73,7 +73,7 @@
       <!-- Live Scene Overlay Badge (Top Left) -->
       <div class="absolute top-4 left-4 flex items-center gap-2 pointer-events-none">
         <span id="overlayPartBadge" class="bg-rose-600/90 backdrop-blur text-white text-xs font-extrabold uppercase px-3 py-1 rounded-md tracking-wider shadow">
-          PHẦN 1 / 7
+          PHẦN 1 / 6
         </span>
         <span id="overlayTimeBadge" class="bg-black/60 backdrop-blur text-slate-300 text-xs font-mono font-medium px-2.5 py-1 rounded-md">
           0:00 - 0:45
@@ -104,13 +104,12 @@
       <div class="relative w-full h-3 bg-slate-800 rounded-full overflow-hidden cursor-pointer group" id="progressBarContainer">
         <!-- Buffered / markers -->
         <div class="absolute inset-0 flex divide-x divide-slate-700/50 pointer-events-none">
-          <div style="width: 10.7%"></div>
-          <div style="width: 14.3%"></div>
-          <div style="width: 14.3%"></div>
-          <div style="width: 14.3%"></div>
-          <div style="width: 14.3%"></div>
-          <div style="width: 14.3%"></div>
-          <div style="width: 17.8%"></div>
+          <div style="width: 16.66%"></div>
+          <div style="width: 16.66%"></div>
+          <div style="width: 16.66%"></div>
+          <div style="width: 16.66%"></div>
+          <div style="width: 16.66%"></div>
+          <div style="width: 16.7%"></div>
         </div>
         <!-- Filled Track -->
         <div id="progressTrack" class="h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full transition-all duration-100" style="width: 0%"></div>
@@ -138,7 +137,7 @@
           <div class="text-xs font-mono font-semibold text-slate-300 ml-2">
             <span id="currentTimeDisplay" class="text-amber-400">00:00</span>
             <span class="text-slate-500">/</span>
-            <span id="totalTimeDisplay">06:45</span>
+            <span id="totalTimeDisplay">06:00</span>
           </div>
         </div>
 
@@ -166,10 +165,10 @@
       </div>
     </div>
 
-    <!-- 7 Chapters Timeline Selector -->
+    <!-- 6 Chapters Timeline Selector -->
     <div class="flex flex-col gap-2.5">
       <h3 class="text-xs uppercase font-extrabold tracking-wider text-slate-400 flex items-center gap-2">
-        <span>📑</span> Danh Sách 7 Chương Mục Trọng Tâm (Kịch Bản 7 Phút)
+        <span>📑</span> Danh Sách 6 Chương Mục Trọng Tâm (Kịch Bản 6 Phút)
       </h3>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" id="scenesGrid">
         <!-- Rendered via JavaScript -->
@@ -297,12 +296,12 @@
 
       // 6 Simulated App Tabs in Top Bar
       const tabs = [
+        { id: 'dashboard', name: 'Tổng Quan' },
         { id: 'editor', name: 'Soạn Slide' },
-        { id: 'ideas', name: 'Xưởng Ý Tưởng' },
         { id: 'drawing', name: 'Bảng Vẽ Thị Phạm' },
         { id: 'games', name: 'Trò Chơi Mĩ Thuật' },
         { id: 'camera', name: 'Cam Chấm Tranh' },
-        { id: 'evaluation', name: 'Nhận Xét TT27' }
+        { id: 'evaluation', name: 'Sổ Điểm SMAS' }
       ];
 
       tabs.forEach((tab, i) => {

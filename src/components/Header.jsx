@@ -172,11 +172,11 @@ export default function Header({
             <button
               onClick={onOpenVideoGuide}
               className="px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 rounded-lg flex items-center gap-1.5 transition-all shadow-sm transform hover:-translate-y-0.5 active:scale-95"
-              title="Xem video giới thiệu & hướng dẫn sử dụng Cọ Nhí Studio (7 phút)"
+              title="Xem video giới thiệu & hướng dẫn sử dụng Cọ Nhí Studio (6 phút)"
             >
               <Film className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Video Hướng Dẫn (7p)</span>
-              <span className="md:hidden">Video 7p</span>
+              <span className="hidden md:inline">Video Hướng Dẫn (6p)</span>
+              <span className="md:hidden">Video 6p</span>
             </button>
           )}
 
