@@ -89,15 +89,19 @@ export default function BentoDashboardView({
     return () => unsubscribe();
   }, []);
 
-  // Đăng ký lắng nghe thay đổi LocalStorage từ các tab khác
+  // Đăng ký lắng nghe thay đổi LocalStorage và chuyển đổi không gian tài khoản
   useEffect(() => {
     const handleStorageUpdate = () => {
       setData(getStoredData());
     };
     window.addEventListener('conhi_storage_updated', handleStorageUpdate);
+    window.addEventListener('conhi-storage-updated', handleStorageUpdate);
+    window.addEventListener('conhi-workspace-changed', handleStorageUpdate);
     window.addEventListener('storage', handleStorageUpdate);
     return () => {
       window.removeEventListener('conhi_storage_updated', handleStorageUpdate);
+      window.removeEventListener('conhi-storage-updated', handleStorageUpdate);
+      window.removeEventListener('conhi-workspace-changed', handleStorageUpdate);
       window.removeEventListener('storage', handleStorageUpdate);
     };
   }, []);

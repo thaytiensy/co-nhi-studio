@@ -100,9 +100,9 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base">Khu Vực Quản Trị</h3>
+              <h3 className="font-extrabold text-base">Chia Sẻ Quyền Sử Dụng App</h3>
               <p className="text-xs text-slate-300">
-                {isOwner ? 'Quản trị viên (Admin)' : 'Admin'}
+                {isOwner ? 'Quản trị viên hệ thống' : (session?.email ? `Tài khoản: ${session.email}` : 'Người dùng')}
               </p>
             </div>
           </div>
@@ -173,7 +173,7 @@ export default function AdminModal({ isOpen, onClose, onLogout, session }) {
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
             <span className="text-[11px] text-slate-500 font-medium">
-              {isOwner ? 'Admin' : `Admin: ${session?.email || ''}`}
+              {isOwner ? 'Quản trị hệ thống' : `Tài khoản: ${session?.email || ''}`}
             </span>
             <button
               type="button"

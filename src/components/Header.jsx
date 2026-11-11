@@ -104,18 +104,41 @@ export default function Header({
             </button>
           )}
 
-          {/* Đã xóa nút khóa header theo yêu cầu người dùng */}
-          {userSession?.role === 'sub_admin' ? (
-            /* Admin 2, Admin 3 (do Admin 1 cấp): hiển thị rõ chức danh quản trị */
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-black shadow-2xs">
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-              <span className="truncate max-w-[190px]" title={userSession.email}>
-                Admin: {userSession.email}
-              </span>
+          {/* Hiển thị không gian làm việc riêng biệt của từng tài khoản */}
+          {userSession?.role === 'super_admin' ? (
+            /* Super Admin 1 */
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-950 rounded-xl text-xs font-black shadow-2xs">
+              <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" />
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] text-rose-600 font-extrabold uppercase tracking-wider">Không gian Super Admin</span>
+                <span className="truncate max-w-[190px]" title={userSession.email}>
+                  {userSession.email}
+                </span>
+              </div>
               {onLogout && (
                 <button
                   onClick={onLogout}
-                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1 ml-1 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                  title="Đăng xuất không gian quản trị"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : userSession?.role === 'sub_admin' ? (
+            /* Admin 2, Admin 3 (do Admin 1 cấp) */
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-950 rounded-xl text-xs font-black shadow-2xs">
+              <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] text-indigo-600 font-extrabold uppercase tracking-wider">Không gian Admin</span>
+                <span className="truncate max-w-[190px]" title={userSession.email}>
+                  {userSession.email}
+                </span>
+              </div>
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-1 ml-1 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
                   title="Đăng xuất quyền Admin"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -123,17 +146,22 @@ export default function Header({
               )}
             </div>
           ) : userSession?.email ? (
-            /* Giáo viên đăng nhập: Hiển thị Gmail và nút đăng xuất */
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-semibold shadow-2xs">
-              <Mail className="w-3.5 h-3.5 text-slate-400" />
-              <span className="truncate max-w-[200px]" title={userSession.email}>
-                {userSession.email}
-              </span>
+            /* Giáo viên đăng nhập: Không gian riêng biệt độc lập */
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-950 rounded-xl text-xs font-semibold shadow-2xs">
+              <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+                {userSession.email[0].toUpperCase()}
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] text-amber-700 font-bold uppercase tracking-wider">Không gian riêng</span>
+                <span className="truncate max-w-[190px] font-bold" title={userSession.email}>
+                  {userSession.email}
+                </span>
+              </div>
               {onLogout && (
                 <button
                   onClick={onLogout}
-                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                  title="Đăng xuất tài khoản Gmail"
+                  className="p-1 ml-1 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                  title="Đăng xuất không gian cá nhân"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>

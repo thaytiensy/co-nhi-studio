@@ -11,6 +11,7 @@ import {
   getProjectDraftFromLocal,
   clearProjectDraft
 } from './utils/storageService';
+import { setActiveUserScope, clearActiveUserScope, getActiveUserScope } from './utils/userWorkspaceService';
 
 // Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
 const DrawingBoard = React.lazy(() => import('./components/DrawingBoard/DrawingBoard'));
@@ -104,7 +105,40 @@ export default function App() {
   const [recoveredDraft, setRecoveredDraft] = useState(null);
   const isInitialLoadedRef = useRef(false);
 
-  // Xử lý đăng xuất tài khoản
+  // Nạp không gian làm việc riêng biệt của người dùng
+  const loadUserWorkspace = (email) => {
+    setActiveUserScope(email);
+    const saved = loadProjectFromLocal(email);
+    if (saved && saved.slides && saved.slides.length > 0) {
+      setSlides(saved.slides);
+      if (saved.title) setProjectTitle(saved.title);
+    } else {
+      setSlides(INITIAL_SLIDES);
+      setProjectTitle('Bài Giảng Mĩ Thuật');
+    }
+    setCurrentSlideIndex(0);
+    setSlideEditorResetKey(key => key + 1);
+
+    // Kiểm tra bản nháp chưa lưu riêng của người dùng này
+    try {
+      const draft = getProjectDraftFromLocal(email);
+      if (draft && draft.slides && draft.slides.length > 0) {
+        const draftTime = draft.updatedAt ? new Date(draft.updatedAt).getTime() : 0;
+        const savedTime = saved?.updatedAt ? new Date(saved.updatedAt).getTime() : 0;
+        if (draftTime > savedTime + 3000) {
+          setRecoveredDraft(draft);
+        } else {
+          setRecoveredDraft(null);
+        }
+      } else {
+        setRecoveredDraft(null);
+      }
+    } catch (_) {
+      setRecoveredDraft(null);
+    }
+  };
+
+  // Xử lý đăng xuất tài khoản và dọn dẹp sạch không gian hiển thị trên RAM
   const handleLogout = async () => {
     authVersionRef.current += 1;
     try {
@@ -116,10 +150,16 @@ export default function App() {
     } catch (_) {
       setAuthError('Không thể hoàn tất đăng xuất. Vui lòng thử lại.');
     }
+    clearActiveUserScope();
     setCurrentUserSession(null);
     setIsAdminModalOpen(false);
     setIsAuthenticated(false);
     setAuthError('');
+    setSlides(INITIAL_SLIDES);
+    setProjectTitle('Bài Giảng Mĩ Thuật');
+    setCurrentSlideIndex(0);
+    setRecoveredDraft(null);
+    setSlideEditorResetKey(key => key + 1);
   };
 
   // Lắng nghe đăng xuất từ Firebase khi có thay đổi
@@ -127,9 +167,15 @@ export default function App() {
     if (!auth) return undefined;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
+        clearActiveUserScope();
         setIsAuthenticated(false);
         setCurrentUserSession(null);
         setIsAdminModalOpen(false);
+        setSlides(INITIAL_SLIDES);
+        setProjectTitle('Bài Giảng Mĩ Thuật');
+        setCurrentSlideIndex(0);
+        setRecoveredDraft(null);
+        setSlideEditorResetKey(key => key + 1);
       }
     });
     return () => unsubscribe();
@@ -188,34 +234,15 @@ export default function App() {
     };
   }, [currentUserSession?.role, isAdminModalOpen]);
 
-  // Load from local storage on initial mount (loại bỏ dữ liệu mẫu cũ nếu có để app luôn trắng)
+  // Khởi tạo không gian làm việc từ session hiện tại (nếu có khi F5 tải lại tab)
   useEffect(() => {
-    const saved = loadProjectFromLocal();
-    if (saved && saved.slides && saved.slides.length > 0) {
-      const isOldSample = saved.slides.some(s => s.id && String(s.id).startsWith('slide-init-'));
-      if (!isOldSample) {
-        setSlides(saved.slides);
-        setSlideEditorResetKey(key => key + 1);
-        if (saved.title) setProjectTitle(saved.title);
-      } else {
-        // Xóa dữ liệu mẫu cũ để giữ ứng dụng trắng tinh
-        try {
-          localStorage.removeItem('co_nhi_studio_project_v1');
-        } catch (e) {}
-      }
+    const session = getCurrentSession();
+    if (session && session.email) {
+      setActiveUserScope(session.email);
+      setCurrentUserSession(session);
+      setIsAuthenticated(true);
+      loadUserWorkspace(session.email);
     }
-
-    // Kiểm tra bản nháp chưa lưu phục vụ Crash Recovery khi gặp sự cố tắt trình duyệt
-    try {
-      const draft = getProjectDraftFromLocal();
-      if (draft && draft.slides && draft.slides.length > 0) {
-        const draftTime = draft.updatedAt ? new Date(draft.updatedAt).getTime() : 0;
-        const savedTime = saved?.updatedAt ? new Date(saved.updatedAt).getTime() : 0;
-        if (draftTime > savedTime + 3000) {
-          setRecoveredDraft(draft);
-        }
-      }
-    } catch (_) {}
   }, []);
 
   // Áp dụng bản nháp tự động khôi phục sau sự cố
@@ -224,19 +251,19 @@ export default function App() {
       setSlides(recoveredDraft.slides);
       if (recoveredDraft.title) setProjectTitle(recoveredDraft.title);
       setSlideEditorResetKey(key => key + 1);
-      saveProjectToLocal({ title: recoveredDraft.title, slides: recoveredDraft.slides });
-      clearProjectDraft();
+      saveProjectToLocal({ title: recoveredDraft.title, slides: recoveredDraft.slides }, currentUserSession?.email);
+      clearProjectDraft(currentUserSession?.email);
       setRecoveredDraft(null);
       setIsSaved(true);
     }
   };
 
   const handleDismissRecoveredDraft = () => {
-    clearProjectDraft();
+    clearProjectDraft(currentUserSession?.email);
     setRecoveredDraft(null);
   };
 
-  // Xóa trắng toàn bộ slide và tạo dự án mới
+  // Xóa trắng toàn bộ slide và tạo dự án mới cho không gian hiện tại
   const handleNewProject = () => {
     if (window.confirm('Thầy/Cô có muốn xóa trắng các slide hiện tại để tạo bài giảng mới không?')) {
       const blank = [
@@ -252,9 +279,9 @@ export default function App() {
       setProjectTitle('Bài Giảng Mĩ Thuật');
       setCurrentSlideIndex(0);
       setSlideEditorResetKey(key => key + 1);
-      clearProjectDraft();
+      clearProjectDraft(currentUserSession?.email);
       setRecoveredDraft(null);
-      const saveResult = saveProjectToLocal({ title: 'Bài Giảng Mĩ Thuật', slides: blank });
+      const saveResult = saveProjectToLocal({ title: 'Bài Giảng Mĩ Thuật', slides: blank }, currentUserSession?.email);
       setIsSaved(saveResult.success);
       if (!saveResult.success) alert(saveResult.error);
     }
@@ -279,7 +306,7 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isSaved]);
 
-  // Tự động lưu bản nháp (Autosave có debounce 900ms) khi slides hoặc projectTitle thay đổi
+  // Tự động lưu bản nháp (Autosave có debounce 900ms) riêng biệt theo từng không gian tài khoản
   useEffect(() => {
     if (!isInitialLoadedRef.current) {
       isInitialLoadedRef.current = true;
@@ -294,25 +321,25 @@ export default function App() {
           title: projectTitle,
           slides,
         };
-        saveProjectDraftToLocal(payload);
-        const res = saveProjectToLocal(payload);
+        saveProjectDraftToLocal(payload, currentUserSession?.email);
+        const res = saveProjectToLocal(payload, currentUserSession?.email);
         setIsSaved(true); // Bảo vệ hiệu năng, tránh vòng lặp serialize khi tệp nặng vượt hạn mức LocalStorage
       }
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [slides, projectTitle, isSaved]);
+  }, [slides, projectTitle, isSaved, currentUserSession?.email]);
 
-  // Manual local save
+  // Manual local save cho không gian người dùng hiện tại
   const handleSave = () => {
     const payload = {
       title: projectTitle,
       slides,
     };
-    const res = saveProjectToLocal(payload);
+    const res = saveProjectToLocal(payload, currentUserSession?.email);
     if (res.success) {
       setIsSaved(true);
-      clearProjectDraft();
+      clearProjectDraft(currentUserSession?.email);
       setRecoveredDraft(null);
     } else {
       setIsSaved(false);
@@ -517,9 +544,11 @@ export default function App() {
         isOpen={true}
         authError={authError}
         onLoginSuccess={(session) => {
+          setActiveUserScope(session.email);
           setCurrentUserSession(session);
           setIsAuthenticated(true);
           setAuthError('');
+          loadUserWorkspace(session.email);
         }}
         onClearAuthError={() => setAuthError('')}
       />

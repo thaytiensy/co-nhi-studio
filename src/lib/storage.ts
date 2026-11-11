@@ -3,6 +3,8 @@
  * Hỗ trợ Auto-save Debounce 300ms, Sao lưu (.json), Khôi phục (.json), và Dữ liệu mẫu chuẩn GDPT 2018.
  */
 
+import { getScopedStorageKey } from '../utils/userWorkspaceService.js';
+
 export interface TeachingPlanItem {
   id: string;
   week: number;
@@ -249,40 +251,48 @@ export const DEFAULT_STUDIO_DATA: StudioStorageState = {
   lastSaved: new Date().toISOString()
 };
 
+function cloneDefaultData(): StudioStorageState {
+  return JSON.parse(JSON.stringify(DEFAULT_STUDIO_DATA));
+}
+
 /**
- * Đọc toàn bộ dữ liệu Studio từ LocalStorage. Tự động phục hồi dữ liệu mẫu nếu chưa có.
+ * Đọc toàn bộ dữ liệu Studio từ LocalStorage theo từng không gian người dùng.
  */
-export function getStoredData(): StudioStorageState {
-  if (typeof window === 'undefined') return DEFAULT_STUDIO_DATA;
+export function getStoredData(userScope?: string): StudioStorageState {
+  if (typeof window === 'undefined') return cloneDefaultData();
+  const key = getScopedStorageKey(STORAGE_KEY, userScope);
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      saveStoredData(DEFAULT_STUDIO_DATA);
-      return DEFAULT_STUDIO_DATA;
+      const initial = cloneDefaultData();
+      saveStoredData(initial, userScope);
+      return initial;
     }
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.plans || !parsed.settings) {
-      saveStoredData(DEFAULT_STUDIO_DATA);
-      return DEFAULT_STUDIO_DATA;
+      const initial = cloneDefaultData();
+      saveStoredData(initial, userScope);
+      return initial;
     }
     return parsed as StudioStorageState;
   } catch (err) {
     console.warn('[Studio Storage] Lỗi đọc LocalStorage, khôi phục mặc định:', err);
-    return DEFAULT_STUDIO_DATA;
+    return cloneDefaultData();
   }
 }
 
 /**
- * Ghi dữ liệu đồng bộ vào LocalStorage ngay lập tức.
+ * Ghi dữ liệu đồng bộ vào LocalStorage theo từng không gian người dùng ngay lập tức.
  */
-export function saveStoredData(data: StudioStorageState): void {
+export function saveStoredData(data: StudioStorageState, userScope?: string): void {
   if (typeof window === 'undefined') return;
+  const key = getScopedStorageKey(STORAGE_KEY, userScope);
   try {
     const payload = {
       ...data,
       lastSaved: new Date().toISOString()
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(key, JSON.stringify(payload));
     window.dispatchEvent(new CustomEvent('conhi-storage-updated', { detail: payload }));
   } catch (err) {
     console.error('[Studio Storage] Lỗi lưu LocalStorage:', err);
@@ -295,14 +305,15 @@ export function saveStoredData(data: StudioStorageState): void {
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 export function autoSaveData(
   patch: Partial<StudioStorageState>,
-  onSaved?: (saved: StudioStorageState) => void
+  onSaved?: (saved: StudioStorageState) => void,
+  userScope?: string
 ): () => void {
   if (autoSaveTimer) {
     clearTimeout(autoSaveTimer);
   }
 
   autoSaveTimer = setTimeout(() => {
-    const current = getStoredData();
+    const current = getStoredData(userScope);
     const updated: StudioStorageState = {
       ...current,
       ...patch,
@@ -310,7 +321,7 @@ export function autoSaveData(
       settings: patch.settings ? { ...current.settings, ...patch.settings } : current.settings,
       lastSaved: new Date().toISOString()
     };
-    saveStoredData(updated);
+    saveStoredData(updated, userScope);
     if (onSaved) onSaved(updated);
     autoSaveTimer = null;
   }, 300);
@@ -378,11 +389,12 @@ export function importRestoreJson(file: File): Promise<StudioStorageState> {
 }
 
 /**
- * Khôi phục dữ liệu mẫu mặc định ban đầu.
+ * Khôi phục dữ liệu mẫu mặc định ban đầu cho không gian người dùng.
  */
-export function restoreDefaultData(): StudioStorageState {
-  saveStoredData(DEFAULT_STUDIO_DATA);
-  return DEFAULT_STUDIO_DATA;
+export function restoreDefaultData(userScope?: string): StudioStorageState {
+  const fresh = cloneDefaultData();
+  saveStoredData(fresh, userScope);
+  return fresh;
 }
 
 /**

@@ -130,7 +130,7 @@ export default function AdminAccountsTab({
                 <div>
                   <span className="font-bold text-slate-800">{item.email}</span>
                   <div className="text-[10px] text-slate-400">
-                    Cấp bởi: {item.addedBy || '—'}
+                    Cấp bởi: {(!item.addedBy || item.addedBy.includes('dotiensy') || item.addedBy === 'dotiensy.8785@gmail.com') ? 'Quản trị hệ thống' : item.addedBy}
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">

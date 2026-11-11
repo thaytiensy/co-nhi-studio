@@ -34,7 +34,7 @@ function makeSession(email, role, uid, title = '', isAnon = false) {
     role,
     adminTitle: title || (isOwner ? 'Admin 1' : isSubAdmin ? 'Admin Phụ' : ''),
     isAnonymous: isAnon,
-    canShareGmail: isOwner || isSubAdmin,
+    canShareGmail: true,
     canManageRoles: isOwner,
     canEditApp: isOwner,
   };

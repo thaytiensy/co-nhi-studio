@@ -11,6 +11,7 @@
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db, firebaseConfigured } from './firebaseClient.js';
 import { getStoredData, saveStoredData } from '../lib/storage.ts';
+import { getActiveUserScope, sanitizeUserScope } from './userWorkspaceService.js';
 
 const FIRESTORE_COLLECTION = 'conhi_studio_data';
 const FIRESTORE_DOCUMENT = 'latest_backup';
@@ -65,10 +66,11 @@ export function subscribeToFirebaseStatus(listener) {
 }
 
 /**
- * Đẩy dữ liệu hiện tại lên Firebase Cloud Firestore
- * @param {object} customData Dữ liệu tùy chọn, nếu không truyền sẽ lấy từ getStoredData()
+ * Đẩy dữ liệu hiện tại lên Firebase Cloud Firestore theo từng không gian người dùng
+ * @param {object} [customData] Dữ liệu tùy chọn, nếu không truyền sẽ lấy từ getStoredData()
+ * @param {string} [userEmail] Tùy chọn chỉ định email người dùng
  */
-export async function syncStorageToFirebase(customData) {
+export async function syncStorageToFirebase(customData, userEmail) {
   const isOnline = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
     ? navigator.onLine
     : true;
@@ -97,8 +99,11 @@ export async function syncStorageToFirebase(customData) {
     lastSyncStatus = 'syncing';
     notifyStatusChange();
 
-    const dataToSync = customData || getStoredData();
-    const docRef = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT);
+    const scope = userEmail ? sanitizeUserScope(userEmail) : getActiveUserScope();
+    const docId = scope ? `user_${scope}` : FIRESTORE_DOCUMENT;
+    const docRef = doc(db, FIRESTORE_COLLECTION, docId);
+
+    const dataToSync = customData || getStoredData(scope);
 
     // Chuẩn bị payload tương thích Firestore (loại bỏ undefined)
     const sanitizedPayload = JSON.parse(JSON.stringify({
@@ -106,6 +111,7 @@ export async function syncStorageToFirebase(customData) {
       evaluations: dataToSync.evaluations || [],
       settings: dataToSync.settings || {},
       syncedAt: new Date().toISOString(),
+      userScope: scope || 'default',
       version: 'vip_pro_v1'
     }));
 
@@ -144,9 +150,10 @@ export async function syncStorageToFirebase(customData) {
 }
 
 /**
- * Tải dữ liệu mới nhất từ Firebase Cloud Firestore về máy
+ * Tải dữ liệu mới nhất từ Firebase Cloud Firestore về máy theo từng không gian người dùng
+ * @param {string} [userEmail]
  */
-export async function fetchStorageFromFirebase() {
+export async function fetchStorageFromFirebase(userEmail) {
   const isOnline = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
     ? navigator.onLine
     : true;
@@ -171,12 +178,14 @@ export async function fetchStorageFromFirebase() {
     lastSyncStatus = 'syncing';
     notifyStatusChange();
 
-    const docRef = doc(db, FIRESTORE_COLLECTION, FIRESTORE_DOCUMENT);
+    const scope = userEmail ? sanitizeUserScope(userEmail) : getActiveUserScope();
+    const docId = scope ? `user_${scope}` : FIRESTORE_DOCUMENT;
+    const docRef = doc(db, FIRESTORE_COLLECTION, docId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
       const cloudData = docSnap.data();
-      const current = getStoredData();
+      const current = getStoredData(scope);
 
       const mergedData = {
         plans: Array.isArray(cloudData.plans) && cloudData.plans.length > 0 ? cloudData.plans : current.plans,
@@ -188,7 +197,7 @@ export async function fetchStorageFromFirebase() {
         slides: current.slides
       };
 
-      saveStoredData(mergedData);
+      saveStoredData(mergedData, scope);
 
       lastSyncTimestamp = new Date().toLocaleTimeString('vi-VN', {
         hour: '2-digit',

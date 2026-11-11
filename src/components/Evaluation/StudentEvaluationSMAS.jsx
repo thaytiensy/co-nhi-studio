@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel } from '../../utils/smasExcelService';
+import { getScopedStorageKey } from '../../utils/userWorkspaceService';
 
 // Ngân hàng nhận xét môn Mĩ thuật chuẩn Thông tư 27/2020/TT-BGDĐT
 const TT27_COMMENTS_BANK = {
@@ -51,14 +52,16 @@ const INITIAL_STUDENTS = [
   { id: 'HS006', name: 'Đỗ Quốc Khánh', className: 'Lớp 1A', level: 'C', comment: 'Em cần chú ý quan sát mẫu kĩ hơn, tô màu cẩn thận và hoàn thiện bài vẽ đúng hạn.' },
 ];
 
-const SMAS_STORAGE_KEY = 'conhi_smas_evaluations_state_v2';
+const BASE_SMAS_STORAGE_KEY = 'conhi_smas_evaluations_state_v2';
+const getSmasStorageKey = () => getScopedStorageKey(BASE_SMAS_STORAGE_KEY);
+const getTeachingClassesKey = () => getScopedStorageKey('conhi_teaching_classes');
 const DEFAULT_TEACHING_CLASSES = ['1A', '1B', '1C', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B'];
 
 export default function StudentEvaluationSMAS() {
   // Trạng thái: Chỉ hiện lớp và học kỳ khi giáo viên đã tải danh sách hoặc đã chọn lớp dạy
   const [hasUploadedOrSelected, setHasUploadedOrSelected] = useState(() => {
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem(SMAS_STORAGE_KEY) : null;
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(getSmasStorageKey()) : null;
       if (raw) {
         const parsed = JSON.parse(raw);
         return Boolean(parsed.hasUploadedOrSelected && (parsed.students?.length > 0 || parsed.className));
@@ -69,7 +72,7 @@ export default function StudentEvaluationSMAS() {
 
   const [className, setClassName] = useState(() => {
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem(SMAS_STORAGE_KEY) : null;
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(getSmasStorageKey()) : null;
       if (raw) {
         const parsed = JSON.parse(raw);
         return parsed.className || '';
@@ -80,7 +83,7 @@ export default function StudentEvaluationSMAS() {
 
   const [classOptions, setClassOptions] = useState(() => {
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem(SMAS_STORAGE_KEY) : null;
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(getSmasStorageKey()) : null;
       if (raw) {
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed.classOptions) ? parsed.classOptions : [];
@@ -91,7 +94,7 @@ export default function StudentEvaluationSMAS() {
 
   const [selectedClassFilter, setSelectedClassFilter] = useState(() => {
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem(SMAS_STORAGE_KEY) : null;
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(getSmasStorageKey()) : null;
       if (raw) {
         const parsed = JSON.parse(raw);
         return parsed.selectedClassFilter || 'all';
@@ -102,7 +105,7 @@ export default function StudentEvaluationSMAS() {
 
   const [semester, setSemester] = useState(() => {
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem(SMAS_STORAGE_KEY) : null;
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(getSmasStorageKey()) : null;
       if (raw) {
         const parsed = JSON.parse(raw);
         return parsed.semester || 'Học kì I';
@@ -113,7 +116,7 @@ export default function StudentEvaluationSMAS() {
 
   const [students, setStudents] = useState(() => {
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem(SMAS_STORAGE_KEY) : null;
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(getSmasStorageKey()) : null;
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed.students)) {
@@ -133,7 +136,7 @@ export default function StudentEvaluationSMAS() {
     if (typeof window === 'undefined') return;
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem(SMAS_STORAGE_KEY, JSON.stringify({
+        localStorage.setItem(getSmasStorageKey(), JSON.stringify({
           hasUploadedOrSelected,
           className,
           classOptions,
@@ -146,9 +149,10 @@ export default function StudentEvaluationSMAS() {
     return () => clearTimeout(timer);
   }, [hasUploadedOrSelected, className, classOptions, selectedClassFilter, semester, students]);
 
-  // Danh sách các lớp được trích xuất
+  // Danh sách các lớp được trích xuất (kết hợp danh sách lớp dạy của GV và dữ liệu học sinh)
   const allClasses = Array.from(new Set([
-    className,
+    ...teachingClasses.map(c => (String(c).startsWith('Lớp') ? String(c) : `Lớp ${c}`)),
+    ...(className ? [className] : []),
     ...classOptions,
     ...students.map(s => s.className).filter(Boolean)
   ])).filter(Boolean);
@@ -158,10 +162,10 @@ export default function StudentEvaluationSMAS() {
     ? students
     : students.filter(s => (s.className || className || '').trim() === selectedClassFilter.trim());
 
-  // Quản lý danh sách lớp dạy có thể chỉnh sửa theo ý muốn giáo viên
+  // Quản lý danh sách lớp dạy có thể chỉnh sửa theo ý muốn giáo viên theo không gian riêng
   const [teachingClasses, setTeachingClasses] = useState(() => {
     try {
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('conhi_teaching_classes') : null;
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(getTeachingClassesKey()) : null;
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -175,7 +179,7 @@ export default function StudentEvaluationSMAS() {
     setTeachingClasses(cleaned);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('conhi_teaching_classes', JSON.stringify(cleaned));
+        localStorage.setItem(getTeachingClassesKey(), JSON.stringify(cleaned));
       }
     } catch (_) {}
   };
@@ -209,6 +213,17 @@ export default function StudentEvaluationSMAS() {
       return;
     }
     saveTeachingClasses(updatedNames);
+    const formatted = updatedNames.map(c => `Lớp ${c}`);
+    setClassOptions(formatted);
+
+    // Nếu lớp đang chọn bị xóa, đổi sang lớp đầu tiên
+    if (className && !formatted.includes(className)) {
+      setClassName(formatted[0] || '');
+      if (selectedClassFilter !== 'all') {
+        setSelectedClassFilter(formatted[0] || 'all');
+      }
+    }
+
     setShowClassManagerModal(false);
     setExportNotice('✅ Đã cập nhật danh sách lớp dạy theo ý muốn!');
     setTimeout(() => setExportNotice(''), 3000);
@@ -235,9 +250,16 @@ export default function StudentEvaluationSMAS() {
 
   // Hành động: Giáo viên thêm lớp mới
   const handleAddNewClass = () => {
-    const newCls = prompt('Nhập tên lớp dạy mới (ví dụ: Lớp 1A, 2B, 3C):');
+    const newCls = prompt('Nhập tên lớp dạy mới (ví dụ: 1A1, 2C, 3D, 4E, 5G):');
     if (newCls && newCls.trim()) {
-      handleSelectTeachingClass(newCls.trim());
+      const clean = newCls.trim().replace(/^Lớp\s+/i, '');
+      const full = `Lớp ${clean}`;
+      if (!teachingClasses.includes(clean)) {
+        saveTeachingClasses([...teachingClasses, clean]);
+      }
+      handleSelectTeachingClass(full);
+      setExportNotice(`✅ Đã thêm ${full} vào danh sách lớp dạy!`);
+      setTimeout(() => setExportNotice(''), 3000);
     }
   };
 

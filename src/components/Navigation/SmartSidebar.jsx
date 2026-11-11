@@ -184,7 +184,7 @@ export default function SmartSidebar({
         )}
 
         {/* Nút Chia sẻ app bằng Gmail cho Admin & người được cấp quyền */}
-        {onOpenAdminModal && (userSession?.role === 'super_admin' || userSession?.role === 'sub_admin' || userSession?.canShareGmail) && (
+        {onOpenAdminModal && userSession && (
           <button
             onClick={onOpenAdminModal}
             className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-[11px] font-black text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer ${
@@ -196,7 +196,6 @@ export default function SmartSidebar({
             {!isCollapsed && <span>Chia Sẻ Gmail</span>}
           </button>
         )}
-
 
         {/* Nút Đăng xuất */}
         {onLogout && (

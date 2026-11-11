@@ -1,3 +1,5 @@
+import { getScopedStorageKey } from './userWorkspaceService.js';
+
 // Dịch vụ Phát Âm Thanh Tiếng Việt Chuẩn Dành Cho Giáo Viên Mĩ Thuật
 // Tích hợp:
 // 1. Động cơ chính: Microsoft Edge Neural TTS (vi-VN-NamMinhNeural cho Thầy giáo, vi-VN-HoaiMyNeural cho Cô giáo)
@@ -57,7 +59,7 @@ class SpeechService {
   constructor() {
     this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
     this.vietnameseVoice = null;
-    const savedGender = typeof window !== 'undefined' ? localStorage.getItem('conhi_voice_gender') : null;
+    const savedGender = typeof window !== 'undefined' ? localStorage.getItem(getScopedStorageKey('conhi_voice_gender')) : null;
     this.gender = (savedGender === 'female' || savedGender === 'male') ? savedGender : 'male';
     this.rate = 1.0;
     this.pitch = 1.0;
@@ -88,7 +90,7 @@ class SpeechService {
       this.lastError = null;
       if (typeof window !== 'undefined') {
         try {
-          localStorage.setItem('conhi_voice_gender', gender);
+          localStorage.setItem(getScopedStorageKey('conhi_voice_gender'), gender);
         } catch (_) {}
       }
       this.initVoices();
