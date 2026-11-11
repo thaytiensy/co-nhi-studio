@@ -1,77 +1,85 @@
-# Cọ Nhí Studio - Phần Mềm Soạn Giảng & Trình Chiếu Mĩ Thuật Tiểu Học (GDPT 2018)
+# Cọ Nhí Studio - Nền Tảng Trình Chiếu & Soạn Giảng Mĩ Thuật Đạt Chuẩn Thương Mại
 
-Cọ Nhí Studio là ứng dụng Web / PWA chuyên biệt dành cho giáo viên Mĩ thuật tiểu học Việt Nam (Lớp 1 đến Lớp 5), thiết kế bám sát chương trình GDPT 2018 và Thông tư 27/2020/TT-BGDĐT.
-
----
-
-## I. NGUYÊN TẮC HOẠT ĐỘNG & BẢO MẬT DỮ LIỆU
-1. **Lưu trữ dữ liệu bài giảng:**
-   - Dữ liệu bài giảng được lưu trữ cục bộ trên máy tính giáo viên qua LocalStorage của trình duyệt và tệp định dạng `.conhi`.
-   - Có cơ chế tự động lưu (Autosave debounce) và cảnh báo khi rời trang nếu chưa lưu.
-   - Không tự động gửi bài giảng lên cloud trừ khi người dùng chủ động xuất file hoặc sử dụng tính năng đồng bộ.
-2. **Xử lý ảnh học sinh & Cam chấm tranh:**
-   - Ảnh chụp bài vẽ của học sinh từ webcam hoặc tệp tải lên được xử lý và phân tích trực tiếp trên Canvas trình duyệt của máy giáo viên.
-   - Tuyệt đối không lưu trữ dữ liệu cá nhân hay hình ảnh học sinh lên máy chủ công cộng.
-3. **Chế độ Ngoại tuyến (Offline) và Trực tuyến (Online):**
-   - **Hoạt động Offline hoàn toàn:** Trình soạn thảo slide, trình chiếu toàn màn hình (F5), bảng vẽ thị phạm, ngân hàng trợ giảng sư phạm GDPT 2018 mẫu, trò chơi mĩ thuật mẫu, xuất/nhập tệp `.conhi`, xuất tệp PowerPoint `.pptx`, Web Speech API giọng đọc máy có sẵn trên thiết bị.
-   - **Yêu cầu kết nối Internet (Online):** Xác thực tài khoản Google/Firebase, giọng đọc Microsoft Edge Neural TTS chất lượng cao (`/api/tts`), và chức năng tạo giáo án / tranh minh họa bằng AI trực tuyến (`/api/teaching-ai`).
-4. **Xuất tệp PowerPoint (.pptx):**
-   - Xuất chuẩn bố cục 16:9, màu nền, văn bản, font chữ, hình khối, ảnh minh họa và toàn bộ ghi chú lời giảng sư phạm.
-   - *Lưu ý kỹ thuật:* Các video YouTube nhúng online hoặc bảng vẽ động tương tác không được đóng gói nguyên bản dạng video vào tệp PPTX tĩnh tiêu chuẩn.
-5. **Chi phí & Hạ tầng:**
-   - Ứng dụng cung cấp các công cụ cốt lõi miễn phí phục vụ giáo dục tiểu học. Các tính năng AI trực tuyến nâng cao có thể phụ thuộc vào hạn mức API hoặc hạ tầng đám mây.
+Cọ Nhí Studio là ứng dụng Web / PWA chuyên biệt dành cho giáo viên Mĩ thuật tiểu học Việt Nam (Lớp 1 đến Lớp 5), thiết kế bám sát chương trình **GDPT 2018**, cấu trúc bài dạy **Công văn 2345/BGDĐT**, chuẩn đánh giá **Thông tư 27/2020/TT-BGDĐT** và bộ sách giáo khoa **Kết Nối Tri Thức Với Cuộc Sống**.
 
 ---
 
-## II. HƯỚNG DẪN CÀI ĐẶT & KHỞI CHẠY (DEVELOPMENT)
+## I. SỔ TAY HƯỚNG DẪN DÀNH CHO GIÁO VIÊN (TEACHER'S MANUAL)
 
-### Yêu cầu môi trường
-- **Node.js:** v18.0.0 trở lên (khuyên dùng Node.js 20 hoặc 22/24 LTS).
-- **npm:** v9.0.0 trở lên.
+### 1. Điều Khiển Trình Chiếu Bằng Phím Tắt & Bút Trình Chiếu USB
+Hệ thống Presentation Engine được tối ưu hóa cho công thái học đứng lớp:
+- **Tiến trang slide:** `Phím Cách (Space)`, `Mũi tên phải (→)`, `Mũi tên xuống (↓)`, `PageDown` hoặc nút Next trên Bút USB.
+- **Lùi trang slide:** `Mũi tên trái (←)`, `Mũi tên lên (↑)`, `PageUp` hoặc nút Prev trên Bút USB.
+- **Tắt màn hình tập trung:**
+  - `Phím B` (Blackout): Chuyển màn hình đen khi giáo viên giảng giải trực tiếp.
+  - `Phím W` (Whiteout): Chuyển màn hình trắng khi dùng làm bảng viết phấn/bút dạ.
+- **Toàn màn hình:** `Phím F` hoặc bấm nút Chiếu trên thanh công cụ.
+- **Chế độ Chế Ngự Tiêu Điểm (Focus Guard):** Khi Thầy/Cô gõ văn bản trong ô nhập liệu hay ghi chú, toàn bộ phím tắt chuyển slide tự động vô hiệu hóa để không gây nhảy trang ngoài ý muốn.
+- **Màn hình tương tác / Bảng thông minh:** Hỗ trợ cử chỉ vuốt ngón tay (Touch Swipe Left/Right) mượt mà.
 
-### Cài đặt dependencies
-```bash
-npm install
-```
+### 2. Tỷ Lệ Vàng 16:9 & Công Nghệ Hiển Thị Chống Mờ (Subpixel Rendering)
+- Khung hình cố định chuẩn 16:9 (1920x1080 / 1280x720).
+- Tự động co giãn Letterboxing / Pillarboxing căn giữa tuyệt đối, không méo hình trên TV và Máy chiếu.
+- Áp dụng `transform-style: preserve-3d; backface-visibility: hidden;` giúp font chữ, vector SVG và đường nét sắc nét tuyệt đối khi phóng to.
 
-### Khởi chạy môi trường phát triển (Dev Server)
-```bash
-npm run dev
-```
-Mở trình duyệt tại: `http://localhost:3100/` (hoặc cổng hiển thị trên terminal).
+### 3. Công Cụ Tương Tác Trực Tiếp Khi Đang Trình Chiếu
+- **Bút vẽ & Bút dạ quang (Highlighter):** Vẽ tự do hoặc đánh dấu chi tiết tranh trực tiếp trên màn hình chiếu; nét vẽ lưu riêng cho từng trang slide.
+- **Con trỏ Laser ảo (Virtual Laser Pointer):** Chấm đỏ phát sáng bám theo chuyển động chuột, giúp thu hút sự chú ý của học sinh.
+- **Bộ đếm ngược thời gian (Classroom Timer):** Đồng hồ đếm ngược nổi trên góc màn hình với các mốc nhanh (1p, 2p, 5p, 10p), chuông reo báo hiệu khi hết giờ làm bài tập nhóm.
 
-### Kiểm tra tĩnh mã nguồn (Lint)
-```bash
-npm run lint
-```
+### 4. Tự Động Lưu Nháp (Auto-Save) & Khôi Phục Sự Cố (Crash Recovery)
+- Tự động lưu tiến độ chỉnh sửa (debounce 800ms) vào bộ nhớ cục bộ theo từng tài khoản riêng biệt.
+- Nếu xảy ra mất điện, tắt trình duyệt đột ngột: Khi mở lại, hệ thống hiển thị banner **"Phát hiện bản nháp chưa lưu"** kèm mốc thời gian và nút **[Khôi phục dữ liệu]** chỉ với 1 cú click.
 
-### Kiểm thử đơn vị tự động (Unit Test Suite)
-```bash
-npm test
-```
+### 5. Cô Trợ Giảng AI 3D (Bám Sát SGK Kết Nối Tri Thức)
+- Nút bấm Trợ Giảng AI 3D dạng Pill Button với huy hiệu online luôn túc trực ở góc màn hình và thanh ghi chú.
+- Tự động gợi ý lời giảng truyền cảm hứng, câu hỏi gợi mở, hoạt động khởi động và 4 bước thị phạm chuẩn theo từng chủ đề bài học.
+- 100% hoạt động ngoại tuyến không cần Internet và không phát sinh chi phí.
 
-### Biên dịch ứng dụng cho Production (Build)
-```bash
-npm run build
-```
+### 6. Cam Chấm Tranh Liên Kết Sổ Điểm SMAS Viettel (Chuẩn TT27)
+- Chụp và phân tích bài vẽ học sinh trực tiếp qua camera theo 4 tiêu chí chuẩn TT27.
+- Tự động quy đổi mức đánh giá: **T** (Hoàn thành tốt), **H** (Hoàn thành), **C** (Chưa hoàn thành).
+- Đồng bộ trực tiếp vào danh sách lớp trong **Sổ Điểm SMAS**.
+- Hỗ trợ tổng hợp đánh giá định kỳ Giữa kì (GK), Cuối kì (CK) và xuất file Excel (.xlsx) chuẩn quy cách Viettel SMAS.
+
+### 7. Xuất Bản & Trình Chiếu Ngoại Tuyến 100% (PWA & USB HTML)
+- **Xuất file HTML độc lập:** Đóng gói toàn bộ bài giảng thành 1 tệp `.html` duy nhất, copy vào USB cắm vào bất kỳ máy tính nào cũng mở chiếu được ngay không cần Internet hay cài đặt phần mềm.
+- **In ấn & Xuất PDF:** Chuẩn khổ giấy A4 hành chính Việt Nam (lề trên/dưới 20mm, lề trái 30mm, lề phải 15mm) với lặp lại tiêu đề bảng biểu.
 
 ---
 
-## III. CẤU TRÚC PHÂN HỆ CHÍNH
-- `src/components/SlideEditor/`: Soạn thảo slide 16:9, chèn text/shape/ảnh, ghi chú sư phạm, xuất/nhập PPTX.
-- `src/components/DrawingBoard/`: Bảng vẽ thị phạm 2D và dựng hình khối 3D trực quan.
-- `src/components/ArtGames/`: Trò chơi mĩ thuật tương tác (pha màu, hình khối, tranh dân gian).
-- `src/components/ArtCamera/`: Camera chấm tranh & bộ Rubric đánh giá năng lực học sinh.
-- `src/components/Evaluation/`: Bảng nhận xét đánh giá định kỳ theo Thông tư 27 và xuất bảng điểm SMAS.
-- `src/components/Admin/`: Hệ thống phân quyền 3 cấp (Admin Chính, Admin Phụ, Giáo Viên).
-- `api/`: Serverless Functions hỗ trợ Edge Neural TTS và AI Teaching Assistant.
+## II. HƯỚNG DẪN DÀNH CHO KỸ SƯ PHÁT TRIỂN (DEVELOPER GUIDE)
 
-## Chế độ miễn phí và rà soát giáo án
+### 1. Kiến Trúc Kỹ Thuật Cốt Lõi
+- **Frontend Stack:** React 19, TypeScript (Strict Zero `any`), Vite 8, Tailwind CSS 3, Lucide Icons.
+- **Data Contracts:** Được định nghĩa tập trung tại `src/types/presentation.ts` (`Slide`, `SlideElement`, `DrawingStroke`, `LessonPlan`, `StudentRecord`, `DraftRecord`, `PresenterState`).
+- **File Size Discipline:** Tuân thủ nghiêm ngặt quy tắc tách module nhỏ (< 200 dòng/file).
+- **Multi-Tenant User Isolation:** Phân vùng không gian dữ liệu hoàn toàn độc lập qua `userWorkspaceService.js`.
 
-Giáo án và trò chơi mặc định dùng ngân hàng/quy tắc cục bộ. `VITE_ENABLE_EXTERNAL_AI` (client) và `ENABLE_EXTERNAL_AI` (server) mặc định tắt; không bật hoặc thêm dịch vụ/khóa API khi chủ ứng dụng chưa phê duyệt chi phí và hạn mức. Endpoint AI từ chối yêu cầu thiếu xác thực hoặc không có quyền. Không đưa khóa bí mật vào biến `VITE_`, Git hoặc log.
+### 2. Đường Ống Kiểm Định Tự Động 4 Bước (`verify.bat` / `verify.sh`)
+Chạy kiểm định toàn diện chất lượng phần mềm:
+```bash
+# Trên Windows:
+./verify.bat
 
-Điểm rà soát là điểm đáp ứng bộ quy tắc cấu trúc và từ khóa, không phải chất lượng chuyên môn được chứng nhận. Bộ lọc không thay thế việc giáo viên kiểm tra vật liệu thực tế. Ba nhiệm vụ phân hóa là gợi ý hoạt động, không phải ba mức đánh giá chính thức theo TT27. Khi sửa nội dung, cần rà soát lại trước khi dùng.
+# Trên Linux/macOS:
+chmod +x verify.sh
+./verify.sh
+```
+Quy trình kiểm định gồm:
+1. `npm run typecheck` (Kiểm tra TypeScript `tsc --noEmit`)
+2. `npm run lint` (Kiểm tra cú pháp ESLint)
+3. `npm test` (Chạy 104/104 kiểm thử đơn vị & hồi quy)
+4. `npm run build` (Biên dịch đóng gói Production qua Vite Rollup)
 
-Tranh AI hiện thử endpoint công khai cũ của Pollinations, không dùng khóa và không tự chuyển sang API có thể tính phí. Không cam kết dịch vụ này luôn miễn phí, luôn hoạt động hoặc giữ bố cục chính xác giữa các chất liệu. Tham khảo [tài liệu hiện hành](https://gen.pollinations.ai/docs) trước khi thay tích hợp. Khi mạng, HTTP, MIME hoặc giải mã ảnh lỗi, ứng dụng báo thất bại và giữ tranh cũ; có thể dùng ảnh do giáo viên tải từ máy.
+### 3. Kiểm Tra Trực Quan Khung Hình (Visual Responsive Check)
+```bash
+npx tsx scripts/visual-check.ts
+```
+Kiểm tra độ co giãn và tỷ lệ 16:9 trên 5 kích thước màn hình: Full HD 1080p, Laptop 900p, Màn tương tác 4:3, iPad và Mobile.
 
-Kiểm thử hồi quy có trong `tests/lesson-quality.test.mjs`; các trang và tệp QA nội bộ nằm trong `.work/`, không đưa vào bản phân phối. Kiểm thử có ảnh giả lập chỉ xác minh luồng giao diện, không chứng minh chất lượng ảnh của nhà cung cấp hoặc trạng thái sau đăng nhập của bản live.
+---
+
+## III. GIẤY PHÉP & BẢN QUYỀN
+Phát triển phục vụ cộng đồng giáo viên Mĩ thuật Tiểu học Việt Nam theo chương trình GDPT 2018.
+Bản quyền thuộc về **Cọ Nhí Studio**.

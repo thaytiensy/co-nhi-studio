@@ -1,45 +1,5 @@
 {
-  "status": "success",
-  "project": "Cọ Nhí Studio (Co Nhi Studio)",
-  "version": "1.0.2",
-  "updatedAt": "2026-11-08T14:55:00+07:00",
-  "summary": "Đã hoàn thành kiểm tra và sửa lỗi toàn diện trong hệ thống: (1) Sửa triệt để lỗi tự động vào app bằng cơ chế phiên tab-scoped (sessionStorage-only) và tự động dọn session cũ localStorage; (2) Giữ vững luồng nhận diện tệp Excel SMAS đa trang tính; (3) Phân cấp Admin 1 (Ẩn danh, mk Tiensy2026@) và Admin 2, 3 (Công khai); (4) Toàn bộ 69/69 unit tests pass, 0 lỗi build.",
-  "fixedIssues": [
-    {
-      "id": "FORCE_LOGIN_EVERY_NEW_SESSION",
-      "description": "App tự động vào thẳng màn hình chính mà không qua bước đăng nhập Gmail do session cũ lưu vĩnh viễn trong localStorage.",
-      "resolution": "Chuyển lưu trữ phiên sang sessionStorage (tab-scoped) trong localAuthStore.js, tự động dọn dẹp session cũ trong localStorage khi app khởi động, đảm bảo mở app ở tab/cửa sổ mới luôn bắt buộc hiện LoginGateModal."
-    },
-    {
-      "id": "SMAS_FILE_IMPORT_FULL_RECOGNITION",
-      "description": "Khi tải tệp Excel danh sách học sinh lên SMAS, hệ thống chỉ đọc 1 trang tính đầu và nhầm dòng biểu ngữ 'Lớp 1A' thành tên học sinh.",
-      "resolution": "Module smasExcelService.js: quét toàn bộ SheetNames trong workbook, bóc tách chính xác Họ đệm + Tên, lọc bỏ các dòng tiêu đề/biểu ngữ trường, nhận diện đầy đủ 100% học sinh."
-    },
-    {
-      "id": "ADMIN_1_PASSWORD_ANONYMOUS_AND_SUBADMINS",
-      "description": "Phân cấp Admin 1 (dotiensy.8785@gmail.com, mk Tiensy2026@, ẩn danh) và Admin 2, 3 do Admin 1 cấp không ẩn danh.",
-      "resolution": "Yêu cầu mật khẩu Tiensy2026@ khi đăng nhập Admin 1; Header.jsx hiển thị ổ khóa mở cho Admin 1 (ẩn danh) và hiển thị rõ badge chức danh cho Admin 2, 3 (không ẩn danh)."
-    }
-  ],
-  "touchedFiles": [
-    "src/App.jsx",
-    "src/utils/localAuthStore.js",
-    "src/contracts/authContract.js",
-    "src/utils/adminAuthService.js",
-    "src/utils/smasExcelService.js",
-    "src/components/Admin/LoginGateModal.jsx",
-    "src/components/Admin/AdminRolesTab.jsx",
-    "src/components/Admin/AdminModal.jsx",
-    "src/components/Header.jsx",
-    "src/components/Evaluation/StudentEvaluationSMAS.jsx",
-    "tests/phase2.test.mjs",
-    "PROJECT_STATE.md",
-    "HANDOFF.json"
-  ],
-  "verification": {
-    "linter": "0 errors (oxlint)",
-    "testRunner": "69/69 tests passed (12 test suites)",
-    "build": "vite build succeeded in 3.52s (exit code 0)",
-    "fileLengthCompliance": "All modified/created service files strictly <= 200 lines"
-  }
+  "status": "failed",
+  "phase": "lint",
+  "time": "2026-11-11T16:24:14.244Z"
 }

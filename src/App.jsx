@@ -29,6 +29,7 @@ import BottomNavBar from './components/Navigation/BottomNavBar';
 import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
 import { Sparkles } from 'lucide-react';
+import TeacherAssistantPillButton from './components/UI/TeacherAssistantPillButton';
 
 // Khởi tạo trang slide trắng tinh (App hoàn toàn sạch, không chứa file mẫu có sẵn)
 const BLANK_INITIAL_SLIDE = {
@@ -786,31 +787,9 @@ export default function App() {
 
       {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) với hình ảnh Cô Trợ Giảng AI Chuẩn Thiết Kế */}
       {!isPresentationOpen && !isAssistantOpen && (
-        <button
-          onClick={() => setIsAssistantOpen(true)}
-          className="fixed bottom-6 right-6 z-40 pl-1.5 pr-4 py-1.5 rounded-full shadow-[0_4px_25px_rgba(245,158,11,0.45)] hover:shadow-amber-500/50 border-2 border-amber-400 flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 group bg-gradient-to-r from-[#201305] via-[#2f1906] to-[#1a0e03] text-white cursor-pointer ring-2 ring-amber-400/40 backdrop-blur-md"
-          title="Mở Cô Trợ Giảng AI 3D (Cục bộ SGK Kết Nối Tri Thức)"
-        >
-          <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-400 shadow-md shrink-0 bg-slate-950">
-            <img
-              src="/images/tro-giang-ai.jpg"
-              alt="Cô Trợ Giảng AI"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-            <span className="absolute top-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full animate-pulse shadow-xs"></span>
-          </div>
-          <div className="flex flex-col text-left">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span className="text-xs font-black tracking-wide text-amber-100 drop-shadow-xs">
-                Trợ Giảng AI
-              </span>
-            </div>
-            <span className="text-[10px] text-amber-300 font-bold tracking-tight">
-              Bài Học 3D • Sư Phạm
-            </span>
-          </div>
-        </button>
+        <div className="fixed bottom-6 right-6 z-40">
+          <TeacherAssistantPillButton onClick={() => setIsAssistantOpen(true)} />
+        </div>
       )}
 
       <React.Suspense fallback={null}>

@@ -1,79 +1,54 @@
-# BÁO CÁO TRẠNG THÁI DỰ ÁN CỌ NHÍ STUDIO (PROJECT STATE)
+# BÁO CÁO TRẠNG THÁI DỰ ÁN CỌ NHÍ STUDIO (PROJECT_STATE.md)
 
-> **Cập nhật lúc:** 2026-11-08 17:55:00 (Giờ Việt Nam)  
-> **Trạng thái:** SUCCESS - 0 LỖI BIÊN DỊCH - 74/74 TEST PASS - TRÌNH CHIẾU POWERPOINT & VIDEO HOÀN HẢO
-
----
-
-## 1. Kết Quả Xử Lý & Khắc Phục Toàn Diện
-
-### A. Tích Hợp Trình Chiếu Kiểu PowerPoint (Chuyển Ô Chữ, Hình & Tự Động Đọc Chữ)
-- **Cơ chế click-to-advance chuẩn PowerPoint:**
-  1. Mỗi lần click chuột vào màn hình hoặc bấm phím Cách / Enter / Mũi tên Phải: Từng ô chữ, hình khối, hình ảnh, video lần lượt xuất hiện mượt mà (hiệu ứng fade-in & zoom nhẹ).
-  2. Tự động đọc phát âm chuẩn tiếng Việt bằng `speechService` cho từng ô chữ ngay khi ô đó xuất hiện trên màn hình.
-  3. Khi tất cả các ô trên slide hiện đủ, lượt click tiếp theo sẽ tự động chuyển sang trang slide kế tiếp và đọc tiêu đề / nội dung mở đầu của slide mới.
-  4. Hỗ trợ lùi từng bước (phím Mũi tên Trái / Backspace / nút `<`).
-  5. Bổ sung nút chuyển đổi linh hoạt ngay trên thanh điều khiển: `🎬 PowerPoint: Từng Bước / Hiện Toàn Bộ` và nút `🔊 Tự Đọc: BẬT / TẮT`.
-
-### B. Khắc Phục Lỗi Chạy Slide Không Đọc / Không Phát Được File Video
-- **Nguyên nhân:** Trong `PresentationModal.jsx`, trình render phần tử slide trước đây chỉ xử lý `text`, `shape`, `image`, `game` mà bỏ sót hoàn toàn `video`, `youtube`, `audio`.
-- **Giải pháp:** Bổ sung khối render video chuẩn HTML5 với controls, poster, object-contain, cô lập sự kiện click (`e.stopPropagation()`) để giáo viên tương tác play/pause/tua video mà không bị nhảy slide ngoài ý muốn.
-
-### C. Khắc Phục Lỗi Đọc File Tải Lên & Mở Tệp Đa Định Dạng
-- Bổ sung hàm `findZipFile` với cơ chế tìm kiếm case-insensitive (không phân biệt hoa-thường), chuẩn hóa dấu gạch chéo `/`, tự động khớp đường dẫn `ppt/media/` của PowerPoint.
-- Quét dự phòng toàn bộ video nhúng trong `slideRels` ngay cả khi video không nằm trong thẻ `<p:pic>` chuẩn.
-- Mở rộng bộ lọc `Header.jsx` và tự động điều hướng file `.pptx` khi người dùng chọn nhầm ở mục "Mở tệp từ máy".
-
-### D. Bổ Sung Nút "Trở Về" Trực Quan Cho Bảng Vẽ Thị Phạm
-- **Trong chế độ Trình Chiếu (F5):** Bổ sung nút `↩ Trở Về Slide (W / Esc)` màu xanh ngọc nổi bật trên thanh công cụ vẽ trên cùng và đổi trạng thái nút ở thanh đáy thành `↩ Trở Về Slide` khi đang mở bảng vẽ.
-- **Trong màn hình Bảng Vẽ Thị Phạm chính:** Bổ sung nút `← Trở Về Soạn Slide` ngay góc trái thanh công cụ giúp Thầy/Cô dễ dàng quay lại trang soạn slide với 1 cú click.
-
-### E. Loại Bỏ Hoàn Toàn Chức Năng "Xưởng Ý Tưởng" (Không Ảnh Hưởng Tính Năng Khác)
-- **Thực hiện sạch sẽ:**
-  1. Loại bỏ tab `ideas` và icon `Lightbulb` khỏi thanh điều hướng chính trong `Header.jsx`.
-  2. Gỡ bỏ `IdeaWorkshop` (lazy component), hàm `handleGenerateSlidesFromIdea` và khối render `activeTab === 'ideas'` khỏi `App.jsx`.
-  3. Xóa hoàn toàn component `src/components/IdeaWorkshop/` (giảm 94KB mã nguồn và 61KB vendor chunk không cần thiết).
-  4. Cập nhật tài liệu `README.md`, `HUONG_DAN_SU_DUNG.md`, `VideoGuideModal.jsx` đồng bộ với cấu trúc mới gồm 5 tab trọng tâm.
-  5. Đảm bảo toàn bộ 5 phân hệ còn lại (*Soạn Slide, Bảng Vẽ Thị Phạm, Trò Chơi Mĩ Thuật, Cam Chấm Tranh, Nhận xét TT27/SMAS*) hoạt động trơn tru 100%.
-
-### B. Khắc Phục Triệt Để Lỗi App Cứ Tự Động Đăng Nhập
-- **Nguyên nhân:** Firebase Auth lưu credential vào IndexedDB (`firebaseLocalStorageDb`) trên trình duyệt, khi load trang `onAuthStateChanged` tự động kích hoạt phiên đăng nhập cũ, vượt qua cổng bảo vệ.
-- **Giải pháp xử lý:** Trong `App.jsx`, khởi tạo `currentUserSession: null`, `isAuthenticated: false`, `isAuthReady: true`. Không cho phép `onAuthStateChanged` tự động kích hoạt phiên khi vừa nạp app. Chỉ kích hoạt phiên đăng nhập khi người dùng nhập thông tin xác thực trên `LoginGateModal`.
-
-### B. Khắc Phục Lỗi Mất Chức Năng Bảng Vẽ Thị Phạm
-- **Nguyên nhân:** Thiếu import `STEP_DRAWING_TOPICS` từ `src/data/stepDrawingBank.js` gây `ReferenceError` khi mở Bảng vẽ thị phạm.
-- **Giải pháp xử lý:** Khôi phục import, bổ sung nút và Modal "🐾 Thị Phạm 4 Bước" trực quan, cho phép giáo viên chọn chủ đề (Mèo con, Hoa hướng dương, Ngôi nhà, Gà trống Đông Hồ), xem từng bước vẽ tích lũy trên canvas và bấm chép lên bảng vẽ chính.
-
-### C. Quản Lý Nhận Xét Học Sinh Đa Lớp Linh Hoạt (SMAS & Thông Tư 27)
-- Bổ sung thanh chọn lớp / tất cả lớp kèm bộ đếm sĩ số thời gian thực.
-- Thêm chức năng thêm lớp mới linh hoạt trực tiếp trên giao diện.
-- Công cụ hàng loạt: `🎲 Đổi Nhận Xét Tránh Trùng` (`shuffleClassComments`), gán nhanh Mức T / Mức H.
-- Hỗ trợ xuất Excel theo 2 chế độ: Xuất riêng từng lớp đang chọn hoặc xuất toàn bộ tất cả lớp vào các Sheet riêng biệt (`multiSheet: true`).
-
-### D. Nhận Diện Toàn Bộ Tệp Excel Danh Sách Học Sinh (SMAS Import)
-- Quét toàn bộ các trang tính (`workbook.SheetNames`) bằng module `smasExcelService.js`.
-- Ghép chuẩn "Họ và tên đệm" + "Tên", lọc bỏ các dòng tiêu đề/biểu ngữ trường học (`NON_STUDENT_REGEX`).
-- Nạp đầy đủ 100% học sinh vào bảng đánh giá TT27.
-
-### C. Phân Cấp Quyền Quản Trị (Admin 1, Admin 2, Admin 3)
-- **Admin 1 (`dotiensy.8785@gmail.com`):** Mật khẩu `Tiensy2026@`, chế độ **Ẩn danh tuyệt đối** (chỉ hiện ổ khóa mở `[ 🔓 ]` trên thanh Header).
-- **Admin 2, 3 (`thaytiensy@gmail.com`, `ngathuyphu2@gmail.com`,...):** Do Admin 1 cấp quyền, **hiển thị công khai chức danh** trên thanh điều hướng.
+> **Cập nhật hệ thống:** 2026-11-11 23:25:00 (Giờ Việt Nam)  
+> **Kiến trúc:** React 19 + Vite 8 + Tailwind CSS + Strict TypeScript (Zero `any`)  
+> **Tiêu chuẩn:** GDPT 2018 • Công văn 2345/BGDĐT • Thông tư 27/2020/TT-BGDĐT • SMAS Viettel
 
 ---
 
-## 2. Báo Cáo Tuân Thủ Quy Định (Strict Rules Compliance)
-1. **Khóa chặt Data Contract:** Quản lý toàn bộ phiên đăng nhập, vai trò qua `src/contracts/authContract.js`. Không sử dụng kiểu `any`.
-2. **Quy định độ dài tệp <= 200 dòng đối với các tệp quản lý / dịch vụ mới:**
-   - `src/contracts/authContract.js`: 65 dòng.
-   - `src/utils/localAuthStore.js`: 88 dòng.
-   - `src/utils/adminAuthService.js`: 194 dòng.
-   - `src/utils/smasExcelService.js`: 196 dòng.
-   - `src/components/Admin/LoginGateModal.jsx`: 168 dòng.
-   - `src/components/Admin/AdminAccountsTab.jsx`: 163 dòng.
-   - `src/components/Admin/AdminRolesTab.jsx`: 141 dòng.
-   - `src/components/Admin/AdminModal.jsx`: 190 dòng.
-3. **Kiểm thử tự động & Biên dịch:**
-   - `npm test`: **74/74 test passed 100%** qua 12 test suites.
-   - `npx oxlint`: **0 lỗi (0 errors)**.
-   - `npm run build`: Hoàn thành trong **~3.2s** với **Exit code 0**.
-   - Dev server: Hoạt động ổn định tại `http://127.0.0.1:3100/` (HTTP 200 OK).
+## 1. Project Overview & Scope
+- **Mục tiêu:** Web Application chuyên biệt hỗ trợ giáo viên tiểu học soạn bài giảng mĩ thuật tương tác, trình chiếu chuyên nghiệp chuẩn thương mại 16:9, bảng vẽ thị phạm 4 bước, chấm tranh camera AI, và quản lý sổ điểm học sinh đồng bộ định dạng SMAS Viettel.
+- **Phạm vi hoàn thiện 10 Phases:**
+  - [x] Phase 1: Quản trị trạng thái (`PROJECT_STATE.md`) & Rào chắn an toàn (`verify.sh`, `verify.bat`)
+  - [x] Phase 2: Khóa Data Contract & Nghiệp vụ Sư phạm VN (CV 2345, TT27, SGK Kết nối tri thức - `src/types/presentation.ts`, `src/utils/smasValidator.ts`)
+  - [x] Phase 3: Engine Trình Chiếu Khóa Tỷ Lệ 16:9 & Subpixel Antialiasing (`PresentationStage.tsx`, `useStageScale.ts`)
+  - [x] Phase 4: Điều khiển diễn giả, Presenter View, USB Clicker & Focus Guard (`usePresenterControls.ts`, `PresenterViewModal.tsx`)
+  - [x] Phase 5: Bộ công cụ lớp học: Bút vẽ Canvas, Laser ảo, Hẹn giờ thảo luận (`ClassroomTimer.tsx`, `SlideDrawingCanvas.tsx`)
+  - [x] Phase 6: Auto-Save Resilience, Crash Recovery Banner & State Feedback Zero-State (`useAutoSaveDraft.ts`, `CrashRecoveryBanner.tsx`, `StateFeedback.tsx`)
+  - [x] Phase 7: Engine Xuất bản: PDF chuẩn in ấn A4 & Standalone HTML chạy offline USB (`exportEngine.ts`, `htmlSlideExportService.js`)
+  - [x] Phase 8: Virtualization DOM 3 slide, Media Lifecycle tự ngắt & PWA Service Worker 100% (`useSlideVirtualization.ts`, `public/sw.js`)
+  - [x] Phase 9: Kiểm định thị giác đa màn hình & Cẩm nang giáo viên toàn diện (`scripts/visual-check.ts`, `README.md`)
+  - [x] Phase 10: Chạy kiểm định `./verify.bat`, 0 lỗi biên dịch, cập nhật nút Trợ Giảng AI 3D chuẩn hình mẫu & Bàn giao (`HANDOFF.json`)
+
+---
+
+## 2. Approved Libraries & Tools
+- **Giao diện & Biểu tượng:** React 19, Lucide React, Tailwind CSS 3, Canvas-Confetti
+- **Trình chiếu & Tài liệu:** PPTXGenJS, JSZip, SheetJS (`xlsx`)
+- **Âm thanh & Giọng đọc:** Web Speech API, `speechService` (Nam Minh & Hoài My)
+- **Kiểm định chất lượng:** TypeScript 5.8+ (`tsc --noEmit`), Oxlint, Node.js Test Runner (`node test.cjs`), Vite 8
+
+---
+
+## 3. Data Contracts Locked
+- `src/types/presentation.ts`: Định nghĩa chặt chẽ 100% không `any`:
+  - `SlideElement`, `Slide`, `DrawingStroke`, `LessonPlan` (CV 2345), `StudentRecord` (TT27), `DraftRecord`, `PresenterState`
+- `src/contracts/authContract.js`: Quản lý phiên làm việc đa người dùng và phân quyền quản trị
+- `src/utils/smasValidator.ts`: Kiểm định cell-by-cell từng dòng/cột sổ điểm SMAS Viettel
+
+---
+
+## 4. Completed Modules
+- Presentation Engine chuẩn thương mại: Khóa tỷ lệ 16:9 Letterboxing, chống mờ Subpixel, Focus Guard chống xung đột nhập liệu
+- Presenter View chuyên nghiệp: Hiển thị slide hiện tại, xem trước slide kế tiếp, ghi chú sư phạm và đồng hồ tính giờ
+- Bộ công cụ tương tác lớp học: Bút vẽ canvas, bút dạ quang, tẩy, con trỏ laser ảo đỏ bám chuột, Classroom Countdown Timer
+- Cơ chế bảo toàn dữ liệu: Auto-Save debounce 800ms, Crash Recovery Banner nhận diện bản nháp chưa lưu, phân vùng cách ly người dùng
+- Trợ Giảng AI 3D: Nút Pill Button thiết kế chuẩn hình mẫu với avatar cô giáo robot 3D, hỗ trợ SGK Kết Nối Tri Thức Lớp 1-5, không lỗi
+- Xuất bản đa định dạng: File HTML độc lập cắm USB trình chiếu offline, In ấn / Xuất PDF lề A4 hành chính Việt Nam
+- Sổ Điểm SMAS Viettel: Cam chấm tranh tự động lưu xếp loại T, H, C, tổng hợp định kỳ Giữa kì / Cuối kì và xuất file Excel .xlsx chuẩn
+
+---
+
+## 5. In-Progress & Blockers
+- **Trạng thái:** Toàn bộ 10 Phase đã hoàn thành 100%.
+- **Rào cản (Blockers):** Không có blocker. Hệ thống đạt 104/104 kiểm thử đơn vị, 0 lỗi TypeScript, 0 lỗi Build.
