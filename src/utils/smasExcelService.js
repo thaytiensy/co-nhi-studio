@@ -65,6 +65,15 @@ function parseSheetRows(rawRows, defaultClass = '', options = {}) {
   const countValid = col => rawRows.slice(startRow).reduce((acc, r) => acc + (['T', 'H', 'C', 'HTT', 'HT', 'CHT', 'Đ', 'CĐ'].includes(String(r?.[col] || '').trim().toUpperCase()) ? 1 : 0), 0);
   const countTexts = col => rawRows.slice(startRow).reduce((acc, r) => acc + (String(r?.[col] || '').trim().length > 5 ? 1 : 0), 0);
 
+  const weekColMap = {};
+  colHeaders.forEach((h, c) => {
+    const wm = h.match(/(?:tuần|t)\s*(\d{1,2})/i);
+    if (wm) {
+      const w = parseInt(wm[1], 10);
+      if (w >= 1 && w <= 35) weekColMap[w] = c;
+    }
+  });
+
   const levelCandidates = [], commentCandidates = [];
   colHeaders.forEach((h, c) => {
     if ([nameColIdx, hoDemColIdx, tenColIdx, idColIdx, classColIdx].includes(c)) return;
@@ -137,7 +146,15 @@ function parseSheetRows(rawRows, defaultClass = '', options = {}) {
       const bank = TT27_COMMENTS_BANK[rawLevel] || TT27_COMMENTS_BANK.H;
       rawComment = bank[result.length % bank.length];
     }
-    result.push({ id: rawId, name: fullName, className: rawClass, level: rawLevel, comment: rawComment, commentSource: hasComment ? 'provided' : 'generated' });
+    const weeklyLevels = {};
+    for (const [w, c] of Object.entries(weekColMap)) {
+      const val = row[c];
+      if (val) {
+        const parsed = parseLevel(val);
+        if (parsed) weeklyLevels[w] = parsed;
+      }
+    }
+    result.push({ id: rawId, name: fullName, className: rawClass, level: rawLevel, gkLevel: rawLevel, ckLevel: rawLevel, cnLevel: rawLevel, weeklyLevels, comment: rawComment, commentSource: hasComment ? 'provided' : 'generated' });
   }
   return result;
 }
@@ -172,16 +189,32 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
   if (!Array.isArray(students) || students.length === 0) throw new Error('Danh sách học sinh rỗng.');
   const workbook = XLSX.utils.book_new(), safeSem = String(semester || 'HK1').replace(/\s+/g, '_');
   
-  // Kiểm tra chế độ xuất: Đầy đủ (comprehensive) hoặc chuẩn kỳ hiện tại
+  // Kiểm tra chế độ xuất: Đầy đủ (comprehensive), 35 Tuần thường xuyên (weekly), hoặc chuẩn kỳ hiện tại
+  const isWeeklyMode = /weekly|thuong_xuyen|35tuan/i.test(exportMode);
   const isComprehensive = exportMode === 'comprehensive' || /toan_dien|tat_ca/i.test(exportMode);
   const isMidTermMode = /giua|gk|ghk/i.test(exportMode) || /giua|gk|ghk/i.test(semester);
   const isFinalTermMode = /cuoi|ck|chk/i.test(exportMode) || /cuoi|ck|chk/i.test(semester);
 
-  const cols = isComprehensive 
+  const cols = isWeeklyMode
+    ? [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, ...Array.from({ length: 35 }, () => ({ wch: 6 }))]
+    : isComprehensive 
     ? [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 12 }, { wch: 45 }, { wch: 12 }, { wch: 55 }]
     : [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 14 }, { wch: 70 }];
 
   const toRow = (st, idx, cls) => {
+    if (isWeeklyMode) {
+      const row = {
+        'STT': idx + 1,
+        'Mã học sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
+        'Họ và tên': st.name,
+        'Lớp': cls,
+      };
+      for (let w = 1; w <= 35; w++) {
+        row[`Tuần ${w}`] = st.weeklyLevels?.[w] || st.weeklyLevels?.[String(w)] || '';
+      }
+      return row;
+    }
+
     if (isComprehensive) {
       return {
         'STT': idx + 1,
@@ -237,7 +270,9 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
       ws['!cols'] = cols;
       XLSX.utils.book_append_sheet(workbook, ws, cls.replace(/[:\\/?*[\]]/g, '_').slice(0, 31) || 'Lop');
     }
-    const fileName = isComprehensive
+    const fileName = isWeeklyMode
+      ? `So_Theo_Doi_Thuong_Xuyen_Mi_Thuat_Tat_Ca_Cac_Lop.xlsx`
+      : isComprehensive
       ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_Toan_Dien_${safeSem}.xlsx`
       : `Bang_Nhan_Xet_Mi_Thuat_Tat_Ca_Cac_Lop_${safeSem}.xlsx`;
     XLSX.writeFile(workbook, fileName);
@@ -247,8 +282,10 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
   const list = filtered.length > 0 ? filtered : students;
   const ws = XLSX.utils.json_to_sheet(list.map((st, i) => toRow(st, i, st.className || className || '1A')));
   ws['!cols'] = cols;
-  XLSX.utils.book_append_sheet(workbook, ws, 'Bang_Nhan_Xet_Mi_Thuat');
-  const fileName = isComprehensive
+  XLSX.utils.book_append_sheet(workbook, ws, isWeeklyMode ? 'Theo_Doi_Thuong_Xuyen' : 'Bang_Nhan_Xet_Mi_Thuat');
+  const fileName = isWeeklyMode
+    ? `So_Theo_Doi_Thuong_Xuyen_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}.xlsx`
+    : isComprehensive
     ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`
     : `Bang_Nhan_Xet_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`;
   XLSX.writeFile(workbook, fileName);

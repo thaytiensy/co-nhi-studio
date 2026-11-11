@@ -284,15 +284,23 @@ export function synthesizePeriodicEvaluation(student, targetPeriod = 'GK') {
 
   const periodKey = targetPeriod === 'CN' ? 'CN' : targetPeriod === 'CK' ? 'CK' : 'GK';
   const history = Array.isArray(student.camHistory) ? student.camHistory : [];
+  const weekly = student.weeklyLevels || {};
+  const maxWeek = periodKey === 'GK' ? 9 : periodKey === 'CK' ? 18 : 35;
+  const weeklyRecords = [];
+  for (let w = 1; w <= maxWeek; w++) {
+    const lvl = weekly[w] || weekly[String(w)];
+    if (lvl) weeklyRecords.push({ level: lvl });
+  }
+  const allRecords = [...history, ...weeklyRecords];
 
-  // 1. Tính toán mức đạt được tổng hợp từ lịch sử chấm
+  // 1. Tính toán mức đạt được tổng hợp từ các tuần thường xuyên & lịch sử chấm
   let finalLevel = student.level || 'H';
 
-  if (history.length > 0) {
-    const tCount = history.filter(h => h.level === 'T').length;
-    const hCount = history.filter(h => h.level === 'H').length;
-    const cCount = history.filter(h => h.level === 'C').length;
-    const total = history.length;
+  if (allRecords.length > 0) {
+    const tCount = allRecords.filter(h => h.level === 'T').length;
+    const hCount = allRecords.filter(h => h.level === 'H').length;
+    const cCount = allRecords.filter(h => h.level === 'C').length;
+    const total = allRecords.length;
 
     // Quy tắc tổng hợp sư phạm GDPT 2018:
     // - Nếu đa số bài (>= 50%) đạt T và không có bài nào đạt C -> Mức T

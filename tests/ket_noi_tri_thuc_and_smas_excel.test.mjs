@@ -157,4 +157,77 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
     assert.ok(dashboardSource.includes('PlanPPTXImportModal'), 'Dashboard phải tích hợp PlanPPTXImportModal');
     assert.ok(dashboardSource.includes('selectedPlanForImport'), 'Dashboard phải quản lý trạng thái selectedPlanForImport');
   });
+
+  it('9. Sổ theo dõi thường xuyên 35 tuần xuất Excel đúng 35 cột tuần không có cột nhận xét', async () => {
+    const { exportSmasExcel } = await import('../src/utils/smasExcelService.js');
+    const mockStudents = [
+      {
+        id: 'HS001',
+        name: 'Nguyễn Văn An',
+        className: '1A',
+        level: 'T',
+        weeklyLevels: { 1: 'T', 2: 'T', 3: 'H', 35: 'T' },
+        comment: 'Nhận xét này không được xuất ở sổ thường xuyên'
+      }
+    ];
+
+    const fileName = exportSmasExcel({
+      students: mockStudents,
+      className: '1A',
+      exportMode: 'weekly'
+    });
+
+    try {
+      assert.ok(fileName.endsWith('.xlsx'), 'Phải tạo file định dạng chuẩn .xlsx');
+      assert.ok(fileName.includes('So_Theo_Doi_Thuong_Xuyen'), 'Tên file phải là So_Theo_Doi_Thuong_Xuyen');
+      assert.ok(fs.existsSync(fileName), 'Tệp Excel SMAS thường xuyên phải tồn tại trên đĩa');
+
+      const workbook = XLSX.read(fs.readFileSync(fileName));
+      const sheet = workbook.Sheets['Theo_Doi_Thuong_Xuyen'];
+      assert.ok(sheet, 'Trang tính phải tên là Theo_Doi_Thuong_Xuyen');
+
+      const jsonRows = XLSX.utils.sheet_to_json(sheet);
+      assert.equal(jsonRows.length, 1);
+      const row = jsonRows[0];
+
+      assert.equal(row['STT'], 1);
+      assert.equal(row['Mã học sinh'], 'HS001');
+      assert.equal(row['Họ và tên'], 'Nguyễn Văn An');
+      assert.equal(row['Lớp'], '1A');
+      assert.equal(row['Tuần 1'], 'T');
+      assert.equal(row['Tuần 2'], 'T');
+      assert.equal(row['Tuần 3'], 'H');
+      assert.equal(row['Tuần 35'], 'T');
+
+      // Đảm bảo TUYỆT ĐỐI KHÔNG có cột nhận xét ở sổ thường xuyên
+      const keys = Object.keys(row);
+      const hasCommentCol = keys.some(k => /nhận xét|comment/i.test(k));
+      assert.strictEqual(hasCommentCol, false, 'Sổ thường xuyên tuyệt đối không được có cột nhận xét');
+    } finally {
+      if (fs.existsSync(fileName)) fs.unlinkSync(fileName);
+    }
+  });
+
+  it('10. Tổng hợp định kỳ từ 35 tuần thường xuyên và cấu trúc UI không tạo tab riêng biệt', async () => {
+    const { synthesizePeriodicEvaluation } = await import('../src/utils/smasEvaluationBridge.js');
+    const student = {
+      id: 'HS002',
+      name: 'Trần Thị Bình',
+      className: '1A',
+      weeklyLevels: { 1: 'T', 2: 'T', 3: 'T', 4: 'T', 5: 'H' },
+      camHistory: []
+    };
+
+    const resGK = synthesizePeriodicEvaluation(student, 'GK');
+    assert.equal(resGK.level, 'T', 'Nhiều tuần T thì giữa kì phải đạt T');
+    assert.ok(resGK.comment.length > 10, 'Phải sinh lời nhận xét TT27 hợp lệ');
+
+    // Kiểm tra UI StudentEvaluationSMAS.jsx:
+    const smasSource = fs.readFileSync('src/components/Evaluation/StudentEvaluationSMAS.jsx', 'utf8');
+    // Không còn 2 tab riêng biệt to đùng
+    assert.strictEqual(smasSource.includes('SỔ 1: THEO DÕI THƯỜNG XUYÊN'), false, 'Phải xóa 2 tab riêng biệt to đùng');
+    // Có 35 cột tuần
+    assert.ok(smasSource.includes('length: 35'), 'Phải tạo đủ 35 cột tuần');
+    assert.ok(smasSource.includes('handleToggleWeeklyLevel'), 'Phải có hàm đổi nhanh mức T/H/C/—');
+  });
 });
