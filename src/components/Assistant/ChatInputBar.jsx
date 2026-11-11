@@ -18,10 +18,16 @@ export default function ChatInputBar({
   onSubmit,
   isLoading,
   onSelectSuggestion,
+  onListeningChange,
 }) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
   const textareaRef = useRef(null);
+
+  const updateListening = (listening) => {
+    setIsListening(listening);
+    onListeningChange?.(listening);
+  };
 
   // Khởi tạo nhận diện giọng nói Web Speech API tiếng Việt
   useEffect(() => {
@@ -36,23 +42,24 @@ export default function ChatInputBar({
         recognition.onresult = (event) => {
           const transcript = event.results[0]?.[0]?.transcript || '';
           if (transcript) {
-            onQueryChange(prev => (prev ? `${prev} ${transcript}` : transcript));
+            onQueryChange(transcript);
+            onSubmit?.(event, transcript);
           }
-          setIsListening(false);
+          updateListening(false);
         };
 
         recognition.onerror = () => {
-          setIsListening(false);
+          updateListening(false);
         };
 
         recognition.onend = () => {
-          setIsListening(false);
+          updateListening(false);
         };
 
         recognitionRef.current = recognition;
       }
     }
-  }, [onQueryChange]);
+  }, [onQueryChange, onSubmit]);
 
   const toggleVoiceInput = () => {
     if (!recognitionRef.current) {
@@ -61,13 +68,13 @@ export default function ChatInputBar({
     }
     if (isListening) {
       recognitionRef.current.stop();
-      setIsListening(false);
+      updateListening(false);
     } else {
       try {
         recognitionRef.current.start();
-        setIsListening(true);
+        updateListening(true);
       } catch {
-        setIsListening(false);
+        updateListening(false);
       }
     }
   };

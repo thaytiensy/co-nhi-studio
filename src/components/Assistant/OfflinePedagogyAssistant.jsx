@@ -4,8 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import ChatHeader from './ChatHeader';
 import ChatMessageItem from './ChatMessageItem';
 import ChatInputBar from './ChatInputBar';
-import { requestGroqChat } from '../../utils/groqChatService';
-import { getNaturalPedagogyResponse } from '../../utils/naturalPedagogyChatService';
+import RobotTeacherStage from './RobotTeacherStage';
+import { getNaturalPedagogyResponse, getSpokenDialogueResponse } from '../../utils/naturalPedagogyChatService';
 import { speechService } from '../../utils/speechService';
 
 const WELCOME_MESSAGE = {
@@ -13,7 +13,7 @@ const WELCOME_MESSAGE = {
   sender: 'assistant',
   time: 'Vừa xong',
   title: 'Chào Thầy/Cô Mĩ Thuật! 🎨',
-  content: 'Dạ em chào Thầy/Cô ạ! Em là Cô Trợ Giảng AI của Cọ Nhí Studio, bám sát SGK Mĩ thuật Kết nối tri thức với cuộc sống (Lớp 1 - 5) & Thông tư 27.\n\nThầy/Cô cứ nhắn tin trò chuyện tự nhiên như với người thật nhé. Em sẵn sàng cùng Thầy/Cô lên ý tưởng trò chơi khởi động, soạn câu hỏi gợi mở, hay tư vấn mẹo xử lý khi các bé sợ vẽ sai, vẽ chậm ạ! ❤️',
+  content: 'Dạ em chào Thầy/Cô ạ! Em là Cô Trợ Giảng AI của Cọ Nhí Studio, bám sát SGK Mĩ thuật Kết nối tri thức với cuộc sống (Lớp 1 - 5) & Thông tư 27.\n\nThầy/Cô cứ nhắn tin hoặc nói chuyện tự nhiên như với người thật nhé. Em sẵn sàng đàm thoại giọng nói tức thì với Thầy/Cô ạ! ❤️',
 };
 
 export default function OfflinePedagogyAssistant({
@@ -27,25 +27,29 @@ export default function OfflinePedagogyAssistant({
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
   const [userQuery, setUserQuery] = useState('');
-  const [isAutoSpeak, setIsAutoSpeak] = useState(false);
-  const [aiProvider, setAiProvider] = useState('online');
+  const [isAutoSpeak, setIsAutoSpeak] = useState(true);
+  const [aiProvider, setAiProvider] = useState('offline');
   const [currentGender, setCurrentGender] = useState(() => speechService.gender || 'female');
+  const [viewMode, setViewMode] = useState('stage'); // 'stage' (default Robot Teacher) | 'chat' (Text List)
+  const [isSpeaking, setIsSpeaking] = useState(() => speechService.isSpeaking);
+  const [isListening, setIsListening] = useState(false);
+  const [currentSpokenText, setCurrentSpokenText] = useState(
+    'Dạ em chào Thầy Cô ạ! Em là Cô Trợ Giảng AI của Cọ Nhí Studio. Thầy Cô cần em hỗ trợ gì cứ nói với em nhé!'
+  );
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
 
-  const scrollToBottom = (behavior = 'smooth') => {
-    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
-  };
-
   useEffect(() => {
-    const unsub = speechService.subscribe((state) => setCurrentGender(state.gender));
+    const unsub = speechService.subscribe((state) => {
+      setCurrentGender(state.gender);
+      setIsSpeaking(state.isSpeaking);
+    });
     return () => { unsub(); speechService.stop(); };
   }, []);
 
-  // Tự động cuộn xuống khi có thông tin hoặc tin nhắn mới xuất hiện
   useEffect(() => {
-    scrollToBottom('smooth');
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, isLoading]);
 
   const handleGenderChange = (gender) => {
@@ -56,6 +60,7 @@ export default function OfflinePedagogyAssistant({
   const handleResetChat = () => {
     speechService.stop();
     setMessages([{ ...WELCOME_MESSAGE, id: Date.now().toString(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    setCurrentSpokenText('Dạ em chào Thầy Cô ạ! Em đã sẵn sàng đồng hành cùng Thầy Cô.');
   };
 
   const handleReadCurrentSlide = () => {
@@ -66,7 +71,14 @@ export default function OfflinePedagogyAssistant({
       if ((e.type === 'text' || e.type === 'shape') && e.text?.trim()) parts.push(e.text.trim());
     });
     const textToRead = parts.join('. ') || currentSlide.notes || 'Trang slide này hiện chưa có nội dung văn bản giáo khoa ạ.';
+    setCurrentSpokenText(textToRead);
     speechService.speak(textToRead);
+  };
+
+  const handleCharacterClick = () => {
+    const prompt = 'Dạ em chào Thầy Cô ạ! Thầy Cô cần em tư vấn mẹo xử lý học sinh sợ vẽ sai, hay trò chơi khởi động năm phút không ạ?';
+    setCurrentSpokenText(prompt);
+    speechService.speak(prompt);
   };
 
   const handleSendMessage = async (queryText) => {
@@ -79,46 +91,25 @@ export default function OfflinePedagogyAssistant({
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
-    const assistantMsgId = `${Date.now()}-assistant`;
-    let responseText = '';
-
-    if (aiProvider === 'online') {
-      try {
-        const history = [...messages, userMsg].filter(m => ['user', 'assistant'].includes(m.sender) && typeof m.content === 'string').slice(-8).map(m => ({ role: m.sender, content: m.content }));
-        responseText = await requestGroqChat({
-          grade: currentGrade,
-          theme: currentSlide?.title || '',
-          persona: currentGender === 'female' ? 'Cô giáo mĩ thuật Hoài My' : 'Thầy giáo mĩ thuật Nam Minh',
-          messages: history,
-        }, globalThis.fetch, (delta) => {
-          setMessages(prev => {
-            const exists = prev.some(m => m.id === assistantMsgId);
-            if (!exists) return [...prev, { id: assistantMsgId, sender: 'assistant', time, content: delta, provider: 'Groq Free ⚡', isStreaming: true }];
-            return prev.map(m => m.id === assistantMsgId ? { ...m, content: m.content + delta } : m);
-          });
-          scrollToBottom('auto');
-        });
-      } catch (_) {
-        responseText = getNaturalPedagogyResponse(text, currentGrade, currentSlide?.title || '');
-      }
-    } else {
-      await new Promise(r => setTimeout(r, 150));
-      responseText = getNaturalPedagogyResponse(text, currentGrade, currentSlide?.title || '');
+    // 1. Phản hồi giọng nói tự nhiên tức thì trong 0.3s - 0.4s
+    const spokenText = getSpokenDialogueResponse(text, currentGrade, currentSlide?.title || '');
+    setCurrentSpokenText(spokenText);
+    if (isAutoSpeak) {
+      speechService.speak(spokenText);
     }
 
-    setMessages(prev => {
-      const exists = prev.some(m => m.id === assistantMsgId);
-      const prov = aiProvider === 'online' ? 'Groq Free ⚡' : 'Cục Bộ Offline 📦';
-      if (!exists) return [...prev, { id: assistantMsgId, sender: 'assistant', time, content: responseText, provider: prov, isStreaming: false }];
-      return prev.map(m => m.id === assistantMsgId ? { ...m, content: responseText, provider: prov, isStreaming: false } : m);
-    });
-
+    // 2. Cập nhật nội dung văn bản chuẩn sư phạm cho lịch sử
+    const fullText = getNaturalPedagogyResponse(text, currentGrade, currentSlide?.title || '');
+    const assistantMsgId = `${Date.now()}-assistant`;
+    setMessages(prev => [
+      ...prev,
+      { id: assistantMsgId, sender: 'assistant', time, content: fullText, provider: 'Cọ Nhí AI ⚡', isStreaming: false }
+    ]);
     setIsLoading(false);
-    if (isAutoSpeak && responseText) speechService.speak(responseText);
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-100 select-none overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-950 select-none overflow-hidden">
       <ChatHeader
         currentGender={currentGender}
         onGenderChange={handleGenderChange}
@@ -131,30 +122,38 @@ export default function OfflinePedagogyAssistant({
         onClose={onClose}
         aiProvider={aiProvider}
         onProviderChange={setAiProvider}
+        viewMode={viewMode}
+        onToggleViewMode={() => setViewMode(prev => prev === 'stage' ? 'chat' : 'stage')}
       />
 
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3.5 space-y-1 scroll-smooth bg-gradient-to-b from-slate-100 to-amber-50/20">
-        {messages.map(msg => (
-          <ChatMessageItem key={msg.id} message={msg} onInsertToNotes={onInsertToNotes} />
-        ))}
-
-        {isLoading && (
-          <div className="flex items-center gap-2 mb-3.5 animate-in fade-in">
-            <div className="w-7 h-7 rounded-full overflow-hidden border border-amber-400 shrink-0 bg-slate-900">
-              <img src="/images/tro-giang-ai.jpg" alt="Cô Trợ Giảng" className="w-full h-full object-cover" />
-            </div>
-            <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-xs px-3.5 py-2.5 shadow-2xs flex items-center gap-2 text-xs font-bold text-amber-800">
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.3s]" />
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce [animation-delay:-0.15s]" />
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" />
-              </div>
-              <span className="text-[11px] text-slate-500">Cô Trợ Giảng đang suy nghĩ và gõ chữ...</span>
-            </div>
+      {viewMode === 'stage' ? (
+        <RobotTeacherStage
+          isSpeaking={isSpeaking}
+          isListening={isListening}
+          currentSpokenText={currentSpokenText}
+          onStopSpeech={() => speechService.stop()}
+          onReplaySpeech={() => currentSpokenText && speechService.speak(currentSpokenText)}
+          onCharacterClick={handleCharacterClick}
+          onToggleViewMode={() => setViewMode('chat')}
+          activeTopicLabel={currentSlide?.title || ''}
+        />
+      ) : (
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3.5 space-y-1 scroll-smooth bg-gradient-to-b from-slate-900 to-slate-950">
+          <div className="flex justify-end pb-2">
+            <button
+              type="button"
+              onClick={() => setViewMode('stage')}
+              className="px-2.5 py-1 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg shadow-md cursor-pointer transition-all"
+            >
+              🤖 Quay lại Cô Giáo Robot 3D
+            </button>
           </div>
-        )}
-        <div ref={messagesEndRef} className="h-1 shrink-0" />
-      </div>
+          {messages.map(msg => (
+            <ChatMessageItem key={msg.id} message={msg} onInsertToNotes={onInsertToNotes} />
+          ))}
+          <div ref={messagesEndRef} className="h-1 shrink-0" />
+        </div>
+      )}
 
       <ChatInputBar
         userQuery={userQuery}
@@ -162,6 +161,7 @@ export default function OfflinePedagogyAssistant({
         onSubmit={(e) => { e?.preventDefault(); handleSendMessage(userQuery); }}
         isLoading={isLoading}
         onSelectSuggestion={(prompt) => handleSendMessage(prompt)}
+        onListeningChange={setIsListening}
       />
     </div>
   );

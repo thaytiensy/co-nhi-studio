@@ -15,6 +15,8 @@ export default function ChatHeader({
   onClose,
   aiProvider,
   onProviderChange,
+  viewMode = 'stage',
+  onToggleViewMode,
 }) {
   return (
     <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-yellow-700 text-white p-3.5 shadow-md shrink-0 border-b border-amber-500/40 select-none">
@@ -146,6 +148,18 @@ export default function ChatHeader({
             📦 Cục Bộ
           </button>
         </div>
+
+        {/* Chế độ xem: Robot 3D hay Văn bản */}
+        {onToggleViewMode && (
+          <button
+            type="button"
+            onClick={onToggleViewMode}
+            className="px-2 py-1 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer bg-black/30 hover:bg-black/50 text-amber-200 border border-amber-400/40"
+            title={viewMode === 'stage' ? "Chuyển sang xem văn bản" : "Chuyển sang Cô Giáo Robot 3D"}
+          >
+            <span>{viewMode === 'stage' ? '💬 Văn Bản' : '🤖 Robot 3D'}</span>
+          </button>
+        )}
 
         {/* Đọc chữ trên slide */}
         {onReadCurrentSlide && (

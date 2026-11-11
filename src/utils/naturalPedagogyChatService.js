@@ -2,6 +2,50 @@
 import { findRelevantPedagogyTheme } from './offlineAssistantMatchService.js';
 import { PEDAGOGY_BANK } from '../data/pedagogyBank.js';
 
+// Dạng văn bản nói trôi chảy ngắn gọn, độ trễ 0.3s - 0.4s dành cho Cô Giáo Robot phát âm trực tiếp
+export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThemeTitle = '') {
+  const query = (userText || '').trim();
+  const qLower = query.toLowerCase();
+
+  if (/^(chào|xin chào|hello|hi|alo|chào em|chào cô)\b/i.test(qLower) || /bạn là ai|em là ai|tên gì/i.test(qLower)) {
+    return 'Dạ em chào Thầy Cô ạ! Em là Cô Giáo Robot AI của Cọ Nhí Studio. Hôm nay Thầy Cô cần em hỗ trợ chuẩn bị bài học hay tình huống nào trong lớp ạ?';
+  }
+  if (/cảm ơn|thank|tuyệt vời|hay quá|tốt lắm/i.test(qLower)) {
+    return 'Dạ không có gì đâu ạ! Được đồng hành cùng Thầy Cô là niềm vui của em. Chúc Thầy Cô và các bé có một tiết học thật vui và sáng tạo nhé!';
+  }
+  if (/sợ sai|sợ xấu|không dám vẽ|rụt rè|ngại vẽ/i.test(qLower)) {
+    return 'Dạ Thầy Cô đừng lo nhé! Với các bé sợ vẽ sai, Thầy Cô hãy bảo bé rằng trong mĩ thuật không có nét nào sai cả, một nét méo có thể biến thành đám mây hay chú sâu ngộ nghĩnh. Bé sẽ tự tin cầm bút ngay ạ!';
+  }
+  if (/vẽ chậm|không kịp|hết giờ|chậm chạp/i.test(qLower)) {
+    return 'Dạ với bé vẽ chậm, Thầy Cô hãy hướng dẫn bé vẽ hình ảnh chính thật to ở giữa giấy trong năm phút đầu, và dùng bản sáp màu nghiêng để tô nền thật nhanh nhé!';
+  }
+  if (/quên đồ dùng|không mang màu|thiếu giấy/i.test(qLower)) {
+    return 'Dạ Thầy Cô có thể cho bé ngồi ghép chung hộp màu với bạn để rèn tinh thần sẻ chia, hoặc hướng dẫn bé vẽ kí họa bằng chính cây bút chì viết bài rất đẹp ạ!';
+  }
+  if (/hiếu động|nghịch|mất tập trung|nói chuyện/i.test(qLower)) {
+    return 'Dạ Thầy Cô hãy giao cho bé vai trò Trợ lý mĩ thuật như phát giấy, chia bảng màu cho bạn, hoặc cho bé tạo hình bằng đất nặn để giải phóng năng lượng tích cực nhé!';
+  }
+  if (/khởi động|trò chơi|đố vui|khuấy động/i.test(qLower)) {
+    return 'Dạ em gợi ý Thầy Cô trò chơi Thám tử mĩ thuật nhé! Thầy Cô chiếu một góc nhỏ bức tranh và đố cả lớp đoán hình. Trò này cực kỳ vui và kích thích các bé tò mò ngay từ phút đầu tiên ạ!';
+  }
+  if (/câu hỏi|gợi mở|khám phá|tư duy/i.test(qLower)) {
+    return 'Dạ Thầy Cô hãy hỏi các bé: Con nhìn thấy màu sắc nào nổi bật nhất, và bức tranh này làm con cảm thấy vui vẻ hay ấm áp? Những câu hỏi mở sẽ giúp các bé hào hứng chia sẻ ngay ạ!';
+  }
+  if (/nhận xét|đánh giá|thông tư 27|tt27/i.test(qLower)) {
+    return 'Dạ nhận xét theo Thông tư hai mươi bảy gồm: Mức T là hoàn thành tốt, sáng tạo độc đáo; Mức H là vẽ đúng chủ đề, màu sắc rõ ràng; và Mức C là cần cố gắng quan sát mẫu kĩ hơn ạ!';
+  }
+  if (/4 bước|thị phạm|quy trình|các bước/i.test(qLower)) {
+    return 'Dạ quy trình bốn bước vẽ gồm: Bước một phác hình lớn ở giữa giấy; Bước hai vẽ chi tiết đặc trưng; Bước ba tô màu hòa sắc; và Bước bốn viền nét tạo điểm nhấn ạ!';
+  }
+
+  const bestMatch = findRelevantPedagogyTheme(query, PEDAGOGY_BANK.themes, currentGrade);
+  if (bestMatch?.theme) {
+    const t = bestMatch.theme;
+    return `Dạ về bài ${t.title}, Thầy Cô hãy bắt đầu bằng câu hỏi khám phá hình ảnh xung quanh, rồi hướng dẫn bốn bước vẽ từ hình lớn đến chi tiết nhé!`;
+  }
+  return `Dạ em đã hiểu ý Thầy Cô về ${query} rồi ạ! Thầy Cô hãy cho các bé quan sát thực tế, khơi gợi cảm xúc tự nhiên và hướng dẫn từng bước tạo hình thật vui nhé!`;
+}
+
 export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentThemeTitle = '') {
   const query = (userText || '').trim();
   const qLower = query.toLowerCase();
