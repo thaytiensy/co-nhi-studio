@@ -2,6 +2,7 @@
 // Dữ liệu mặc định lưu trên máy tính của giáo viên, không gửi lên bất kỳ máy chủ nào.
 
 export const STORAGE_KEY = 'co_nhi_studio_project_v1';
+export const STORAGE_DRAFT_KEY = 'co_nhi_studio_draft_v1';
 
 export const validateSlideElement = (el, index, slideIndex) => {
   if (!el || typeof el !== 'object') {
@@ -146,4 +147,79 @@ export const importProjectFile = (file) => {
     reader.onerror = () => reject(new Error('Lỗi đọc tệp từ thiết bị'));
     reader.readAsText(file);
   });
+};
+
+/**
+ * Tự động lưu bản nháp chỉnh sửa (Auto-Save Resilience)
+ * Ghi nhận trạng thái thời gian thực chống mất bài khi mất điện hoặc tắt trình duyệt
+ */
+export const saveProjectDraftToLocal = (projectData) => {
+  try {
+    if (!projectData || !Array.isArray(projectData.slides) || projectData.slides.length === 0) {
+      return { success: false };
+    }
+    const payload = {
+      title: projectData.title || 'Bài Giảng Mĩ Thuật',
+      slides: projectData.slides,
+      updatedAt: projectData.updatedAt || new Date().toISOString(),
+      isDraft: true,
+      version: projectData.version || '1.0.0'
+    };
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_DRAFT_KEY, JSON.stringify(payload));
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Đọc bản nháp chỉnh sửa từ LocalStorage phục vụ Crash Recovery
+ */
+export const getProjectDraftFromLocal = () => {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const raw = localStorage.getItem(STORAGE_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    validateProjectData(parsed);
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Xóa bản nháp khi giáo viên đã bấm lưu chính thức hoặc chủ động bỏ qua
+ */
+export const clearProjectDraft = () => {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_DRAFT_KEY);
+    }
+  } catch {}
+};
+
+/**
+ * Kiểm tra xem có bản nháp chưa lưu hay không
+ * @param {string|number} [referenceTime] Mốc thời gian so sánh tùy chọn
+ */
+export const hasUnsavedDraft = (referenceTime) => {
+  try {
+    const draft = getProjectDraftFromLocal();
+    if (!draft) return false;
+    let baseTime = 0;
+    if (referenceTime) {
+      baseTime = new Date(referenceTime).getTime();
+    } else {
+      const saved = loadProjectFromLocal();
+      if (!saved) return true;
+      baseTime = new Date(saved.updatedAt).getTime();
+    }
+    const draftTime = new Date(draft.updatedAt).getTime();
+    return draftTime > baseTime;
+  } catch {
+    return false;
+  }
 };

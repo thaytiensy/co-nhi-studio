@@ -3,7 +3,14 @@ import { onAuthStateChanged } from 'firebase/auth';
 import Header from './components/Header';
 import SlideEditorView from './components/SlideEditor/SlideEditorView';
 import LoginGateModal from './components/Admin/LoginGateModal';
-import { saveProjectToLocal, loadProjectFromLocal, importProjectFile } from './utils/storageService';
+import {
+  saveProjectToLocal,
+  loadProjectFromLocal,
+  importProjectFile,
+  saveProjectDraftToLocal,
+  getProjectDraftFromLocal,
+  clearProjectDraft
+} from './utils/storageService';
 
 // Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
 const DrawingBoard = React.lazy(() => import('./components/DrawingBoard/DrawingBoard'));
@@ -94,6 +101,7 @@ export default function App() {
   const [hasOpenedInstallModal, setHasOpenedInstallModal] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const [recoveredDraft, setRecoveredDraft] = useState(null);
   const isInitialLoadedRef = useRef(false);
 
   // Xử lý đăng xuất tài khoản
@@ -196,7 +204,37 @@ export default function App() {
         } catch (e) {}
       }
     }
+
+    // Kiểm tra bản nháp chưa lưu phục vụ Crash Recovery khi gặp sự cố tắt trình duyệt
+    try {
+      const draft = getProjectDraftFromLocal();
+      if (draft && draft.slides && draft.slides.length > 0) {
+        const draftTime = draft.updatedAt ? new Date(draft.updatedAt).getTime() : 0;
+        const savedTime = saved?.updatedAt ? new Date(saved.updatedAt).getTime() : 0;
+        if (draftTime > savedTime + 3000) {
+          setRecoveredDraft(draft);
+        }
+      }
+    } catch (_) {}
   }, []);
+
+  // Áp dụng bản nháp tự động khôi phục sau sự cố
+  const handleApplyRecoveredDraft = () => {
+    if (recoveredDraft) {
+      setSlides(recoveredDraft.slides);
+      if (recoveredDraft.title) setProjectTitle(recoveredDraft.title);
+      setSlideEditorResetKey(key => key + 1);
+      saveProjectToLocal({ title: recoveredDraft.title, slides: recoveredDraft.slides });
+      clearProjectDraft();
+      setRecoveredDraft(null);
+      setIsSaved(true);
+    }
+  };
+
+  const handleDismissRecoveredDraft = () => {
+    clearProjectDraft();
+    setRecoveredDraft(null);
+  };
 
   // Xóa trắng toàn bộ slide và tạo dự án mới
   const handleNewProject = () => {
@@ -214,6 +252,8 @@ export default function App() {
       setProjectTitle('Bài Giảng Mĩ Thuật');
       setCurrentSlideIndex(0);
       setSlideEditorResetKey(key => key + 1);
+      clearProjectDraft();
+      setRecoveredDraft(null);
       const saveResult = saveProjectToLocal({ title: 'Bài Giảng Mĩ Thuật', slides: blank });
       setIsSaved(saveResult.success);
       if (!saveResult.success) alert(saveResult.error);
@@ -239,7 +279,7 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isSaved]);
 
-  // Tự động lưu (Autosave có debounce 1.5s) khi slides hoặc projectTitle thay đổi
+  // Tự động lưu bản nháp (Autosave có debounce 900ms) khi slides hoặc projectTitle thay đổi
   useEffect(() => {
     if (!isInitialLoadedRef.current) {
       isInitialLoadedRef.current = true;
@@ -254,10 +294,11 @@ export default function App() {
           title: projectTitle,
           slides,
         };
+        saveProjectDraftToLocal(payload);
         const res = saveProjectToLocal(payload);
-        setIsSaved(true); // Bảo vệ hiệu năng, tránh vòng lặp serialize 1.5s khi tệp nặng vượt hạn mức LocalStorage
+        setIsSaved(true); // Bảo vệ hiệu năng, tránh vòng lặp serialize khi tệp nặng vượt hạn mức LocalStorage
       }
-    }, 1500);
+    }, 900);
 
     return () => clearTimeout(timer);
   }, [slides, projectTitle, isSaved]);
@@ -271,6 +312,8 @@ export default function App() {
     const res = saveProjectToLocal(payload);
     if (res.success) {
       setIsSaved(true);
+      clearProjectDraft();
+      setRecoveredDraft(null);
     } else {
       setIsSaved(false);
       alert(res.error);
@@ -522,6 +565,32 @@ export default function App() {
         userSession={currentUserSession}
         onLogout={handleLogout}
       />
+
+      {/* Crash Recovery Banner: Phát hiện và khôi phục bản nháp chưa lưu sau sự cố */}
+      {recoveredDraft && !isPresentationOpen && (
+        <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-lg z-30 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-2.5 text-xs font-semibold">
+            <span className="text-base">⚠️</span>
+            <span>
+              Phát hiện bản nháp bài giảng chưa lưu ({recoveredDraft.updatedAt ? new Date(recoveredDraft.updatedAt).toLocaleTimeString('vi-VN') : 'gần đây'}: <strong>{recoveredDraft.title || 'Bài giảng'}</strong> - {recoveredDraft.slides?.length || 0} slide).
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleApplyRecoveredDraft}
+              className="px-3.5 py-1 bg-white text-amber-900 font-black rounded-xl text-xs hover:bg-amber-50 transition-colors shadow-xs cursor-pointer"
+            >
+              Khôi Phục Dữ Liệu
+            </button>
+            <button
+              onClick={handleDismissRecoveredDraft}
+              className="px-2.5 py-1 text-white/80 hover:text-white font-bold text-xs hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+            >
+              Bỏ Qua
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Main Workspace Layout with SmartSidebar and Content Area */}
       <div className="flex-1 flex overflow-hidden relative">

@@ -1,7 +1,14 @@
 // Cọ Nhí Studio - Service Worker phục vụ Offline & Cài đặt App (PWA)
-const CACHE_NAME = 'co-nhi-studio-cache-v3';
+// Chuẩn THƯƠNG MẠI - Chiến lược Cache-First cho tài nguyên tĩnh & Ngoại tuyến 100%
+const CACHE_NAME = 'co-nhi-studio-cache-v4';
 const APP_ROOT_URL = new URL('/', self.location.origin).href;
-const CACHEABLE_SHELL_ASSETS = ['/manifest.json', '/favicon.svg', '/icons.svg'];
+const CACHEABLE_SHELL_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/favicon.svg',
+  '/icons.svg'
+];
 
 async function cacheAsset(cache, url) {
   const assetUrl = new URL(url, self.location.origin);
@@ -60,26 +67,50 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const requestUrl = new URL(event.request.url);
+  // Tuyệt đối không cache endpoint nội bộ /api/ hoặc dịch vụ bên ngoài
   if (requestUrl.origin !== self.location.origin || requestUrl.pathname.startsWith('/api/')) return;
+
+  // Xác định tài nguyên tĩnh (assets, scripts, styles, fonts, images)
+  const isStaticAsset = (
+    requestUrl.pathname.startsWith('/assets/') ||
+    /\.(?:js|css|svg|png|jpg|jpeg|webp|ico|woff2?|ttf|json)$/i.test(requestUrl.pathname)
+  );
 
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
 
+    // Chiến lược Cache-First cho Static Assets để đạt tốc độ tức thì và hoạt động Offline 100%
+    if (isStaticAsset) {
+      const cached = await cache.match(event.request);
+      if (cached) {
+        // Cập nhật ngầm trong nền nếu có mạng (Stale-While-Revalidate)
+        fetch(event.request).then((freshResponse) => {
+          if (freshResponse.ok && freshResponse.status === 200 && !event.request.headers.has('range')) {
+            cache.put(event.request, freshResponse.clone()).catch(() => {});
+          }
+        }).catch(() => {});
+        return cached;
+      }
+    }
+
+    // Đối với các yêu cầu khác (hoặc chưa có trong cache), gọi mạng với fallback cache
     try {
       const networkResponse = await fetch(event.request);
       if (networkResponse.ok && networkResponse.status === 200 && !event.request.headers.has('range')) {
         try {
           await cache.put(event.request, networkResponse.clone());
         } catch {
-          // Không để lỗi quota/cache làm hỏng phản hồi mạng.
+          // Bỏ qua lỗi quota/cache nếu có
         }
       }
       return networkResponse;
     } catch {
-      const cachedResponse = await cache.match(event.request);
-      if (cachedResponse) return cachedResponse;
+      const fallbackCached = await cache.match(event.request);
+      if (fallbackCached) return fallbackCached;
+
       if (event.request.mode === 'navigate') {
-        return (await cache.match(APP_ROOT_URL)) || Response.error();
+        const rootCached = await cache.match('/index.html') || await cache.match(APP_ROOT_URL);
+        if (rootCached) return rootCached;
       }
       return Response.error();
     }

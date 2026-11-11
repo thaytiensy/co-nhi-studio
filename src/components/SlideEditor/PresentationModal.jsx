@@ -16,13 +16,17 @@ import {
   Trash2,
   HelpCircle,
   EyeOff,
-  Maximize2
+  Maximize2,
+  Download,
+  Printer,
+  Highlighter
 } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 import SlideGameWidget from '../ArtGames/SlideGameWidget';
 import { generateGameQuestionsByTheme } from '../../data/artGamesCurriculumBank';
 import { classroomAudio } from '../../utils/classroomAudioService';
 import { generateSlidePedagogyTips } from '../../utils/aiNaturalLanguageService';
+import { exportSlideToStandaloneHtml, printSlideDeckToPdf } from '../../utils/htmlSlideExportService';
 
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
@@ -62,7 +66,8 @@ const PEDAGOGY_PHASES = [
 export default function PresentationModal({
   slides,
   initialSlideIndex = 0,
-  onClose
+  onClose,
+  projectTitle = 'Bài Giảng Mĩ Thuật'
 }) {
   const [currentIndex, setCurrentIndex] = useState(initialSlideIndex);
   const [scale, setScale] = useState(1);
@@ -72,6 +77,8 @@ export default function PresentationModal({
   const [speechState, setSpeechState] = useState({ isSpeaking: false, isPaused: false });
   const containerRef = useRef(null);
   const hideTimeoutRef = useRef(null);
+  const touchStartXRef = useRef(0);
+  const touchStartYRef = useRef(0);
 
   // === 1. ĐỒNG HỒ SƯ PHẠM 35 PHÚT (PEDAGOGY CLASSROOM TIMER) ===
   const [showTimerDock, setShowTimerDock] = useState(true);
@@ -80,8 +87,9 @@ export default function PresentationModal({
   const [isTimerRunning, setIsTimerRunning] = useState(true);
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
-  // === 2. PHÍM TẮT ĐỨNG LỚP & CHẾ ĐỘ MÀN HÌNH TỐI (BLACK SCREEN) ===
+  // === 2. PHÍM TẮT ĐỨNG LỚP & CHẾ ĐỘ MÀN HÌNH TỐI / TRẮNG (BLACK / WHITE SCREEN) ===
   const [isBlackScreen, setIsBlackScreen] = useState(false);
+  const [isWhiteScreen, setIsWhiteScreen] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
 
   // === 3. BẢNG VẼ THỊ PHẠM NHANH (WHITEBOARD & ANNOTATION) ===
@@ -89,6 +97,7 @@ export default function PresentationModal({
   const [whiteboardBackground, setWhiteboardBackground] = useState('transparent'); // 'transparent' | 'white'
   const [penColor, setPenColor] = useState('#ef4444'); // đỏ thị phạm nổi bật
   const [penSize, setPenSize] = useState(4);
+  const [isHighlighter, setIsHighlighter] = useState(false);
   const whiteboardCanvasRef = useRef(null);
   const isDrawingRef = useRef(false);
 
@@ -203,6 +212,18 @@ export default function PresentationModal({
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
   }, []);
+
+  // Tự động tạm dừng toàn bộ Video & Audio khi chuyển slide (chống phát ngầm hao RAM/CPU)
+  useEffect(() => {
+    if (containerRef.current) {
+      const mediaElements = containerRef.current.querySelectorAll('video, audio');
+      mediaElements.forEach(media => {
+        try {
+          if (!media.paused) media.pause();
+        } catch (_) {}
+      });
+    }
+  }, [currentIndex]);
 
   const currentSlide = slides[currentIndex] || slides[0];
 
@@ -330,11 +351,16 @@ export default function PresentationModal({
     }
   }, [currentSlide]);
 
-  // === XỬ LÝ PHÍM TẮT ĐỨNG LỚP TOÀN DIỆN ===
+  // === XỬ LÝ PHÍM TẮT ĐỨNG LỚP TOÀN DIỆN & CÔNG THÁI HỌC BÚT TRÌNH CHIẾU ===
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Bỏ qua nếu đang gõ chữ trong input
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      // Chống xung đột nhập liệu: Vô hiệu hóa phím tắt nếu focus đang ở ô gõ chữ
+      if (
+        e.target.tagName === 'INPUT' || 
+        e.target.tagName === 'TEXTAREA' || 
+        e.target.isContentEditable || 
+        (typeof e.target.closest === 'function' && e.target.closest('[contenteditable="true"]'))
+      ) return;
 
       // Phím Esc: Đóng các modal/overlay theo thứ tự ưu tiên
       if (e.key === 'Escape') {
@@ -362,6 +388,10 @@ export default function PresentationModal({
           setIsBlackScreen(false);
           return;
         }
+        if (isWhiteScreen) {
+          setIsWhiteScreen(false);
+          return;
+        }
         if (showNotesOverlay) {
           setShowNotesOverlay(false);
           return;
@@ -372,15 +402,17 @@ export default function PresentationModal({
         return;
       }
 
-      // Phím B / b: Tạm tắt màn hình máy chiếu (Black screen) để học sinh dừng vẽ, chú ý nhìn Thầy
+      // Phím B / b: Tắt màn hình đen (Blackout screen) để tập trung lớp
       if (e.key === 'b' || e.key === 'B') {
         setIsBlackScreen(prev => !prev);
+        setIsWhiteScreen(false);
         return;
       }
 
-      // Phím W / w: Bật/Tắt bảng vẽ trắng thị phạm nhanh (Whiteboard)
+      // Phím W / w: Tắt màn hình trắng (White screen) cho hoạt động thảo luận / vẽ bảng
       if (e.key === 'w' || e.key === 'W') {
-        setIsWhiteboardOpen(prev => !prev);
+        setIsWhiteScreen(prev => !prev);
+        setIsBlackScreen(false);
         return;
       }
 
@@ -424,11 +456,24 @@ export default function PresentationModal({
         return;
       }
 
-      // Điều hướng slide & từng bước PowerPoint: Phím cách, Enter, Mũi tên phải/trái, PageUp/PageDown
-      if (!showGameModal && !isWhiteboardOpen && !isBlackScreen) {
-        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') {
+      // Điều hướng slide & từng bước PowerPoint: Hỗ trợ cả Bàn phím & Bút trình chiếu USB (Clicker)
+      // Tiến: ArrowRight, ArrowDown, Space, PageDown, Enter
+      // Lùi: ArrowLeft, ArrowUp, PageUp, Backspace
+      if (!showGameModal && !isWhiteboardOpen && !isBlackScreen && !isWhiteScreen) {
+        if (
+          e.key === 'ArrowRight' || 
+          e.key === 'ArrowDown' || 
+          e.key === ' ' || 
+          e.key === 'PageDown' || 
+          e.key === 'Enter'
+        ) {
           handleAdvanceStep();
-        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') {
+        } else if (
+          e.key === 'ArrowLeft' || 
+          e.key === 'ArrowUp' || 
+          e.key === 'PageUp' || 
+          e.key === 'Backspace'
+        ) {
           handleStepBack();
         }
       }
@@ -442,6 +487,7 @@ export default function PresentationModal({
     showGameModal, 
     isWhiteboardOpen, 
     isBlackScreen, 
+    isWhiteScreen,
     showNotesOverlay, 
     handleAdvanceStep, 
     handleStepBack, 
@@ -530,8 +576,40 @@ export default function PresentationModal({
     const ctx = canvas.getContext('2d');
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    ctx.strokeStyle = penColor;
-    ctx.lineWidth = penSize;
+    ctx.strokeStyle = isHighlighter ? 'rgba(250, 204, 21, 0.45)' : penColor;
+    ctx.lineWidth = isHighlighter ? 24 : penSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  // Hỗ trợ vẽ cảm ứng trên màn hình tương tác & Tablet
+  const handleTouchDrawStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    isDrawingRef.current = true;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  const handleTouchDrawMove = (e) => {
+    if (!isDrawingRef.current || !e.touches || e.touches.length === 0) return;
+    const canvas = whiteboardCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = isHighlighter ? 'rgba(250, 204, 21, 0.45)' : penColor;
+    ctx.lineWidth = isHighlighter ? 24 : penSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineTo(x, y);
@@ -549,6 +627,31 @@ export default function PresentationModal({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  // === CỬ CHỈ CẢM ỨNG VUỐT TRANG (TOUCH SWIPE CHO BẢNG TƯƠNG TÁC / TABLET) ===
+  const handleTouchStart = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+      const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+      // Nhận diện swipe ngang rõ ràng (ngưỡng > 50px và góc lệch ngang lớn hơn dọc)
+      if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+        if (deltaX < 0) {
+          // Vuốt sang trái -> Tiến tới bước / slide tiếp theo
+          handleAdvanceStep();
+        } else {
+          // Vuốt sang phải -> Lùi lại bước / slide trước
+          handleStepBack();
+        }
+      }
+    }
+  };
+
   // Trích xuất chủ đề slide
   const getSlideTheme = () => {
     const textEl = currentSlide?.elements?.find(e => e.type === 'text' && e.text?.trim());
@@ -561,7 +664,7 @@ export default function PresentationModal({
   const activePhase = PEDAGOGY_PHASES[currentPhaseIdx];
 
   const handleContainerClick = () => {
-    if (showAiModal || showGameModal || isWhiteboardOpen || showShortcutsHelp || showNotesOverlay || isBlackScreen) {
+    if (showAiModal || showGameModal || isWhiteboardOpen || showShortcutsHelp || showNotesOverlay || isBlackScreen || isWhiteScreen) {
       return;
     }
     handleAdvanceStep();
@@ -572,6 +675,8 @@ export default function PresentationModal({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onClick={handleContainerClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className={`fixed inset-0 bg-black z-50 flex items-center justify-center select-none overflow-hidden ${
         isLaserActive ? 'cursor-none' : 'cursor-pointer'
       }`}
@@ -667,8 +772,14 @@ export default function PresentationModal({
         style={{
           width: `${CANVAS_WIDTH}px`,
           height: `${CANVAS_HEIGHT}px`,
-          transform: `scale(${scale})`,
+          transform: `scale(${scale}) translateZ(0)`,
           transformOrigin: 'center center',
+          transformStyle: 'preserve-3d',
+          backfaceVisibility: 'hidden',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          textRendering: 'optimizeLegibility',
+          imageRendering: 'crisp-edges',
           backgroundColor: currentSlide?.background || '#ffffff',
         }}
       >
@@ -1035,19 +1146,34 @@ export default function PresentationModal({
                 ))}
               </div>
 
-              {/* Brush Size */}
+              {/* Brush Size & Highlighter */}
               <div className="flex items-center gap-1 pl-2 border-l border-slate-700">
                 {[3, 6, 12].map((sz) => (
                   <button
                     key={sz}
-                    onClick={() => setPenSize(sz)}
-                    className={`px-2 py-0.5 rounded font-mono font-bold ${
-                      penSize === sz ? 'bg-slate-700 text-amber-400' : 'text-slate-400 hover:text-white'
+                    onClick={() => {
+                      setPenSize(sz);
+                      setIsHighlighter(false);
+                    }}
+                    className={`px-2 py-0.5 rounded font-mono font-bold transition-all ${
+                      penSize === sz && !isHighlighter ? 'bg-slate-700 text-amber-400' : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     {sz === 3 ? 'Nhỏ' : sz === 6 ? 'Vừa' : 'Đậm'}
                   </button>
                 ))}
+
+                {/* Nút Bút Dạ Quang Highlight (Yellow Optical) */}
+                <button
+                  onClick={() => setIsHighlighter(!isHighlighter)}
+                  className={`px-2.5 py-0.5 rounded font-bold text-xs flex items-center gap-1 transition-all ${
+                    isHighlighter ? 'bg-yellow-400 text-slate-900 shadow-sm font-extrabold' : 'text-slate-400 hover:text-white bg-slate-800'
+                  }`}
+                  title="Bút dạ quang highlight màu vàng trong suốt (nhấn mạnh ý chính trên slide)"
+                >
+                  <Highlighter className="w-3.5 h-3.5" />
+                  <span>Dạ quang</span>
+                </button>
               </div>
             </div>
 
@@ -1072,7 +1198,7 @@ export default function PresentationModal({
 
           {/* Canvas Area */}
           <div 
-            className="flex-1 w-full h-full relative cursor-crosshair"
+            className="flex-1 w-full h-full relative cursor-crosshair touch-none"
             style={{
               backgroundColor: whiteboardBackground === 'white' ? '#ffffff' : 'rgba(0, 0, 0, 0.05)'
             }}
@@ -1085,6 +1211,9 @@ export default function PresentationModal({
               onMouseMove={draw}
               onMouseUp={stopDrawing}
               onMouseLeave={stopDrawing}
+              onTouchStart={handleTouchDrawStart}
+              onTouchMove={handleTouchDrawMove}
+              onTouchEnd={stopDrawing}
               className="absolute inset-0 w-full h-full"
             />
           </div>
@@ -1097,7 +1226,7 @@ export default function PresentationModal({
       {isBlackScreen && (
         <div 
           onClick={() => setIsBlackScreen(false)}
-          className="fixed inset-0 bg-black z-50 flex items-center justify-center p-6 cursor-pointer animate-in fade-in duration-300"
+          className="fixed inset-0 bg-black z-50 flex items-center justify-center p-6 cursor-pointer animate-in fade-in duration-300 select-none"
         >
           <div className="text-center space-y-4 max-w-lg">
             <div className="w-16 h-16 mx-auto rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-3xl shadow-2xl">
@@ -1108,6 +1237,28 @@ export default function PresentationModal({
             </h2>
             <p className="text-xs text-slate-400">
               (Nhấn phím <kbd className="px-2 py-0.5 bg-slate-800 rounded border border-slate-600 text-white font-mono">B</kbd> hoặc nhấp chuột vào bất cứ đâu để tiếp tục bài giảng)
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          4.2 MÀN HÌNH TRẮNG TẬP TRUNG LỚP (WHITE SCREEN - PHÍM W)
+      ========================================================================= */}
+      {isWhiteScreen && (
+        <div 
+          onClick={() => setIsWhiteScreen(false)}
+          className="fixed inset-0 bg-white z-50 flex items-center justify-center p-6 cursor-pointer animate-in fade-in duration-300 select-none"
+        >
+          <div className="text-center space-y-4 max-w-lg">
+            <div className="w-16 h-16 mx-auto rounded-full bg-slate-100 border border-slate-300 flex items-center justify-center text-3xl shadow-xl">
+              💡
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-800">
+              Màn Hình Trắng Sáng — Dành Cho Hoạt Động Thảo Luận & Luyện Tập
+            </h2>
+            <p className="text-xs text-slate-500">
+              (Nhấn phím <kbd className="px-2 py-0.5 bg-slate-100 rounded border border-slate-300 text-slate-700 font-mono">W</kbd>, <kbd className="px-2 py-0.5 bg-slate-100 rounded border border-slate-300 text-slate-700 font-mono">Esc</kbd> hoặc nhấp chuột vào bất cứ đâu để trở lại slide)
             </p>
           </div>
         </div>
@@ -1305,6 +1456,37 @@ export default function PresentationModal({
           title="Bật/Tắt toàn màn hình (Phím F)"
         >
           <Maximize2 className="w-4 h-4" />
+        </button>
+
+        {/* Nút Xuất File Trình Chiếu HTML Độc Lập (Chạy Offline 100% cắm USB không cần mạng) */}
+        <button
+          onClick={() => {
+            try {
+              exportSlideToStandaloneHtml(slides, projectTitle);
+            } catch (err) {
+              console.error('Lỗi xuất HTML:', err);
+            }
+          }}
+          className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-sky-300 transition-all border border-slate-700 flex items-center gap-1 cursor-pointer"
+          title="Xuất bài giảng ra 1 file HTML độc lập duy nhất: sao chép vào USB mở trên máy tính khác trình chiếu bình thường mà không cần cài đặt hay mạng Internet"
+        >
+          <Download className="w-3.5 h-3.5 text-sky-400" />
+          <span>HTML USB</span>
+        </button>
+
+        {/* Nút In / Xuất PDF 16:9 */}
+        <button
+          onClick={() => {
+            try {
+              printSlideDeckToPdf();
+            } catch (err) {
+              console.error('Lỗi in PDF:', err);
+            }
+          }}
+          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+          title="In hoặc Lưu toàn bộ slide ra file PDF khổ ngang 16:9"
+        >
+          <Printer className="w-4 h-4 text-emerald-400" />
         </button>
 
         {/* Nút Ghi Chú Sư Phạm */}
@@ -1546,20 +1728,24 @@ export default function PresentationModal({
 
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span className="text-slate-300">Chuyển sang slide tiếp theo</span>
-                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Space / Mũi tên phải</kbd>
+                <span className="text-slate-300">Tiến slide / bước (Bút USB Clicker)</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Space / Enter / → / ↓ / PageDown</kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span className="text-slate-300">Quay lại slide trước</span>
-                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Mũi tên trái</kbd>
+                <span className="text-slate-300">Lùi slide / bước (Bút USB Clicker)</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Backspace / ← / ↑ / PageUp</kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span className="text-slate-300">Tạm tắt màn hình (tập trung lớp)</span>
+                <span className="text-slate-300">Màn hình đen tập trung (Blackout)</span>
                 <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím B</kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                <span className="text-slate-300">Mở bảng vẽ thị phạm nhanh</span>
+                <span className="text-slate-300">Màn hình trắng thảo luận (Whiteout)</span>
                 <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím W</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Bật/Tắt toàn màn hình</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím F</kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-300">Bật/Tắt con trỏ Laser đỏ phát sáng</span>
@@ -1572,6 +1758,10 @@ export default function PresentationModal({
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-300">Mở Gợi ý Sư phạm AI</span>
                 <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím A</kbd>
+              </div>
+              <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                <span className="text-slate-300">Chọn nhanh trang bài giảng (Sorter)</span>
+                <kbd className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 font-mono text-amber-300">Phím G</kbd>
               </div>
               <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                 <span className="text-slate-300">Thoát trình chiếu / Đóng cửa sổ</span>

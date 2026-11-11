@@ -557,6 +557,7 @@ export default function SlideEditorView({
         <PresentationModal
           slides={slides}
           initialSlideIndex={currentSlideIndex}
+          projectTitle={slides?.[0]?.title || 'Bài Giảng Mĩ Thuật'}
           onClose={() => setIsPresentationOpen(false)}
         />
       )}
