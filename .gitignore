@@ -37,3 +37,4 @@ synthesize_video_voiceover.mjs
 
 # Task-local QA harnesses and intermediate files (not application deliverables)
 .work/
+*.xlsx

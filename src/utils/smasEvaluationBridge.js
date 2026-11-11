@@ -52,6 +52,22 @@ export const PERIODIC_COMMENTS_BANK = {
       'Cần tích cực và tập trung hơn trong các hoạt động mĩ thuật cuối kì; mạnh dạn trao đổi cùng Thầy/Cô để tự tin nâng cao tay nghề nhé.',
       'Em hãy dành thêm thời gian luyện tập phối màu và tạo khối cơ bản để đạt kết quả tốt hơn trong năm học tới.'
     ]
+  },
+  CN: {
+    T: [
+      'Cả năm học hoàn thành xuất sắc môn Mĩ thuật; tư duy tạo hình và cảm thụ thẩm mỹ vượt trội; luôn tự tin, tích cực và sáng tạo độc đáo.',
+      'Đạt thành tích nổi bật môn Mĩ thuật cả năm học; sử dụng thành thạo các chất liệu màu sáp, đất nặn, xé dán; nhiều bài vẽ đẹp được tuyên dương.',
+      'Cả năm học thể hiện tình yêu nghệ thuật sâu sắc; kĩ năng vẽ và thuyết trình tranh xuất sắc; gương mẫu giúp đỡ bạn bè trong lớp.'
+    ],
+    H: [
+      'Cả năm học hoàn thành tốt các mục tiêu môn Mĩ thuật; vẽ hình rõ ràng, tô màu đều tay; có ý thức giữ gìn dụng cụ học tập sạch sẽ.',
+      'Đạt đầy đủ các chuẩn kiến thức kĩ năng môn Mĩ thuật trong cả năm học; tích cực tham gia các hoạt động thực hành và trưng bày sản phẩm.',
+      'Có nhiều tiến bộ trong kỹ năng phối màu và tạo khối; hoàn thành tốt các bài thực hành mĩ thuật cả năm.'
+    ],
+    C: [
+      'Cả năm học em cần cố gắng rèn luyện thêm kĩ năng vẽ nét và tô màu; chủ động chuẩn bị đồ dùng học vẽ đầy đủ hơn.',
+      'Cần tập trung hơn trong giờ thực hành mĩ thuật; mạnh dạn trao đổi cùng Thầy/Cô để tự tin nâng cao tay nghề.'
+    ]
   }
 };
 
@@ -266,7 +282,7 @@ export function saveCameraEvaluationToSmas({
 export function synthesizePeriodicEvaluation(student, targetPeriod = 'GK') {
   if (!student) return { level: 'H', comment: '' };
 
-  const periodKey = targetPeriod === 'CK' ? 'CK' : 'GK';
+  const periodKey = targetPeriod === 'CN' ? 'CN' : targetPeriod === 'CK' ? 'CK' : 'GK';
   const history = Array.isArray(student.camHistory) ? student.camHistory : [];
 
   // 1. Tính toán mức đạt được tổng hợp từ lịch sử chấm
@@ -293,6 +309,8 @@ export function synthesizePeriodicEvaluation(student, targetPeriod = 'GK') {
     finalLevel = student.gkLevel;
   } else if (periodKey === 'CK' && student.ckLevel) {
     finalLevel = student.ckLevel;
+  } else if (periodKey === 'CN' && (student.cnLevel || student.ckLevel || student.gkLevel)) {
+    finalLevel = student.cnLevel || student.ckLevel || student.gkLevel;
   }
 
   // 2. Chọn lời nhận xét định kỳ chuẩn TT27 đa dạng, không trùng lặp
@@ -319,7 +337,7 @@ export function batchSynthesizeClassEvaluations({
   targetClass = 'all',
   targetPeriod = 'GK'
 }) {
-  const periodKey = targetPeriod === 'CK' ? 'CK' : 'GK';
+  const periodKey = targetPeriod === 'CN' ? 'CN' : targetPeriod === 'CK' ? 'CK' : 'GK';
   let tCount = 0;
   let hCount = 0;
   let cCount = 0;
@@ -346,7 +364,8 @@ export function batchSynthesizeClassEvaluations({
       comment,
       commentSource: 'periodic_synthesized',
       ...(periodKey === 'GK' ? { gkLevel: level, gkComment: comment } : {}),
-      ...(periodKey === 'CK' ? { ckLevel: level, ckComment: comment } : {})
+      ...(periodKey === 'CK' ? { ckLevel: level, ckComment: comment } : {}),
+      ...(periodKey === 'CN' ? { cnLevel: level, cnComment: comment } : {})
     };
   });
 
