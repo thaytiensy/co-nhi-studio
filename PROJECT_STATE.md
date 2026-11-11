@@ -42,10 +42,13 @@
 - Presentation Engine chuẩn thương mại: Khóa tỷ lệ 16:9 Letterboxing, chống mờ Subpixel, Focus Guard chống xung đột nhập liệu
 - Presenter View chuyên nghiệp: Hiển thị slide hiện tại, xem trước slide kế tiếp, ghi chú sư phạm và đồng hồ tính giờ
 - Bộ công cụ tương tác lớp học: Bút vẽ canvas, bút dạ quang, tẩy, con trỏ laser ảo đỏ bám chuột, Classroom Countdown Timer
-- Cơ chế bảo toàn dữ liệu: Auto-Save debounce 800ms, Crash Recovery Banner nhận diện bản nháp chưa lưu, phân vùng cách ly người dùng
-- Trợ Giảng AI 3D: Nút Pill Button thiết kế chuẩn hình mẫu với avatar cô giáo robot 3D, hỗ trợ SGK Kết Nối Tri Thức Lớp 1-5, không lỗi
-- Xuất bản đa định dạng: File HTML độc lập cắm USB trình chiếu offline, In ấn / Xuất PDF lề A4 hành chính Việt Nam
-- Sổ Điểm SMAS Viettel: Cam chấm tranh tự động lưu xếp loại T, H, C, tổng hợp định kỳ Giữa kì / Cuối kì và xuất file Excel .xlsx chuẩn
+- **Cơ chế bảo toàn dữ liệu:** Auto-Save debounce 800ms, Crash Recovery Banner nhận diện bản nháp chưa lưu, phân vùng cách ly người dùng
+- **Trợ Giảng AI 3D:** Nút Pill Button thiết kế chuẩn hình mẫu với avatar cô giáo robot 3D, hỗ trợ SGK Kết Nối Tri Thức Lớp 1-5, tự động chuyển đổi sang động cơ sư phạm nội bộ không báo lỗi chế độ miễn phí
+- **Bộ Sách Kết Nối Tri Thức Với Cuộc Sống:** Khóa 28 chủ đề chính khóa từ Lớp 1 đến Lớp 5 chuẩn chương trình GDPT 2018
+- **Hệ Thống 2 Sổ Điểm SMAS:** 
+  - Sổ 1: Theo dõi thường xuyên quá trình (hàng ngày, hàng tuần Tuần 1-35, hàng tháng Tháng 9-5) kèm Cam chấm tranh và mức T/H/C
+  - Sổ 2: Tổng hợp đánh giá định kỳ (GK1, CK1, Cả năm) một chạm với thuật toán tổng hợp thông minh và xuất file Excel chuẩn SMAS
+- **Xuất bản đa định dạng:** File HTML độc lập cắm USB trình chiếu offline, In ấn / Xuất PDF lề A4 hành chính Việt Nam
 
 ---
 
