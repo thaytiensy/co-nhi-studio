@@ -190,7 +190,9 @@ export function writeSmasData(data) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(getSmasStorageKey(), JSON.stringify(data));
-    window.dispatchEvent(new CustomEvent('conhi-smas-updated', { detail: data }));
+    if (typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('conhi-smas-updated', { detail: data }));
+    }
   } catch (err) {
     console.warn('Lỗi lưu dữ liệu SMAS:', err);
   }
@@ -217,6 +219,7 @@ export function saveCameraEvaluationToSmas({
   level = 'H',
   comment = '',
   period = 'TX',
+  week = 1,
   rubricLevels = { requirement: 3, technique: 3, creativity: 2, presentation: 2 },
   improvementSteps = [],
   artworkThumb = ''
@@ -228,31 +231,62 @@ export function saveCameraEvaluationToSmas({
   const normLevel = ['T', 'H', 'C'].includes(String(level).toUpperCase()) ? String(level).toUpperCase() : 'H';
   const timestamp = new Date().toISOString();
   const dateStr = new Date().toLocaleDateString('vi-VN');
+  const targetWeek = Math.max(1, Math.min(35, Number(week) || 1));
 
   const evalRecord = {
     id: `cam_${Date.now()}`,
     timestamp,
     dateStr,
     period,
+    week: targetWeek,
     level: normLevel,
     comment: comment.trim(),
     rubricLevels: { ...rubricLevels },
     improvementSteps: Array.isArray(improvementSteps) ? [...improvementSteps] : [],
-    artworkThumb: artworkThumb ? String(artworkThumb).slice(0, 150000) : '' // Nén gọn để tránh tràn dung lượng
+    artworkThumb: artworkThumb ? String(artworkThumb).slice(0, 150000) : ''
   };
 
   let studentIndex = -1;
   const studentsList = [...currentData.students];
 
-  // Tìm học sinh theo ID hoặc theo Tên + Lớp
+  const normCleanName = cleanName.toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+  const normCleanClass = normalizeClassLabel(cleanClass).toLowerCase();
+
+  // 1. Tìm theo ID
   if (studentId) {
     studentIndex = studentsList.findIndex(s => s.id === studentId);
   }
+
+  // 2. Tìm theo Tên chính xác (chuẩn hóa NFC) + Lớp
   if (studentIndex === -1 && cleanName) {
-    studentIndex = studentsList.findIndex(s => 
-      s.name.trim().toLowerCase() === cleanName.toLowerCase() &&
-      (s.className?.replace(/^Lớp\s+/i, '').trim().toLowerCase() === cleanClass.toLowerCase() || !s.className)
-    );
+    studentIndex = studentsList.findIndex(s => {
+      const sName = String(s.name || '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+      const sClass = normalizeClassLabel(s.className || '').toLowerCase();
+      const matchClass = !normCleanClass || !sClass || sClass === normCleanClass;
+      return sName === normCleanName && matchClass;
+    });
+  }
+
+  // 3. Tìm theo Tên không dấu + Lớp (chống lệch Unicode NFD/NFC hoặc lỗi font)
+  if (studentIndex === -1 && cleanName) {
+    const asciiCleanName = normCleanName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
+    studentIndex = studentsList.findIndex(s => {
+      const sAscii = String(s.name || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/\s+/g, ' ');
+      const sClass = normalizeClassLabel(s.className || '').toLowerCase();
+      const matchClass = !normCleanClass || !sClass || sClass === normCleanClass;
+      return sAscii === asciiCleanName && matchClass;
+    });
+  }
+
+  // 4. Nếu vẫn chưa thấy, tìm tên duy nhất trong toàn bộ danh sách
+  if (studentIndex === -1 && cleanName) {
+    const matches = studentsList.filter(s => {
+      const sName = String(s.name || '').trim().toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+      return sName === normCleanName;
+    });
+    if (matches.length === 1) {
+      studentIndex = studentsList.findIndex(s => s.id === matches[0].id);
+    }
   }
 
   let isNewStudent = false;
@@ -260,40 +294,60 @@ export function saveCameraEvaluationToSmas({
 
   const isMidTerm = /giữa|gk|ghk/i.test(period);
   const isFinalTerm = /cuối|ck|chk/i.test(period);
+  const isGk2 = /gk2|giữa.*2|gk.*2/i.test(period);
+  const isCk2 = /ck2|cuối.*2|ck.*2/i.test(period);
+  const isWeekly = !isMidTerm && !isFinalTerm;
 
   if (studentIndex >= 0) {
-    // Cập nhật học sinh hiện có
     const existing = studentsList[studentIndex];
     const existingHistory = Array.isArray(existing.camHistory) ? existing.camHistory : [];
-    
+    const currentWeekly = { ...(existing.weeklyLevels || {}) };
+
+    // Cập nhật Sổ Điểm Thường Xuyên theo đúng cột Tuần (1 - 35)
+    if (isWeekly) {
+      currentWeekly[targetWeek] = normLevel;
+      currentWeekly[String(targetWeek)] = normLevel;
+    }
+
     targetStudent = {
       ...existing,
-      level: normLevel, // Cập nhật mức hiện tại
+      level: normLevel,
+      weeklyLevels: currentWeekly,
       comment: comment.trim() || existing.comment,
       commentSource: 'cam_rubric',
       lastEvaluatedAt: timestamp,
-      camHistory: [evalRecord, ...existingHistory.slice(0, 19)], // Giữ tối đa 20 lần chấm gần nhất
-      ...(isMidTerm ? { gkLevel: normLevel, gkComment: comment.trim() } : {}),
-      ...(isFinalTerm ? { ckLevel: normLevel, ckComment: comment.trim() } : {})
+      camHistory: [evalRecord, ...existingHistory.slice(0, 19)],
+      ...(isMidTerm ? { gkLevel: normLevel, gk1Level: normLevel, gkComment: comment.trim(), ...(isGk2 ? { gk2Level: normLevel, gk2Comment: comment.trim() } : {}) } : {}),
+      ...(isFinalTerm ? { ckLevel: normLevel, ck1Level: normLevel, ckComment: comment.trim(), ...(isCk2 ? { ck2Level: normLevel, ck2Comment: comment.trim() } : {}) } : {})
     };
     studentsList[studentIndex] = targetStudent;
   } else {
-    // Tạo học sinh mới trong sổ điểm SMAS
     isNewStudent = true;
     const newId = studentId || `HS${String(studentsList.length + 1).padStart(3, '0')}`;
+    const initialWeekly = {};
+    if (isWeekly) {
+      initialWeekly[targetWeek] = normLevel;
+      initialWeekly[String(targetWeek)] = normLevel;
+    }
+
     targetStudent = {
       id: newId,
       name: cleanName,
       className: formattedClass,
       level: normLevel,
+      weeklyLevels: initialWeekly,
       comment: comment.trim() || TT27_COMMENTS_BANK[normLevel][0],
       commentSource: 'cam_rubric',
       lastEvaluatedAt: timestamp,
       camHistory: [evalRecord],
-      gkLevel: isMidTerm ? normLevel : normLevel,
+      gkLevel: normLevel,
+      gk1Level: normLevel,
       gkComment: isMidTerm ? comment.trim() : (PERIODIC_COMMENTS_BANK.GK[normLevel]?.[0] || ''),
-      ckLevel: isFinalTerm ? normLevel : normLevel,
-      ckComment: isFinalTerm ? comment.trim() : (PERIODIC_COMMENTS_BANK.CK[normLevel]?.[0] || '')
+      ckLevel: normLevel,
+      ck1Level: normLevel,
+      ckComment: isFinalTerm ? comment.trim() : (PERIODIC_COMMENTS_BANK.CK[normLevel]?.[0] || ''),
+      ...(isGk2 ? { gk2Level: normLevel, gk2Comment: comment.trim() } : {}),
+      ...(isCk2 ? { ck2Level: normLevel, ck2Comment: comment.trim() } : {})
     };
     studentsList.push(targetStudent);
   }

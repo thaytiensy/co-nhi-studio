@@ -52,6 +52,7 @@ export default function ArtCameraRubric({
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [studentName, setStudentName] = useState('Nguyễn Văn An');
   const [evaluationPeriod, setEvaluationPeriod] = useState('TX'); // 'TX' | 'GK' | 'CK'
+  const [selectedWeek, setSelectedWeek] = useState(1);
 
   // Rubric Selection
   const [selectedGrade, setSelectedGrade] = useState(1);
@@ -142,17 +143,21 @@ export default function ArtCameraRubric({
       level: overallLevel,
       comment: teacherComment,
       period: evaluationPeriod,
+      week: selectedWeek,
       rubricLevels,
       improvementSteps,
       artworkThumb: capturedImage || ''
     });
 
     if (res.success) {
-      const periodLabel = evaluationPeriod === 'GK' ? 'Giữa kì' : evaluationPeriod === 'CK' ? 'Cuối kì' : 'Thường xuyên';
-      setSavedSmasNotice(`✓ Đã lưu sổ SMAS: Em ${studentName} (${selectedClass}) đạt mức [${overallLevel}] - ${periodLabel}!`);
-      // Cập nhật lại state local
+      const periodLabel = evaluationPeriod === 'TX'
+        ? `Thường xuyên (Tuần ${selectedWeek})`
+        : evaluationPeriod === 'GK' ? 'Giữa kì I'
+        : evaluationPeriod === 'CK' ? 'Cuối kì I'
+        : evaluationPeriod === 'GK2' ? 'Giữa kì II' : 'Cuối kì II';
+      setSavedSmasNotice(`✓ Đã chuyển điểm [${overallLevel}] cho em ${studentName} (${selectedClass}) vào Sổ điểm - ${periodLabel}!`);
       setSmasState(readSmasData());
-      setTimeout(() => setSavedSmasNotice(''), 5000);
+      setTimeout(() => setSavedSmasNotice(''), 6000);
     }
   };
 
@@ -194,7 +199,18 @@ export default function ArtCameraRubric({
             ? '1. Ảnh có nhiều điểm ảnh thiên lạnh; có thể điểm thêm màu ấm ở chi tiết chính nếu phù hợp chủ đề.'
             : '1. Chưa thấy tông ấm hoặc lạnh chiếm ưu thế; hãy chọn màu theo chủ đề và ý tưởng của học sinh.';
 
-        // Gợi ý chung dựa trên tông màu; không suy đoán yêu cầu bài, sáng tạo hay thuyết trình.
+        const totalPixels = imgData.length / 4;
+        const colorCoverage = (nonWhitePixels / totalPixels) * 100;
+
+        // Tự động phân tích và chấm điểm chuẩn Thông tư 27 dựa trên mức độ hoàn thiện tranh:
+        if (colorCoverage >= 35 && (warmPixels > 150 || coolPixels > 150)) {
+          setRubricLevels({ requirement: 3, technique: 3, creativity: 3, presentation: 2 });
+        } else if (colorCoverage >= 15) {
+          setRubricLevels({ requirement: 2, technique: 2, creativity: 2, presentation: 2 });
+        } else {
+          setRubricLevels({ requirement: 2, technique: 1, creativity: 1, presentation: 1 });
+        }
+
         const steps = [
           toneSuggestion,
           '2. Nhấn đậm thêm đường viền chu vi của hình vẽ chính để hình khối rõ ràng, dứt khoát.',
@@ -739,7 +755,7 @@ export default function ArtCameraRubric({
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {/* 1. Chọn Lớp */}
             <div>
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
@@ -796,6 +812,28 @@ export default function ArtCameraRubric({
                 <option value="CK2">Cuối kì II (CK II)</option>
               </select>
             </div>
+
+            {/* 4. Cột Tuần đánh giá (Thường xuyên 35 Tuần) */}
+            <div>
+              <label className="text-[11px] font-bold text-emerald-800 block mb-1">
+                {evaluationPeriod === 'TX' ? 'Ghi vào Tuần (1-35):' : 'Đợt đánh giá:'}
+              </label>
+              {evaluationPeriod === 'TX' ? (
+                <select
+                  value={selectedWeek}
+                  onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                  className="w-full px-2.5 py-1.5 text-xs font-black text-emerald-900 bg-emerald-50 border border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  {Array.from({ length: 35 }, (_, i) => i + 1).map(w => (
+                    <option key={w} value={w}>Tuần {w}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="px-2.5 py-1.5 text-xs font-bold text-purple-800 bg-purple-50/70 border border-purple-200 rounded-lg text-center truncate">
+                  {evaluationPeriod.startsWith('GK') ? 'Giữa kì' : 'Cuối kì'}
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -816,23 +854,50 @@ export default function ArtCameraRubric({
 
           {/* Huy Hiệu Mức Đạt Được TT27 (T, H, C) Thời Gian Thực */}
           <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600">Kết quả xếp loại TT27:</span>
-              <span className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-2xs ${
-                overallLevel === 'T'
-                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                  : overallLevel === 'H'
-                  ? 'bg-blue-100 text-blue-900 border border-blue-300'
-                  : 'bg-rose-100 text-rose-900 border border-rose-300'
-              }`}>
-                <span>{overallLevel === 'T' ? '🏆 Mức T' : overallLevel === 'H' ? '⭐ Mức H' : '📝 Mức C'}</span>
-                <span>•</span>
-                <span>{overallLevel === 'T' ? 'Hoàn Thành Tốt' : overallLevel === 'H' ? 'Hoàn Thành' : 'Chưa Hoàn Thành'}</span>
-              </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-600">Chấm nhanh TT27:</span>
+              <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRubricLevels({ requirement: 3, technique: 3, creativity: 3, presentation: 2 })}
+                  className={`px-2.5 py-1 text-xs font-black rounded-md transition-all cursor-pointer ${
+                    overallLevel === 'T'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-emerald-800 hover:bg-emerald-100/60'
+                  }`}
+                  title="Chấm Mức T: Hoàn thành tốt"
+                >
+                  🏆 Mức T
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRubricLevels({ requirement: 2, technique: 2, creativity: 2, presentation: 2 })}
+                  className={`px-2.5 py-1 text-xs font-black rounded-md transition-all cursor-pointer ${
+                    overallLevel === 'H'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-blue-800 hover:bg-blue-100/60'
+                  }`}
+                  title="Chấm Mức H: Hoàn thành"
+                >
+                  ⭐ Mức H
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRubricLevels({ requirement: 2, technique: 1, creativity: 1, presentation: 1 })}
+                  className={`px-2.5 py-1 text-xs font-black rounded-md transition-all cursor-pointer ${
+                    overallLevel === 'C'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'text-rose-800 hover:bg-rose-100/60'
+                  }`}
+                  title="Chấm Mức C: Chưa hoàn thành"
+                >
+                  📝 Mức C
+                </button>
+              </div>
             </div>
 
             <div className="text-[11px] font-bold text-slate-500">
-              Tổng điểm Rubric: <span className="font-extrabold text-slate-800">{totalScore}/12</span>
+              Điểm: <span className="font-extrabold text-slate-800">{totalScore}/12</span>
             </div>
           </div>
         </div>

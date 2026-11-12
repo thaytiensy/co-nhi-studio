@@ -27,6 +27,7 @@ import { generateGameQuestionsByTheme } from '../../data/artGamesCurriculumBank'
 import { classroomAudio } from '../../utils/classroomAudioService';
 import { generateSlidePedagogyTips } from '../../utils/aiNaturalLanguageService';
 import { exportSlideToStandaloneHtml, printSlideDeckToPdf } from '../../utils/htmlSlideExportService';
+import PresentationToolbar from './PresentationToolbar';
 
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
@@ -1278,252 +1279,72 @@ export default function PresentationModal({
       )}
 
       {/* =========================================================================
-          5. THANH ĐIỀU KHIỂN DƯỚI ĐÁY MÀN HÌNH (FLOATING CONTROL BAR - BOTTOM)
+          5. THANH ĐIỀU KHIỂN DỌC THEO CẠNH SLIDE HOẶC NGANG (PRESENTATION TOOLBAR)
       ========================================================================= */}
-      <div 
-        onClick={(e) => e.stopPropagation()}
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-full px-5 py-2.5 flex items-center gap-2.5 text-white shadow-2xl z-40 transition-all duration-300 ${
-          controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-        }`}
-      >
-        {/* Slide Counter */}
-        <span className="text-xs font-bold text-slate-300 pr-2 border-r border-slate-700">
-          {currentIndex + 1} / {slides.length}
-        </span>
-
-        {/* Prev / Next buttons */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={powerPointMode ? handleStepBack : goToPrev}
-            disabled={currentIndex === 0 && (!powerPointMode || revealCount <= 1)}
-            className={`p-1.5 rounded-full transition-all ${
-              currentIndex === 0 && (!powerPointMode || revealCount <= 1) ? 'text-slate-600 cursor-not-allowed' : 'hover:bg-slate-700 text-white cursor-pointer'
-            }`}
-            title="Lùi lại một bước (Mũi tên Trái / Backspace)"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={powerPointMode ? handleAdvanceStep : goToNext}
-            disabled={currentIndex === slides.length - 1 && (!powerPointMode || revealCount >= ((currentSlide?.elements || []).filter(el => !isBgElement(el)).length))}
-            className={`p-1.5 rounded-full transition-all ${
-              currentIndex === slides.length - 1 && (!powerPointMode || revealCount >= ((currentSlide?.elements || []).filter(el => !isBgElement(el)).length)) ? 'text-slate-600 cursor-not-allowed' : 'hover:bg-slate-700 text-white cursor-pointer'
-            }`}
-            title="Tiến lên một bước (Mũi tên Phải, Phím Cách hoặc Click chuột)"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Nút Bật/Tắt Trình Chiếu Kiểu PowerPoint */}
-        <button
-          onClick={() => {
-            const nextMode = !powerPointMode;
-            setPowerPointMode(nextMode);
-            if (nextMode) {
-              setRevealCount(1);
-            }
-          }}
-          className={`px-3 py-1.5 text-xs font-black rounded-full flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-            powerPointMode ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-slate-800 text-slate-300 hover:text-white'
-          }`}
-          title="Bật/Tắt chế độ trình chiếu từng bước kiểu PowerPoint: Mỗi lần bấm chuột sẽ chuyển ô chữ, hình và tự động đọc nếu có chữ"
-        >
-          <span>🎬 {powerPointMode ? 'Từng Bước' : 'Chiếu Trọn Vẹn'}</span>
-        </button>
-
-        {/* Nút Khôi Phục Thẻ Che nếu có hình đã ẩn */}
-        {currentDismissed.size > 0 && (
-          <button
-            onClick={handleResetDismissedShapes}
-            className="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-500/30 text-amber-300 border border-amber-400/50 hover:bg-amber-500/50 transition-all flex items-center gap-1 cursor-pointer animate-in fade-in"
-            title="Khôi phục lại các hình che / mảnh ghép đã lật mở trên trang này"
-          >
-            <span>🔄 Hiện lại ({currentDismissed.size})</span>
-          </button>
-        )}
-
-        {/* Nút Bật/Tắt Con Trỏ Laser VIP */}
-        <button
-          onClick={() => setIsLaserActive(!isLaserActive)}
-          className={`px-2.5 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all border cursor-pointer ${
-            isLaserActive ? 'bg-red-500/20 text-red-400 border-red-500/60 ring-2 ring-red-500/40' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
-          }`}
-          title="Bật/Tắt con trỏ Laser đỏ phát sáng để chỉ vào tranh khi giảng bài (Phím L)"
-        >
-          <span>🔴 Laser</span>
-        </button>
-
-        {/* Nút Bật/Tắt Tự Động Đọc Chữ Khi Chuyển Bước */}
-        <button
-          onClick={() => {
-            const next = !autoReadOnAdvance;
-            setAutoReadOnAdvance(next);
-            if (!next) speechService.stop();
-          }}
-          className={`px-2.5 py-1 text-xs font-bold rounded-full flex items-center gap-1 transition-all border cursor-pointer ${
-            autoReadOnAdvance ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' : 'bg-slate-800 text-slate-400 border-slate-700'
-          }`}
-          title="Bật/Tắt tự động đọc ô chữ khi chuyển bước"
-        >
-          <span>{autoReadOnAdvance ? '🔊 Tự Đọc' : '🔇 Tắt Đọc'}</span>
-        </button>
-
-        {/* Giọng Thầy / Cô */}
-        <button
-          onClick={() => {
-            const nextGender = speechState.gender === 'female' ? 'male' : 'female';
-            speechService.setGender(nextGender);
-          }}
-          className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-amber-300 transition-all border border-slate-700 flex items-center gap-1 cursor-pointer"
-          title="Bấm để đổi giữa giọng đọc Thầy giáo (Nam) và Cô giáo (Nữ)"
-        >
-          <span>{speechState.gender === 'female' ? '👩 Cô' : '👨 Thầy'}</span>
-        </button>
-
-        {/* Nút Đọc Lời Giảng */}
-        <button
-          onClick={handleToggleSpeak}
-          className={`px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-            speechState.isSpeaking && !speechState.isPaused
-              ? 'bg-amber-500 text-white animate-pulse'
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-          }`}
-          title="Đọc lời giảng trang slide này"
-        >
-          <Volume2 className="w-3.5 h-3.5" />
-          <span>{speechState.isSpeaking && !speechState.isPaused ? 'Tạm dừng' : 'Đọc lời giảng'}</span>
-        </button>
-
-        {/* Nút Trợ Lý AI Sư Phạm Tức Thời */}
-        <button
-          onClick={handleOpenAiTips}
-          className="px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-xs transition-all cursor-pointer"
-          title="Gợi ý câu hỏi tương tác & bí quyết mĩ thuật AI (Phím A)"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
-          <span>✨ Gợi Ý AI</span>
-        </button>
-
-        {/* Nút Bảng Vẽ Thị Phạm Nhanh */}
-        <button
-          onClick={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
-          className={`px-3.5 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-            isWhiteboardOpen ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-          }`}
-          title="Mở bảng vẽ thị phạm nhanh (Phím W)"
-        >
-          <Edit3 className="w-3.5 h-3.5 text-amber-300" />
-          <span>{isWhiteboardOpen ? '↩ Trở Về Slide' : 'Vẽ thị phạm'}</span>
-        </button>
-
-        {/* Nút Màn Hình Tối (Black Screen) */}
-        <button
-          onClick={() => setIsBlackScreen(true)}
-          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-300 transition-all"
-          title="Tạm tắt màn hình tập trung học sinh (Phím B)"
-        >
-          <EyeOff className="w-4 h-4" />
-        </button>
-
-        {/* Nút Mở Trò Chơi Mĩ Thuật */}
-        <button
-          onClick={() => setShowGameModal(true)}
-          className="px-3 py-1.5 text-xs font-bold rounded-full flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-all"
-          title="Mở trò chơi mĩ thuật tương tác cho cả lớp"
-        >
-          <Gamepad2 className="w-3.5 h-3.5 text-amber-300" />
-          <span>Trò Chơi</span>
-        </button>
-
-        {/* Nút Mở Danh Sách Chọn Nhanh Slide (Slide Sorter) */}
-        <button
-          onClick={() => setShowSlidePickerModal(true)}
-          className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700 flex items-center gap-1 cursor-pointer"
-          title="Chọn nhanh trang slide bất kỳ (Phím G)"
-        >
-          <span>🖼️ Slide</span>
-        </button>
-
-        {/* Nút Toàn Màn Hình */}
-        <button
-          onClick={() => {
-            if (!document.fullscreenElement) {
-              document.documentElement.requestFullscreen?.().catch(() => {});
-            } else {
-              document.exitFullscreen?.().catch(() => {});
-            }
-          }}
-          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-300 transition-all cursor-pointer"
-          title="Bật/Tắt toàn màn hình (Phím F)"
-        >
-          <Maximize2 className="w-4 h-4" />
-        </button>
-
-        {/* Nút Xuất File Trình Chiếu HTML Độc Lập (Chạy Offline 100% cắm USB không cần mạng) */}
-        <button
-          onClick={() => {
-            try {
-              exportSlideToStandaloneHtml(slides, projectTitle);
-            } catch (err) {
-              console.error('Lỗi xuất HTML:', err);
-            }
-          }}
-          className="px-2.5 py-1 text-xs font-bold rounded-full bg-slate-800 hover:bg-slate-700 text-sky-300 transition-all border border-slate-700 flex items-center gap-1 cursor-pointer"
-          title="Xuất bài giảng ra 1 file HTML độc lập duy nhất: sao chép vào USB mở trên máy tính khác trình chiếu bình thường mà không cần cài đặt hay mạng Internet"
-        >
-          <Download className="w-3.5 h-3.5 text-sky-400" />
-          <span>HTML USB</span>
-        </button>
-
-        {/* Nút In / Xuất PDF 16:9 */}
-        <button
-          onClick={() => {
-            try {
-              printSlideDeckToPdf();
-            } catch (err) {
-              console.error('Lỗi in PDF:', err);
-            }
-          }}
-          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
-          title="In hoặc Lưu toàn bộ slide ra file PDF khổ ngang 16:9"
-        >
-          <Printer className="w-4 h-4 text-emerald-400" />
-        </button>
-
-        {/* Nút Ghi Chú Sư Phạm */}
-        <button
-          onClick={() => setShowNotesOverlay(!showNotesOverlay)}
-          className={`p-1.5 rounded-full hover:bg-slate-700 transition-all ${
-            showNotesOverlay ? 'text-amber-400 bg-slate-800' : 'text-slate-300'
-          }`}
-          title="Xem ghi chú sư phạm trang này"
-        >
-          <FileText className="w-4 h-4" />
-        </button>
-
-        {/* Hướng Dẫn Phím Tắt */}
-        <button
-          onClick={() => setShowShortcutsHelp(!showShortcutsHelp)}
-          className="p-1.5 rounded-full hover:bg-slate-700 text-slate-400 hover:text-amber-300 transition-all"
-          title="Danh mục phím tắt đứng lớp (Phím ?)"
-        >
-          <HelpCircle className="w-4 h-4" />
-        </button>
-
-        {/* Nút Thoát */}
-        <button
-          onClick={() => {
-            speechService.stop();
-            classroomAudio.stopClassroomMusic();
-            onClose();
-          }}
-          className="p-1.5 rounded-full hover:bg-rose-600 text-slate-300 hover:text-white transition-all ml-1"
-          title="Thoát trình chiếu (Phím Esc)"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+      <PresentationToolbar
+        currentIndex={currentIndex}
+        totalSlides={slides.length}
+        powerPointMode={powerPointMode}
+        onTogglePowerPointMode={() => {
+          const nextMode = !powerPointMode;
+          setPowerPointMode(nextMode);
+          if (nextMode) {
+            setRevealCount(1);
+          }
+        }}
+        onPrev={powerPointMode ? handleStepBack : goToPrev}
+        onNext={powerPointMode ? handleAdvanceStep : goToNext}
+        canPrev={!(currentIndex === 0 && (!powerPointMode || revealCount <= 1))}
+        canNext={!(currentIndex === slides.length - 1 && (!powerPointMode || revealCount >= ((currentSlide?.elements || []).filter(el => !isBgElement(el)).length)))}
+        currentDismissedCount={currentDismissed.size}
+        onResetDismissedShapes={handleResetDismissedShapes}
+        isLaserActive={isLaserActive}
+        onToggleLaser={() => setIsLaserActive(!isLaserActive)}
+        autoReadOnAdvance={autoReadOnAdvance}
+        onToggleAutoRead={() => {
+          const next = !autoReadOnAdvance;
+          setAutoReadOnAdvance(next);
+          if (!next) speechService.stop();
+        }}
+        speechGender={speechState.gender}
+        onToggleGender={() => {
+          const nextGender = speechState.gender === 'female' ? 'male' : 'female';
+          speechService.setGender(nextGender);
+        }}
+        isSpeaking={speechState.isSpeaking}
+        isSpeakingPaused={speechState.isPaused}
+        onToggleSpeak={handleToggleSpeak}
+        onOpenAiTips={handleOpenAiTips}
+        isWhiteboardOpen={isWhiteboardOpen}
+        onToggleWhiteboard={() => setIsWhiteboardOpen(!isWhiteboardOpen)}
+        onBlackScreen={() => setIsBlackScreen(true)}
+        onOpenGame={() => setShowGameModal(true)}
+        onOpenSlidePicker={() => setShowSlidePickerModal(true)}
+        onExportHtml={() => {
+          try {
+            exportSlideToStandaloneHtml(slides, projectTitle);
+          } catch (err) {
+            console.error('Lỗi xuất HTML:', err);
+          }
+        }}
+        onPrintPdf={() => {
+          try {
+            printSlideDeckToPdf();
+          } catch (err) {
+            console.error('Lỗi in PDF:', err);
+          }
+        }}
+        showNotesOverlay={showNotesOverlay}
+        onToggleNotes={() => setShowNotesOverlay(!showNotesOverlay)}
+        showShortcutsHelp={showShortcutsHelp}
+        onToggleShortcutsHelp={() => setShowShortcutsHelp(!showShortcutsHelp)}
+        onClose={() => {
+          speechService.stop();
+          classroomAudio.stopClassroomMusic();
+          onClose();
+        }}
+        controlsVisible={controlsVisible}
+      />
 
       {/* =========================================================================
           5.5 MODAL DANH SÁCH CHỌN SLIDE (POWERPOINT SLIDE SORTER / PICKER)
