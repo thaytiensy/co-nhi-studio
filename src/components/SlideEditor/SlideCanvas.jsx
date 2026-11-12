@@ -369,9 +369,10 @@ export default function SlideCanvas({
                       onKeyDown={(e) => {
                         if (e.key === 'Escape') setEditingTextId(null);
                       }}
-                      className="w-full h-full p-1 bg-white/95 border-2 border-amber-500 rounded focus:outline-none resize-none"
+                      className="w-full h-full p-1 bg-white/95 border-2 border-amber-500 rounded focus:outline-none resize-none font-times-new-roman"
                       style={{
-                        fontSize: `${el.fontSize || 16}px`,
+                        fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Times New Roman', Times, serif` : "'Times New Roman', Times, serif",
+                        fontSize: `${Math.max(14, el.fontSize || 16)}px`,
                         fontWeight: el.fontWeight || 'normal',
                         fontStyle: el.fontStyle || 'normal',
                         color: el.color || '#000000',
@@ -381,13 +382,13 @@ export default function SlideCanvas({
                     />
                   ) : (
                     <div
-                      className="w-full h-full p-1 select-none pointer-events-none break-words"
+                      className="w-full h-full p-1 select-none pointer-events-none break-words font-times-new-roman"
                       style={{
-                        fontSize: `${el.fontSize || 16}px`,
+                        fontSize: `${Math.max(14, el.fontSize || 16)}px`,
                         fontWeight: el.fontWeight || 'normal',
                         fontStyle: el.fontStyle || 'normal',
                         textDecoration: el.textDecoration || 'none',
-                        fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Playpen Sans', cursive, sans-serif` : undefined,
+                        fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Times New Roman', Times, serif` : "'Times New Roman', Times, serif",
                         color: el.color || '#000000',
                         textAlign: el.textAlign || 'left',
                         whiteSpace: 'pre-wrap',

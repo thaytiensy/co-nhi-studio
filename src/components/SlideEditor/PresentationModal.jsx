@@ -797,12 +797,12 @@ export default function PresentationModal({
               return (
                 <div
                   key={el.id}
-                  className="absolute break-words select-none pointer-events-none animate-in fade-in zoom-in-95 duration-200"
+                  className="absolute break-words select-none pointer-events-none animate-in fade-in zoom-in-95 duration-200 font-times-new-roman"
                   style={{
                     left: `${el.x}px`,
                     top: `${el.y}px`,
                     width: `${el.width}px`,
-                    fontSize: `${el.fontSize || 16}px`,
+                    fontSize: `${Math.max(14, el.fontSize || 16)}px`,
                     fontWeight: el.fontWeight || 'normal',
                     fontStyle: el.fontStyle || 'normal',
                     color: el.color || '#000000',
@@ -812,7 +812,7 @@ export default function PresentationModal({
                     overflowWrap: 'break-word',
                     backgroundColor: el.background || 'transparent',
                     textDecoration: el.textDecoration || 'none',
-                    fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Playpen Sans', cursive, sans-serif` : undefined,
+                    fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Times New Roman', Times, serif` : "'Times New Roman', Times, serif",
                     lineHeight: 1.25,
                   }}
                 >

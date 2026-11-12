@@ -8,6 +8,17 @@
   }
 }
 
+/* Phông chữ Times New Roman và cỡ chữ tối thiểu 14px cho vùng soạn/sửa giáo án PowerPoint (GA PP) */
+.font-times-new-roman,
+.ga-pp-editor-area {
+  font-family: 'Times New Roman', Times, 'Liberation Serif', serif !important;
+}
+
+.ga-pp-min-14 {
+  font-size: 14px !important;
+  font-family: 'Times New Roman', Times, 'Liberation Serif', serif !important;
+}
+
 /* Custom scrollbar for clean pedagogical UI */
 ::-webkit-scrollbar {
   width: 6px;

@@ -183,7 +183,7 @@ export default function Header({
           {/* Tải giáo án PowerPoint lên Button */}
           <button
             onClick={onUploadPPTX}
-            className="px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs"
+            className="px-3 py-1.5 text-[14px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs font-times-new-roman"
             title="Tải giáo án PowerPoint (.pptx) từ máy tính để xem trước và tiếp tục chỉnh sửa"
           >
             <Upload className="w-3.5 h-3.5 text-amber-700" />

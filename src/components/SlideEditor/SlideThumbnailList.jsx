@@ -94,7 +94,7 @@ export default function SlideThumbnailList({
                     {index + 1}
                   </span>
                   <span 
-                    className={`text-xs font-bold truncate ${isSelected ? 'text-amber-900' : 'text-slate-800'}`}
+                    className={`text-[14px] font-bold truncate font-times-new-roman ${isSelected ? 'text-amber-900' : 'text-slate-800'}`}
                     title={titleText}
                   >
                     {titleText}

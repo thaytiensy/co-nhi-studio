@@ -407,16 +407,16 @@ export default function SpeakerNotes({
 
       {/* Textarea for Notes */}
       {isExpanded && (
-        <div className="p-3 bg-white">
+        <div className="p-3 bg-white font-times-new-roman" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
           {notes && isTemplateWatermark(notes) && (
-            <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-xs text-amber-900 animate-in fade-in">
+            <div className="mb-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-[14px] text-amber-900 animate-in fade-in">
               <span className="flex items-center gap-1.5">
                 <span>⚠️</span>
                 <span>Ghi chú này chứa số điện thoại / thông tin mẫu thiết kế. Hệ thống tự động ưu tiên đọc câu chữ giáo dục trên slide khi bấm nghe.</span>
               </span>
               <button
                 onClick={onOpenAssistant}
-                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shrink-0 ml-2 shadow-2xs"
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[14px] font-bold shrink-0 ml-2 shadow-2xs cursor-pointer"
               >
                 ✨ Lấy Lời Giảng Mới
               </button>
@@ -433,7 +433,8 @@ export default function SpeakerNotes({
             }}
             placeholder="Nhập lời dẫn, câu hỏi gợi mở hoặc lời giảng của Thầy/Cô cho trang slide này. Sau đó bấm 'Đọc lời giảng' để nghe thử..."
             rows={3}
-            className="w-full p-2.5 text-sm text-slate-700 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-y font-sans leading-relaxed"
+            className="w-full p-2.5 text-[14px] text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-y font-times-new-roman leading-relaxed"
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '14px' }}
           />
         </div>
       )}

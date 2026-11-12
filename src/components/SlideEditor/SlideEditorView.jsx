@@ -113,7 +113,7 @@ export default function SlideEditorView({
     updateSlidesWithHistory(updatedSlides);
   };
 
-  // Add text element
+  // Add text element (chuẩn phông chữ Times New Roman và cỡ chữ nhỏ nhất 14)
   const handleAddText = (text = 'Văn bản mới', fontSize = 24, fontWeight = 'normal') => {
     const newEl = {
       id: 'text-' + Date.now(),
@@ -123,7 +123,8 @@ export default function SlideEditorView({
       width: 400,
       height: 70,
       text,
-      fontSize,
+      fontSize: Math.max(14, fontSize),
+      fontFamily: 'Times New Roman',
       fontWeight,
       color: '#1e293b',
       textAlign: 'left',

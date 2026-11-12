@@ -71,7 +71,10 @@ export default function PlanPPTXImportModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none animate-in fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col animate-in zoom-in-95">
+      <div 
+        className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col animate-in zoom-in-95 font-times-new-roman"
+        style={{ fontFamily: "'Times New Roman', Times, serif" }}
+      >
         {/* Header */}
         <div className="p-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -82,7 +85,7 @@ export default function PlanPPTXImportModal({
               <h3 className="text-base font-black tracking-wide">
                 Nhập Giáo Án PowerPoint Bài Dạy
               </h3>
-              <p className="text-xs text-amber-100 font-semibold">
+              <p className="text-[14px] text-amber-100 font-semibold">
                 Lớp {plan.grade} • Tuần {plan.week} • Tiết {plan.period}
               </p>
             </div>
@@ -100,18 +103,18 @@ export default function PlanPPTXImportModal({
         <div className="p-5 bg-slate-50 border-b border-slate-200/80 space-y-1.5">
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-amber-600 shrink-0" />
-            <h4 className="text-xs md:text-sm font-extrabold text-slate-800 line-clamp-2">
+            <h4 className="text-base font-extrabold text-slate-800 line-clamp-2">
               {plan.title}
             </h4>
           </div>
-          <p className="text-[11px] text-slate-600 line-clamp-2 pl-6">
+          <p className="text-[14px] text-slate-700 leading-relaxed pl-6">
             🎯 <strong>Mục tiêu:</strong> {plan.objectives}
           </p>
         </div>
 
         {/* Error alert if any */}
         {errorMessage && (
-          <div className="mx-5 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-800">
+          <div className="mx-5 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-[14px] text-rose-800">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <div className="flex-1 font-medium">{errorMessage}</div>
           </div>
@@ -119,7 +122,7 @@ export default function PlanPPTXImportModal({
 
         {/* Options Body */}
         <div className="p-5 space-y-3.5">
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+          <p className="text-[14px] font-bold text-slate-700 uppercase tracking-wider">
             Chọn phương thức nạp dữ liệu để chuyển sang tab Soạn Slide:
           </p>
 
@@ -133,14 +136,14 @@ export default function PlanPPTXImportModal({
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h5 className="text-xs md:text-sm font-black text-amber-950">
+                <h5 className="text-base font-black text-amber-950">
                   {isParsing ? 'Đang phân tích tệp PowerPoint...' : '1. Tải Lên Tệp PowerPoint (.pptx)'}
                 </h5>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-200 text-amber-900 uppercase">
+                <span className="px-2 py-0.5 rounded-full text-[14px] font-black bg-amber-200 text-amber-900 uppercase">
                   Khuyên dùng
                 </span>
               </div>
-              <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
+              <p className="text-[14px] text-slate-700 mt-1 leading-relaxed">
                 Chọn tệp giáo án điện tử có sẵn trên máy tính. Hệ thống tự động trích xuất slide, văn bản, ảnh nhúng và mở ngay trong tab Soạn Slide.
               </p>
             </div>
@@ -155,10 +158,10 @@ export default function PlanPPTXImportModal({
               <Sparkles className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <h5 className="text-xs md:text-sm font-black text-slate-900 group-hover:text-purple-950">
+              <h5 className="text-base font-black text-slate-900 group-hover:text-purple-950">
                 2. Tự Động Tạo Bộ Slide Chuẩn (Kết Nối Tri Thức)
               </h5>
-              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+              <p className="text-[14px] text-slate-600 mt-1 leading-relaxed">
                 Chưa có file PowerPoint? Tự động tạo 4 slide chuẩn Công văn 2345 (Khởi động, Khám phá, Thực hành 4 bước, Trưng bày TT27) cho bài này.
               </p>
             </div>
@@ -180,7 +183,7 @@ export default function PlanPPTXImportModal({
             type="button"
             onClick={onClose}
             disabled={isParsing}
-            className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition-all cursor-pointer"
+            className="px-4 py-2 text-[14px] font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition-all cursor-pointer"
           >
             Đóng
           </button>

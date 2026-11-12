@@ -520,20 +520,21 @@ export default function BentoDashboardView({
               </div>
             </div>
 
-            {/* Modal / Form thêm bài dạy mới */}
+            {/* Modal / Form thêm bài dạy mới (chuẩn phông Times New Roman và cỡ chữ nhỏ nhất 14) */}
             {isAddingPlan && (
               <form
                 onSubmit={handleCreateNewPlan}
-                className="bg-amber-50/70 border border-amber-200/80 p-4 rounded-2xl space-y-3 animate-in fade-in duration-200"
+                className="bg-amber-50/70 border border-amber-200/80 p-4 rounded-2xl space-y-3 animate-in fade-in duration-200 font-times-new-roman"
+                style={{ fontFamily: "'Times New Roman', Times, serif" }}
               >
                 <div className="flex items-center justify-between border-b border-amber-200 pb-2">
-                  <span className="text-xs font-bold text-amber-900 uppercase">
+                  <span className="text-[14px] font-bold text-amber-900 uppercase">
                     Thêm Kế Hoạch Bài Dạy Mới
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsAddingPlan(false)}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                    className="text-[14px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
                   >
                     Đóng
                   </button>
@@ -541,7 +542,7 @@ export default function BentoDashboardView({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    <label className="text-[14px] font-bold text-slate-700 block mb-1">
                       Tên Bài Dạy *
                     </label>
                     <input
@@ -550,18 +551,18 @@ export default function BentoDashboardView({
                       value={newPlan.title}
                       onChange={(e) => setNewPlan({ ...newPlan, title: e.target.value })}
                       placeholder="VD: Bài 11: Em vẽ ngôi trường hạnh phúc"
-                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl outline-none focus:border-amber-500"
+                      className="w-full px-3 py-1.5 text-[14px] bg-white border border-slate-300 rounded-xl outline-none focus:border-amber-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    <label className="text-[14px] font-bold text-slate-700 block mb-1">
                       Khối Lớp
                     </label>
                     <select
                       value={newPlan.grade}
                       onChange={(e) => setNewPlan({ ...newPlan, grade: e.target.value })}
-                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl outline-none"
+                      className="w-full px-3 py-1.5 text-[14px] bg-white border border-slate-300 rounded-xl outline-none"
                     >
                       <option value="Lớp 1">Lớp 1</option>
                       <option value="Lớp 2">Lớp 2</option>
@@ -572,7 +573,7 @@ export default function BentoDashboardView({
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    <label className="text-[14px] font-bold text-slate-700 block mb-1">
                       Chủ Đề
                     </label>
                     <input
@@ -580,13 +581,13 @@ export default function BentoDashboardView({
                       value={newPlan.topic}
                       onChange={(e) => setNewPlan({ ...newPlan, topic: e.target.value })}
                       placeholder="VD: Chủ đề 4: Trường học thân yêu"
-                      className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl outline-none"
+                      className="w-full px-3 py-1.5 text-[14px] bg-white border border-slate-300 rounded-xl outline-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                      <label className="text-[14px] font-bold text-slate-700 block mb-1">
                         Tuần
                       </label>
                       <input
@@ -595,11 +596,11 @@ export default function BentoDashboardView({
                         max="35"
                         value={newPlan.week}
                         onChange={(e) => setNewPlan({ ...newPlan, week: Number(e.target.value) })}
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl outline-none"
+                        className="w-full px-3 py-1.5 text-[14px] bg-white border border-slate-300 rounded-xl outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                      <label className="text-[14px] font-bold text-slate-700 block mb-1">
                         Tiết
                       </label>
                       <input
@@ -608,14 +609,14 @@ export default function BentoDashboardView({
                         max="70"
                         value={newPlan.lessonNumber}
                         onChange={(e) => setNewPlan({ ...newPlan, lessonNumber: Number(e.target.value) })}
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl outline-none"
+                        className="w-full px-3 py-1.5 text-[14px] bg-white border border-slate-300 rounded-xl outline-none"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                  <label className="text-[14px] font-bold text-slate-700 block mb-1">
                     Yêu Cầu Cần Đạt (Mục Tiêu)
                   </label>
                   <input
@@ -623,7 +624,7 @@ export default function BentoDashboardView({
                     value={newPlan.objectives}
                     onChange={(e) => setNewPlan({ ...newPlan, objectives: e.target.value })}
                     placeholder="Mục tiêu bài dạy chuẩn phẩm chất, năng lực..."
-                    className="w-full px-3 py-1.5 text-xs bg-white border border-slate-300 rounded-xl outline-none"
+                    className="w-full px-3 py-1.5 text-[14px] bg-white border border-slate-300 rounded-xl outline-none"
                   />
                 </div>
 
@@ -677,10 +678,10 @@ export default function BentoDashboardView({
                           {plan.status}
                         </span>
                       </div>
-                      <h3 className="text-xs md:text-sm font-bold text-slate-800">
+                      <h3 className="text-base font-bold text-slate-800 font-times-new-roman">
                         {plan.title}
                       </h3>
-                      <p className="text-[11px] text-slate-500 line-clamp-1">
+                      <p className="text-[14px] text-slate-600 line-clamp-1 font-times-new-roman">
                         🎯 {plan.objectives}
                       </p>
                     </div>
@@ -690,7 +691,7 @@ export default function BentoDashboardView({
                       <button
                         type="button"
                         onClick={() => setSelectedPlanForImport(plan)}
-                        className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-extrabold text-[11px] md:text-xs flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer border border-amber-400/50"
+                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-extrabold text-[14px] flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all active:scale-95 cursor-pointer border border-amber-400/50 font-times-new-roman"
                         title={`Nhập dữ liệu giáo án PowerPoint (.pptx) cho "${plan.title}" và chuyển sang tab Soạn Slide`}
                       >
                         <Upload className="w-3.5 h-3.5 shrink-0 text-amber-100" />

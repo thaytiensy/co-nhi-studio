@@ -190,33 +190,33 @@ export default function Toolbar({
             <>
               {/* Font Family Dropdown */}
               <select
-                value={selectedElement.fontFamily || 'Nunito'}
+                value={selectedElement.fontFamily || 'Times New Roman'}
                 onChange={(e) => onUpdateElement({ fontFamily: e.target.value })}
-                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 hover:border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                className="text-[14px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-400 font-times-new-roman"
                 title="Chọn phông chữ hiển thị"
               >
+                <option value="Times New Roman">Trang trọng (Times New Roman)</option>
                 <option value="Nunito">Tiêu chuẩn (Nunito)</option>
                 <option value="Playpen Sans">Viết tay tiểu học (Playpen)</option>
                 <option value="Patrick Hand">Bút lông mĩ thuật (Patrick)</option>
                 <option value="Comfortaa">Vui nhộn tròn trịa (Comfortaa)</option>
-                <option value="Times New Roman">Trang trọng (Times New Roman)</option>
               </select>
 
               {/* Font Size */}
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-0.5">
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 font-times-new-roman">
                 <button
-                  onClick={() => onUpdateElement({ fontSize: Math.max(12, (selectedElement.fontSize || 16) - 2) })}
-                  className="px-1 text-xs font-bold text-slate-600 hover:text-amber-600"
-                  title="Giảm cỡ chữ"
+                  onClick={() => onUpdateElement({ fontSize: Math.max(14, (selectedElement.fontSize || 16) - 2) })}
+                  className="px-1.5 text-[14px] font-bold text-slate-600 hover:text-amber-600 cursor-pointer"
+                  title="Giảm cỡ chữ (nhỏ nhất là 14)"
                 >
                   -
                 </button>
-                <span className="text-xs font-bold text-slate-800 w-7 text-center">
-                  {selectedElement.fontSize || 16}
+                <span className="text-[14px] font-bold text-slate-800 w-8 text-center">
+                  {Math.max(14, selectedElement.fontSize || 16)}
                 </span>
                 <button
                   onClick={() => onUpdateElement({ fontSize: Math.min(96, (selectedElement.fontSize || 16) + 2) })}
-                  className="px-1 text-xs font-bold text-slate-600 hover:text-amber-600"
+                  className="px-1.5 text-[14px] font-bold text-slate-600 hover:text-amber-600 cursor-pointer"
                   title="Tăng cỡ chữ"
                 >
                   +
