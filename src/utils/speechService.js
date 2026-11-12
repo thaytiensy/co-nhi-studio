@@ -81,10 +81,7 @@ class SpeechService {
     };
   }
 
-  notify() {
-    const state = this.getState();
-    this.listeners.forEach(cb => cb(state));
-  }
+  notify() { this.listeners.forEach(cb => cb(this.getState())); }
 
   setRate(newRate) {
     this.rate = Math.max(0.5, Math.min(2.0, newRate));
@@ -99,6 +96,12 @@ class SpeechService {
 
     this.stop();
     this.currentTextBeingSpoken = text;
+
+    // Ưu tiên phát âm thanh trực tiếp siêu tốc 0.2s - 0.3s nếu trình duyệt có giọng tiếng Việt
+    if (this.synth && this.vietnameseVoice) {
+      return this.speakWithWebSpeechFallback(cleanText);
+    }
+
     this.audioQueue = splitTextIntoChunks(cleanText);
     this.currentChunkIndex = 0;
     this.isSpeaking = true;
@@ -144,10 +147,9 @@ class SpeechService {
       rate: this.rate,
       onStart: () => { this.isSpeaking = true; this.isPaused = false; this.notify(); },
       onEnd: () => { this.isSpeaking = false; this.isPaused = false; this.notify(); },
-      onError: () => { this.failPlayback('Không thể phát âm thanh.'); }
+      onError: () => this.failPlayback('Không thể phát âm thanh.')
     });
-    if (!res.success) this.failPlayback(res.error);
-    return res;
+    return res.success ? res : this.failPlayback(res.error);
   }
 
   failPlayback(message) {

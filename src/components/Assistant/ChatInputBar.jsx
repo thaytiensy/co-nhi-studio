@@ -23,42 +23,70 @@ export default function ChatInputBar({
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
   const textareaRef = useRef(null);
+  const silenceTimerRef = useRef(null);
+  const latestSpeechRef = useRef('');
 
   const updateListening = (listening) => {
     setIsListening(listening);
     onListeningChange?.(listening);
   };
 
-  // Khởi tạo nhận diện giọng nói Web Speech API tiếng Việt
+  // Khởi tạo nhận diện giọng nói Web Speech API tiếng Việt liên tục không bị cắt câu
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.continuous = true;
+        recognition.interimResults = true;
         recognition.lang = 'vi-VN';
 
         recognition.onresult = (event) => {
-          const transcript = event.results[0]?.[0]?.transcript || '';
-          if (transcript) {
-            onQueryChange(transcript);
-            onSubmit?.(event, transcript);
+          let finalStr = '';
+          let interimStr = '';
+          for (let i = 0; i < event.results.length; i++) {
+            const res = event.results[i];
+            if (res.isFinal) {
+              finalStr += res[0].transcript + ' ';
+            } else {
+              interimStr += res[0].transcript;
+            }
           }
-          updateListening(false);
+          const fullSpeech = (finalStr + interimStr).trim();
+          if (fullSpeech) {
+            onQueryChange(fullSpeech);
+            latestSpeechRef.current = fullSpeech;
+
+            // Tự động nhận diện khoảng nghỉ 1.3s của giáo viên để gửi câu hoàn chỉnh
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = setTimeout(() => {
+              if (latestSpeechRef.current) {
+                try { recognition.stop(); } catch (_) {}
+                updateListening(false);
+                const textToSend = latestSpeechRef.current;
+                latestSpeechRef.current = '';
+                onSubmit?.(null, textToSend);
+              }
+            }, 1300);
+          }
         };
 
         recognition.onerror = () => {
           updateListening(false);
+          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         };
 
         recognition.onend = () => {
           updateListening(false);
+          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         };
 
         recognitionRef.current = recognition;
       }
     }
+    return () => {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    };
   }, [onQueryChange, onSubmit]);
 
   const toggleVoiceInput = () => {
@@ -67,9 +95,16 @@ export default function ChatInputBar({
       return;
     }
     if (isListening) {
-      recognitionRef.current.stop();
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      try { recognitionRef.current.stop(); } catch (_) {}
       updateListening(false);
+      const textToSend = latestSpeechRef.current || userQuery;
+      latestSpeechRef.current = '';
+      if (textToSend && textToSend.trim()) {
+        onSubmit?.(null, textToSend.trim());
+      }
     } else {
+      latestSpeechRef.current = '';
       try {
         recognitionRef.current.start();
         updateListening(true);

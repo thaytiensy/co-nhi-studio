@@ -21,6 +21,7 @@ export default function SlideEditorView({
 }) {
   const [selectedElementId, setSelectedElementId] = useState(null);
   const [showMediaModal, setShowMediaModal] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
 
   // History stack for Undo/Redo
   const [history, setHistory] = useState([JSON.stringify(slides)]);
@@ -481,22 +482,43 @@ export default function SlideEditorView({
     handleChangeNotes(newNotes);
   };
 
+  // Enlarge all text elements in current slide by +4pt
+  const handleEnlargeSlideText = () => {
+    if (!currentSlide?.elements) return;
+    const updatedElements = currentSlide.elements.map(el => {
+      if (el.type === 'text') {
+        const currentSize = el.fontSize || 22;
+        return { ...el, fontSize: Math.min(currentSize + 4, 72) };
+      }
+      return el;
+    });
+    const updatedSlides = slides.map((s, idx) => {
+      if (idx === currentSlideIndex) {
+        return { ...s, elements: updatedElements };
+      }
+      return s;
+    });
+    updateSlidesWithHistory(updatedSlides);
+  };
+
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* 1. Left Thumbnail List */}
-      <SlideThumbnailList
-        slides={slides}
-        currentSlideIndex={currentSlideIndex}
-        onSelectSlide={(idx) => {
-          setCurrentSlideIndex(idx);
-          setSelectedElementId(null);
-        }}
-        onAddSlide={handleAddSlide}
-        onAddSlideFromTemplate={handleAddSlideFromTemplate}
-        onDuplicateSlide={handleDuplicateSlide}
-        onDeleteSlide={handleDeleteSlide}
-        onMoveSlide={handleMoveSlide}
-      />
+      {!isFocusMode && (
+        <SlideThumbnailList
+          slides={slides}
+          currentSlideIndex={currentSlideIndex}
+          onSelectSlide={(idx) => {
+            setCurrentSlideIndex(idx);
+            setSelectedElementId(null);
+          }}
+          onAddSlide={handleAddSlide}
+          onAddSlideFromTemplate={handleAddSlideFromTemplate}
+          onDuplicateSlide={handleDuplicateSlide}
+          onDeleteSlide={handleDeleteSlide}
+          onMoveSlide={handleMoveSlide}
+        />
+      )}
 
       {/* 2. Middle Editor Workspace */}
       <div className="flex-1 flex flex-col min-w-0 bg-slate-100">
@@ -517,6 +539,9 @@ export default function SlideEditorView({
           onUndo={handleUndo}
           onRedo={handleRedo}
           onOpenMediaModal={() => setShowMediaModal(true)}
+          onEnlargeSlideText={handleEnlargeSlideText}
+          isFocusMode={isFocusMode}
+          onToggleFocusMode={() => setIsFocusMode(prev => !prev)}
         />
 
         {/* 16:9 Canvas Area */}

@@ -71,7 +71,13 @@ export default function SpeakerNotes({
   onOpenAssistant
 }) {
   const [speechState, setSpeechState] = useState(() => speechService.getState());
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    try {
+      return localStorage.getItem('co_nhi_notes_expanded') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [notesFontSize, setNotesFontSize] = useState(() => {
     return Number(localStorage.getItem('co_nhi_notes_font_size')) || 20;
   });
@@ -79,6 +85,16 @@ export default function SpeakerNotes({
   const [isGeneratingAiSpeech, setIsGeneratingAiSpeech] = useState(false);
   const [speechSuccessNotice, setSpeechSuccessNotice] = useState(false);
   const streamIntervalRef = useRef(null);
+
+  const toggleExpanded = () => {
+    setIsExpanded(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('co_nhi_notes_expanded', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const handleSetNotesFontSize = (size) => {
     setNotesFontSize(size);
@@ -262,7 +278,7 @@ export default function SpeakerNotes({
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={toggleExpanded}
             className="flex items-center gap-1.5 text-[14px] md:text-[15px] font-black text-amber-950 bg-amber-100/90 hover:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-xl cursor-pointer shadow-2xs transition-all active:scale-95"
             title="Bấm để thu gọn lời giảng, giúp khung hình slide tự động phóng to tối đa"
           >
@@ -478,8 +494,8 @@ export default function SpeakerNotes({
               }
             }}
             placeholder="Nhập lời dẫn, câu hỏi gợi mở hoặc lời giảng của Thầy/Cô cho trang slide này. Sau đó bấm 'Đọc lời giảng' để nghe thử..."
-            rows={4}
-            className="w-full p-3 font-semibold text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-amber-50/20 resize-y font-times-new-roman leading-relaxed shadow-xs"
+            rows={3}
+            className="w-full max-h-[140px] p-3 font-semibold text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-amber-50/20 resize-y font-times-new-roman leading-relaxed shadow-xs"
             style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: `${notesFontSize}px`, lineHeight: 1.6 }}
           />
         </div>

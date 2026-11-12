@@ -36,7 +36,10 @@ export default function Toolbar({
   canRedo,
   onUndo,
   onRedo,
-  onOpenMediaModal
+  onOpenMediaModal,
+  onEnlargeSlideText,
+  isFocusMode,
+  onToggleFocusMode
 }) {
   const fileInputRef = useRef(null);
 
@@ -439,8 +442,38 @@ export default function Toolbar({
         </div>
       )}
 
-      {/* Right section: Undo / Redo */}
-      <div className="flex items-center gap-1">
+      {/* Right section: Enlarge Text, Focus Mode & Undo / Redo */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {onEnlargeSlideText && (
+          <button
+            type="button"
+            onClick={onEnlargeSlideText}
+            className="px-2.5 py-1 text-[13px] font-black text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95"
+            title="Tăng cỡ chữ toàn bộ bài giảng trên trang này thêm 4pt cho dễ đọc"
+          >
+            <span className="text-amber-700">🗚</span>
+            <span className="hidden sm:inline">Cỡ Chữ Slide (+4pt)</span>
+          </button>
+        )}
+
+        {onToggleFocusMode && (
+          <button
+            type="button"
+            onClick={onToggleFocusMode}
+            className={`px-2.5 py-1 text-[13px] font-black rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 border ${
+              isFocusMode
+                ? 'bg-amber-500 text-white border-amber-600'
+                : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-300'
+            }`}
+            title="Mở rộng 100% không gian làm việc soạn thảo slide"
+          >
+            <span>⛶</span>
+            <span className="hidden sm:inline">{isFocusMode ? 'Hiện DS Slide' : 'Mở Rộng Không Gian'}</span>
+          </button>
+        )}
+
+        <div className="h-5 w-px bg-slate-200 mx-1" />
+
         <button
           onClick={onUndo}
           disabled={!canUndo}

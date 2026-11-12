@@ -1,12 +1,15 @@
 // Dịch vụ trí tuệ đàm thoại tự nhiên - Trò chuyện như người với người (Natural Pedagogy Chat)
+// Thấu hiểu 100% ngôn ngữ giáo viên: Nói, Viết, Tình huống lớp học & SGK Kết Nối Tri Thức
 import { findRelevantPedagogyTheme } from './offlineAssistantMatchService.js';
 import { PEDAGOGY_BANK } from '../data/pedagogyBank.js';
+import { PEDAGOGY_KNOWLEDGE } from './pedagogyKnowledgeBase.js';
 
 // Dạng văn bản nói trôi chảy ngắn gọn, độ trễ 0.3s - 0.4s dành cho Cô/Thầy Giáo Robot phát âm trực tiếp
-export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThemeTitle = '', currentGender = 'female') {
+export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThemeTitle = '', currentGender = 'female', currentSlide = null) {
   const query = (userText || '').trim();
   const qLower = query.toLowerCase();
   const roleName = currentGender === 'male' ? 'Thầy Giáo Robot AI' : 'Cô Giáo Robot AI';
+  const effectiveTheme = (currentSlide?.title || currentThemeTitle || '').replace(/^trang\s*\d+:\s*/i, '').trim();
 
   if (/^(chào|xin chào|hello|hi|alo|chào em|chào cô|chào thầy)\b/i.test(qLower) || /bạn là ai|em là ai|tên gì/i.test(qLower)) {
     return `Dạ em chào Thầy Cô ạ! Em là ${roleName} của Cọ Nhí Studio. Hôm nay Thầy Cô cần em hỗ trợ chuẩn bị bài học hay tình huống nào trong lớp ạ?`;
@@ -14,30 +17,22 @@ export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThe
   if (/cảm ơn|thank|tuyệt vời|hay quá|tốt lắm/i.test(qLower)) {
     return 'Dạ không có gì đâu ạ! Được đồng hành cùng Thầy Cô là niềm vui của em. Chúc Thầy Cô và các bé có một tiết học thật vui và sáng tạo nhé!';
   }
-  if (/sợ sai|sợ xấu|không dám vẽ|rụt rè|ngại vẽ/i.test(qLower)) {
-    return 'Dạ Thầy Cô đừng lo nhé! Với các bé sợ vẽ sai, Thầy Cô hãy bảo bé rằng trong mĩ thuật không có nét nào sai cả, một nét méo có thể biến thành đám mây hay chú sâu ngộ nghĩnh. Bé sẽ tự tin cầm bút ngay ạ!';
-  }
-  if (/vẽ chậm|không kịp|hết giờ|chậm chạp/i.test(qLower)) {
-    return 'Dạ với bé vẽ chậm, Thầy Cô hãy hướng dẫn bé vẽ hình ảnh chính thật to ở giữa giấy trong năm phút đầu, và dùng bản sáp màu nghiêng để tô nền thật nhanh nhé!';
-  }
-  if (/quên đồ dùng|không mang màu|thiếu giấy/i.test(qLower)) {
-    return 'Dạ Thầy Cô có thể cho bé ngồi ghép chung hộp màu với bạn để rèn tinh thần sẻ chia, hoặc hướng dẫn bé vẽ kí họa bằng chính cây bút chì viết bài rất đẹp ạ!';
-  }
-  if (/hiếu động|nghịch|mất tập trung|nói chuyện/i.test(qLower)) {
-    return 'Dạ Thầy Cô hãy giao cho bé vai trò Trợ lý mĩ thuật như phát giấy, chia bảng màu cho bạn, hoặc cho bé tạo hình bằng đất nặn để giải phóng năng lượng tích cực nhé!';
-  }
-  if (/khởi động|trò chơi|đố vui|khuấy động/i.test(qLower)) {
-    return 'Dạ em gợi ý Thầy Cô trò chơi Thám tử mĩ thuật nhé! Thầy Cô chiếu một góc nhỏ bức tranh và đố cả lớp đoán hình. Trò này cực kỳ vui và kích thích các bé tò mò ngay từ phút đầu tiên ạ!';
-  }
-  if (/câu hỏi|gợi mở|khám phá|tư duy/i.test(qLower)) {
-    return 'Dạ Thầy Cô hãy hỏi các bé: Con nhìn thấy màu sắc nào nổi bật nhất, và bức tranh này làm con cảm thấy vui vẻ hay ấm áp? Những câu hỏi mở sẽ giúp các bé hào hứng chia sẻ ngay ạ!';
-  }
-  if (/nhận xét|đánh giá|thông tư 27|tt27/i.test(qLower)) {
-    return 'Dạ nhận xét theo Thông tư hai mươi bảy gồm: Mức T là hoàn thành tốt, sáng tạo độc đáo; Mức H là vẽ đúng chủ đề, màu sắc rõ ràng; và Mức C là cần cố gắng quan sát mẫu kĩ hơn ạ!';
-  }
-  if (/4 bước|thị phạm|quy trình|các bước/i.test(qLower)) {
-    return 'Dạ quy trình bốn bước vẽ gồm: Bước một phác hình lớn ở giữa giấy; Bước hai vẽ chi tiết đặc trưng; Bước ba tô màu hòa sắc; và Bước bốn viền nét tạo điểm nhấn ạ!';
-  }
+  if (/sợ sai|sợ xấu|không dám vẽ|rụt rè|ngại vẽ/i.test(qLower)) return 'Dạ Thầy Cô đừng lo nhé! Với các bé sợ vẽ sai, Thầy Cô hãy bảo bé rằng trong mĩ thuật không có nét nào sai cả, một nét méo có thể biến thành đám mây hay chú sâu ngộ nghĩnh. Bé sẽ tự tin cầm bút ngay ạ!';
+  if (/vẽ chậm|không kịp|hết giờ|chậm chạp|lề mề/i.test(qLower)) return 'Dạ với bé vẽ chậm, Thầy Cô hãy hướng dẫn bé vẽ hình ảnh chính thật to ở giữa giấy trong năm phút đầu, và dùng bản sáp màu nghiêng để tô nền thật nhanh nhé!';
+  if (/quên đồ dùng|không mang màu|thiếu giấy|quên vở/i.test(qLower)) return 'Dạ Thầy Cô có thể cho bé ngồi ghép chung hộp màu với bạn để rèn tinh thần sẻ chia, hoặc hướng dẫn bé vẽ kí họa bằng chính cây bút chì viết bài rất đẹp ạ!';
+  if (/hiếu động|nghịch|mất tập trung|nói chuyện|quậy/i.test(qLower)) return 'Dạ Thầy Cô hãy giao cho bé vai trò Trợ lý mĩ thuật như phát giấy, chia bảng màu cho bạn, hoặc cho bé tạo hình bằng đất nặn để giải phóng năng lượng tích cực nhé!';
+  if (/đổ màu|lem màu|rách giấy|hỏng giấy/i.test(qLower)) return 'Dạ Thầy Cô hãy dùng giấy ăn thấm khô vết lem, biến thành bụi cây hay bông hoa; hoặc dùng mảng giấy xé dán dán đè lên vết rách làm điểm nhấn nhé!';
+  if (/không chịu vẽ|chán nản|lười vẽ|không thích vẽ/i.test(qLower)) return 'Dạ Thầy Cô hãy gợi ý cho bé vẽ đúng nhân vật hoạt hình hoặc con thú cưng mà bé thích nhất, rồi cầm tay cùng bé đưa những nét đầu tiên nhé!';
+  if (/đất nặn|nặn|tạo khối/i.test(qLower)) return 'Dạ với đất nặn, Thầy Cô nhắc các bé nhào đất thật mềm dẻo, nặn bộ phận lớn trước rồi miết nhẹ mối nối nhé!';
+  if (/màu cơ bản|màu gốc/i.test(qLower)) return 'Dạ ba màu cơ bản là Đỏ, Vàng và Lam ạ! Từ ba màu gốc này chúng mình có thể pha trộn ra hàng vạn sắc màu phong phú.';
+  if (/màu nhị hợp|pha màu/i.test(qLower)) return 'Dạ màu nhị hợp gồm: Đỏ pha Vàng ra Cam, Vàng pha Lam ra Xanh lục, và Lam pha Đỏ ra Tím ạ!';
+  if (/màu bổ túc|đối lập|tương phản/i.test(qLower)) return 'Dạ cặp màu bổ túc gồm: Đỏ đi với Lục, Vàng đi với Tím, và Lam đi với Cam. Khi đặt cạnh nhau sẽ làm bức tranh rực rỡ nổi bật!';
+  if (/màu nóng|gam nóng|màu lạnh|gam lạnh/i.test(qLower)) return 'Dạ gam màu nóng gồm Đỏ, Cam, Vàng gợi sự ấm áp, sôi nổi; còn gam màu lạnh gồm Lam, Lục, Tím gợi cảm giác mát mẻ, yên bình ạ!';
+  if (/khởi động|trò chơi|đố vui|khuấy động/i.test(qLower)) return 'Dạ em gợi ý Thầy Cô trò chơi Thám tử mĩ thuật nhé! Thầy Cô chiếu một góc nhỏ bức tranh và đố cả lớp đoán hình. Trò này cực kỳ vui và kích thích các bé tò mò ngay từ phút đầu tiên ạ!';
+  if (/câu hỏi|gợi mở|khám phá|tư duy/i.test(qLower)) return 'Dạ Thầy Cô hãy hỏi các bé: Con nhìn thấy màu sắc nào nổi bật nhất, và bức tranh này làm con cảm thấy vui vẻ hay ấm áp? Những câu hỏi mở sẽ giúp các bé hào hứng chia sẻ ngay ạ!';
+  if (/nhận xét|đánh giá|thông tư 27|tt27|smas/i.test(qLower)) return 'Dạ nhận xét theo Thông tư hai mươi bảy gồm: Mức T là hoàn thành tốt, sáng tạo độc đáo; Mức H là vẽ đúng chủ đề, màu sắc rõ ràng; và Mức C là cần cố gắng quan sát mẫu kĩ hơn ạ!';
+  if (/4 bước|thị phạm|quy trình|các bước/i.test(qLower)) return 'Dạ quy trình bốn bước vẽ gồm: Bước một phác hình lớn ở giữa giấy; Bước hai vẽ chi tiết đặc trưng; Bước ba tô màu hòa sắc; và Bước bốn viền nét tạo điểm nhấn ạ!';
+  if (/bài này|slide này|trang này|chủ đề này/i.test(qLower) && effectiveTheme) return `Dạ với bài "${effectiveTheme}", Thầy Cô hãy bắt đầu bằng câu hỏi quan sát các hình ảnh gần gũi xung quanh, rồi hướng dẫn bốn bước tạo hình từ mảng lớn đến chi tiết nhé!`;
 
   const bestMatch = findRelevantPedagogyTheme(query, PEDAGOGY_BANK.themes, currentGrade);
   if (bestMatch?.theme) {
@@ -47,10 +42,11 @@ export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThe
   return `Dạ em đã hiểu ý Thầy Cô về ${query} rồi ạ! Thầy Cô hãy cho các bé quan sát thực tế, khơi gợi cảm xúc tự nhiên và hướng dẫn từng bước tạo hình thật vui nhé!`;
 }
 
-export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentThemeTitle = '', currentGender = 'female') {
+export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentThemeTitle = '', currentGender = 'female', currentSlide = null) {
   const query = (userText || '').trim();
   const qLower = query.toLowerCase();
   const roleTitle = currentGender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
+  const effectiveTheme = (currentSlide?.title || currentThemeTitle || '').replace(/^trang\s*\d+:\s*/i, '').trim();
 
   // 1. Chào hỏi xã giao & Nhận diện danh tính
   if (/^(chào|xin chào|hello|hi|alo|chào em|chào cô|chào bạn|chào thầy)\b/i.test(qLower) || /bạn là ai|em là ai|tên gì|giới thiệu/i.test(qLower)) {
@@ -72,29 +68,73 @@ export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentTh
       `✏️ 2. Tạm cất tẩy gôm: Khuyến khích bé vẽ bằng bút chì màu hoặc sáp màu nhẹ, không dùng tẩy để tránh bé tẩy xóa nhiều làm rách giấy và mất hứng thú.\n\n` +
       `👏 3. Khen ngợi chi tiết nhỏ: Thay vì khen chung chung, hãy khen: "Cô thích cách con chọn màu đỏ này rất ấm áp", bé sẽ tự tin cầm bút ngay ạ!`;
   }
-
   if (/vẽ chậm|không kịp|hết giờ|chậm chạp|lề mề/i.test(qLower)) {
     return `Dạ với các bé vẽ chậm, Thầy/Cô có thể áp dụng mẹo phân đoạn thời gian (Scaffolding) rất hiệu quả này ạ:\n\n` +
       `⏱️ 1. Quy tắc hình lớn trước: Yêu cầu bé vẽ ngay 1-2 hình ảnh chính to bằng bàn tay ở giữa giấy trong 5 phút đầu, không sa đà vào mắt mũi hay chi tiết li ti.\n\n` +
       `🖍️ 2. Kỹ thuật tô mảng màu rộng: Hướng dẫn bé dùng bản sáp màu nghiêng để lót màu nền nhanh chóng thay vì dùng đầu nhọn tô từng milimet.\n\n` +
       `🎯 3. Thang đánh giá phân hóa: Bé vẽ chậm chỉ cần hoàn thành hình ảnh chính rõ ràng, tô màu kín mảng là đã đạt yêu cầu (Mức H) rồi Thầy/Cô nhé!`;
   }
-
   if (/quên đồ dùng|không mang màu|thiếu giấy|quên vở/i.test(qLower)) {
     return `Dạ khi học sinh quên đồ dùng, Thầy/Cô có thể biến đây thành cơ hội rèn luyện tinh thần chia sẻ và sáng tạo:\n\n` +
       `🤝 1. Thành lập "Đôi bạn cùng tiến": Cho bé ngồi cùng bàn chia sẻ hộp màu hoặc giấy với bạn, cùng thảo luận ý tưởng.\n\n` +
       `✏️ 2. Vẽ tranh đen trắng bằng bút chì: Cho bé luyện sắc độ đậm - nhạt bằng chính cây bút chì viết bài, tạo nên một tác phẩm kí họa rất nghệ thuật.\n\n` +
       `🍃 3. Tạo hình từ vật liệu tự nhiên: Tận dụng lá cây rụng ngoài sân trường hoặc giấy vụn để xé dán sáng tạo!`;
   }
-
   if (/hiếu động|nghịch|mất tập trung|nói chuyện|quậy/i.test(qLower)) {
     return `Dạ với các em học sinh hiếu động, năng lượng dồi dào, Thầy/Cô hãy giao cho bé vai trò "trọng trách" trong tiết học:\n\n` +
       `🌟 1. Cử làm "Trợ lý mĩ thuật": Nhờ bé phát giấy, chia bảng màu hoặc kiểm tra đồ dùng giúp các bạn, bé sẽ cảm thấy được tin tưởng và tập trung hơn.\n\n` +
       `🖐️ 2. Đổi chất liệu xúc giác: Những bé hiếu động thường rất mê đất nặn hoặc xé dán giấy vì được dùng tay vận động trực tiếp.\n\n` +
       `🎯 3. Thử thách tính giờ: "Thầy/Cô đố con tìm và tô xong 3 bông hoa màu vàng trước khi nhạc dừng nhé!"`;
   }
+  if (/đổ màu|lem màu|rách giấy|hỏng giấy/i.test(qLower)) {
+    return `Dạ Thầy/Cô xử lý nhanh tình huống này theo 3 bước êm thấm nhé:\n\n` +
+      `💧 1. Thấm khô tức thì: Dùng khăn giấy ăn ấn nhẹ để hút hết nước đọng mà không chà xát làm bở giấy.\n\n` +
+      `🎨 2. "Biến nguy thành cơ": Gợi ý cho bé biến vệt lem thành một bụi cỏ, một chú chim nhỏ hoặc một đám mây rực rỡ.\n\n` +
+      `✂️ 3. Vá vết rách nghệ thuật: Xé một mảng giấy màu nhỏ dán đè lên vị trí rách, tạo thành hiệu ứng 3D nổi bật!`;
+  }
 
-  // 4. Trò chơi khởi động & Khơi gợi hứng thú
+  // 4. Lý thuyết màu sắc & Yếu tố tạo hình GDPT 2018
+  if (/màu cơ bản|màu gốc/i.test(qLower)) {
+    return `Dạ trong Mĩ thuật Tiểu học GDPT 2018:\n\n🎨 ${PEDAGOGY_KNOWLEDGE.colors.primary}\n\n💡 Ứng dụng: Hãy cho học sinh tìm xem trong lớp học có những đồ vật nào mang 3 màu cơ bản này để kích thích thị giác nhé!`;
+  }
+  if (/màu nhị hợp|pha màu/i.test(qLower)) {
+    return `Dạ công thức màu nhị hợp cho học sinh thực hành gồm:\n\n🌈 ${PEDAGOGY_KNOWLEDGE.colors.secondary}\n\n💡 Mẹo sư phạm: Thầy/Cô có thể cho các bé dùng sáp màu tô chồng mảng màu này lên mảng màu kia để tự mình chứng kiến phép màu biến đổi sắc màu!`;
+  }
+  if (/màu bổ túc|đối lập|tương phản/i.test(qLower)) {
+    return `Dạ kiến thức cặp màu bổ túc:\n\n⚡ ${PEDAGOGY_KNOWLEDGE.colors.complementary}\n\n💡 Ứng dụng: Tranh lễ hội, tranh cổ động hòa bình thường dùng các cặp màu này để tạo ấn tượng thị giác mạnh mẽ.`;
+  }
+  if (/màu nóng|gam nóng|màu lạnh|gam lạnh/i.test(qLower)) {
+    return `Dạ về hòa sắc nóng - lạnh:\n\n🔥❄️ ${PEDAGOGY_KNOWLEDGE.colors.warmCold}\n\n💡 Gợi ý: Khi dạy vẽ phong cảnh mùa hè, cho học sinh dùng gam màu nóng; khi vẽ biển đảo hoặc mùa đông, cho học sinh dùng gam màu lạnh.`;
+  }
+
+  // 5. Kỹ thuật & Chất liệu tạo hình
+  if (/sáp màu|bút sáp|tô sáp/i.test(qLower)) return `Dạ bí quyết sư phạm sáp màu: ${PEDAGOGY_KNOWLEDGE.materials.crayon}`;
+  if (/đất nặn|nặn|tạo khối/i.test(qLower)) return `Dạ bí quyết sư phạm đất nặn: ${PEDAGOGY_KNOWLEDGE.materials.clay}`;
+  if (/xé dán|cắt dán|giấy màu/i.test(qLower)) return `Dạ bí quyết sư phạm xé dán: ${PEDAGOGY_KNOWLEDGE.materials.paperCut}`;
+  if (/màu nước|pha màu nước/i.test(qLower)) return `Dạ bí quyết sư phạm màu nước: ${PEDAGOGY_KNOWLEDGE.materials.watercolor}`;
+  if (/in tranh|in lá|in củ/i.test(qLower)) return `Dạ bí quyết sư phạm in ấn: ${PEDAGOGY_KNOWLEDGE.materials.print}`;
+
+  // 6. Hướng dẫn sử dụng phần mềm Cọ Nhí Studio
+  if (/cách dùng app|hướng dẫn app|chức năng|tính năng|phần mềm/i.test(qLower)) {
+    return `Dạ Cọ Nhí Studio gồm 6 phân hệ chuyên sâu phục vụ Thầy/Cô giảng dạy:\n\n` +
+      `1. 🖥️ Soạn Slide 16:9: Soạn giáo án PowerPoint có kính lúp chữ to (100%-150%) và tăng cỡ chữ +4pt.\n` +
+      `2. 🎨 Bảng Vẽ Thị Phạm: Xoay 11 khối 3D trực quan, cọ vẽ thị phạm trực tiếp.\n` +
+      `3. 🎲 Trò Chơi Mĩ Thuật: Vòng quay kì diệu, Lật mảnh ghép 5 phút khởi động.\n` +
+      `4. 📷 Cam Chấm Tranh: AI nhận diện tranh qua Webcam và đánh giá TT27 tức thì.\n` +
+      `5. 📊 Sổ Điểm SMAS: Tự động đánh giá thường xuyên & định kì, xuất file Excel chuẩn Viettel.\n` +
+      `6. 📽️ Trình Chiếu F5: Giảng dạy toàn màn hình, hỗ trợ bút bấm USB.`;
+  }
+
+  // 7. Hỏi về bài đang mở trên màn hình (Context-Aware)
+  if (/bài này|slide này|trang này|tiết này|chủ đề này/i.test(qLower) && effectiveTheme) {
+    return `Dạ về bài giảng "${effectiveTheme}" đang hiển thị trên màn hình:\n\n` +
+      `🎯 1. Hoạt động Khởi động: Chiếu góc nhỏ tranh mẫu và đặt câu hỏi đố vui để tạo không khí hào hứng.\n\n` +
+      `👀 2. Hoạt động Khám phá: Cho các bé quan sát đặc điểm hình khối, màu sắc nổi bật nhất của chủ đề.\n\n` +
+      `✏️ 3. Luyện tập sáng tạo: Hướng dẫn 4 bước: phác mảng lớn ở giữa giấy -> vẽ chi tiết -> phối màu -> viền nét điểm nhấn.\n\n` +
+      `⭐ 4. Trưng bày & Đánh giá: Nhận xét khen ngợi theo Thông tư 27 (Mức T, H, C) tạo niềm tự tin cho học sinh!`;
+  }
+
+  // 8. Trò chơi khởi động 5 phút
   if (/khởi động|trò chơi|đố vui|khuấy động|hứng thú|game/i.test(qLower)) {
     return `Dạ em gợi ý Thầy/Cô 2 trò chơi khởi động 5 phút cực kỳ hào hứng cho giờ Mĩ thuật ạ:\n\n` +
       `🎯 Trò chơi 1: "Thám Tử Mĩ Thuật"\n` +
@@ -104,7 +144,7 @@ export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentTh
       `• Giáo viên hô tên màu sắc (Đỏ, Vàng, Lam, Lục...), học sinh phải nhanh tay chỉ vào một đồ vật hoặc trang phục có màu đó trong lớp. Vừa rèn phản xạ nhận biết màu vừa tạo không khí sôi nổi!`;
   }
 
-  // 5. Câu hỏi gợi mở khám phá thẩm mĩ
+  // 9. Câu hỏi gợi mở khám phá thẩm mĩ
   if (/câu hỏi|gợi mở|khám phá|tư duy|hỏi gì/i.test(qLower)) {
     return `Dạ để kích thích tư duy sáng tạo của học sinh, Thầy/Cô nên tránh câu hỏi Đúng/Sai mà hãy dùng hệ thống câu hỏi "Đa giác quan" này ạ:\n\n` +
       `👀 1. Quan sát trực quan: "Con nhìn thấy những hình khối và màu sắc nào nổi bật nhất trong bức tranh này?"\n` +
@@ -112,15 +152,15 @@ export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentTh
       `🎨 3. Thử thách sáng tạo: "Nếu được thêm một chi tiết kì diệu vào bức tranh của mình, con sẽ vẽ thêm điều gì?"`;
   }
 
-  // 6. Nhận xét học sinh theo Thông tư 27/2020/TT-BGDĐT
+  // 10. Nhận xét học sinh theo Thông tư 27/2020/TT-BGDĐT
   if (/nhận xét|đánh giá|thông tư 27|tt27|smas|xếp loại/i.test(qLower)) {
     return `Dạ theo Thông tư 27, nhận xét mĩ thuật cần mang tính khích lệ, cụ thể và không phán xét. Em gợi ý Thầy/Cô các mẫu nhận xét chuẩn SMAS:\n\n` +
-      `⭐ Mức T (Hoàn thành tốt): "Em có năng khiếu mĩ thuật nổi bật, biết phối màu hài hòa tươi sáng, đường nét giàu cảm xúc và có ý tưởng sáng tạo độc đáo."\n\n` +
-      `⭐ Mức H (Hoàn thành): "Hoàn thành bài vẽ đúng chủ đề, hình ảnh chính rõ ràng, biết sắp xếp bố cục hợp lý và có ý thức giữ gìn sản phẩm sạch đẹp."\n\n` +
-      `⭐ Mức C (Cần cố gắng): "Em cần quan sát mẫu kĩ hơn, tự tin đưa nét vẽ to rõ ràng và hoàn thiện bài vẽ đúng thời gian quy định nhé."`;
+      `⭐ Mức T (Hoàn thành tốt): "${PEDAGOGY_KNOWLEDGE.assessmentTT27.levelT}"\n\n` +
+      `⭐ Mức H (Hoàn thành): "${PEDAGOGY_KNOWLEDGE.assessmentTT27.levelH}"\n\n` +
+      `⭐ Mức C (Cần cố gắng): "${PEDAGOGY_KNOWLEDGE.assessmentTT27.levelC}"`;
   }
 
-  // 7. Quy trình 4 bước thị phạm vẽ tranh
+  // 11. Quy trình 4 bước thị phạm vẽ tranh
   if (/4 bước|thị phạm|quy trình|các bước|hướng dẫn vẽ/i.test(qLower)) {
     return `Dạ quy trình 4 bước thị phạm chuẩn của Bộ sách Kết nối tri thức gồm có:\n\n` +
       `✏️ Bước 1 - Phác hình tổng thể: Dùng nét chì mờ xác định vị trí hình ảnh chính ở trung tâm giấy (luật 1/3), ước lượng tỉ lệ cân đối.\n\n` +
@@ -129,7 +169,7 @@ export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentTh
       `✨ Bước 4 - Hoàn thiện & Tạo điểm nhấn: Dùng sáp màu đậm viền lại nét chính, chấm sáng hoặc trang trí họa tiết tạo sự lung linh.`;
   }
 
-  // 8. Tra cứu theo chủ đề SGK Kết nối tri thức
+  // 12. Tra cứu theo chủ đề SGK Kết nối tri thức
   const bestMatch = findRelevantPedagogyTheme(query, PEDAGOGY_BANK.themes, currentGrade);
   if (bestMatch?.theme) {
     const t = bestMatch.theme;
@@ -140,7 +180,7 @@ export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentTh
       `💡 Lời khuyên sư phạm: Khuyến khích các bé vẽ theo cảm xúc tự nhiên của mình, Thầy/Cô không cần ép các nét phải quá chuẩn xác đâu ạ!`;
   }
 
-  // 9. Phản hồi đàm thoại thông minh đa năng
+  // 13. Phản hồi đàm thoại thông minh đa năng
   return `Dạ em đã hiểu ý Thầy/Cô về "${query}" rồi ạ! ❤️\n\n` +
     `Dưới góc nhìn sư phạm mĩ thuật tiểu học GDPT 2018, Thầy/Cô có thể triển khai theo hướng: lấy học sinh làm trung tâm, kết hợp quan sát thực tế và thực hành sáng tạo tự do. Thầy/Cô có thể bấm vào các gợi ý bên dưới hoặc hỏi cụ thể hơn về: trò chơi khởi động, câu hỏi gợi mở, hay cách hướng dẫn từng bước vẽ để em hỗ trợ chi tiết nhất nhé ạ! 🎨`;
 }

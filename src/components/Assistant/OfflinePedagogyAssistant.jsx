@@ -93,14 +93,14 @@ export default function OfflinePedagogyAssistant({
     setIsLoading(true);
 
     // 1. Phản hồi giọng nói tự nhiên tức thì trong 0.3s - 0.4s
-    const spokenText = getSpokenDialogueResponse(text, currentGrade, currentSlide?.title || '', currentGender);
+    const spokenText = getSpokenDialogueResponse(text, currentGrade, currentSlide?.title || '', currentGender, currentSlide);
     setCurrentSpokenText(spokenText);
     if (isAutoSpeak) {
       speechService.speak(spokenText);
     }
 
     // 2. Cập nhật nội dung văn bản chuẩn sư phạm cho lịch sử
-    const fullText = getNaturalPedagogyResponse(text, currentGrade, currentSlide?.title || '', currentGender);
+    const fullText = getNaturalPedagogyResponse(text, currentGrade, currentSlide?.title || '', currentGender, currentSlide);
     const assistantMsgId = `${Date.now()}-assistant`;
     setMessages(prev => [
       ...prev,
@@ -160,7 +160,7 @@ export default function OfflinePedagogyAssistant({
       <ChatInputBar
         userQuery={userQuery}
         onQueryChange={setUserQuery}
-        onSubmit={(e) => { e?.preventDefault(); handleSendMessage(userQuery); }}
+        onSubmit={(e, transcriptText) => { e?.preventDefault?.(); handleSendMessage(transcriptText || userQuery); }}
         isLoading={isLoading}
         onSelectSuggestion={(prompt) => handleSendMessage(prompt)}
         onListeningChange={setIsListening}

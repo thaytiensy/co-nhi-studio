@@ -311,57 +311,67 @@ export default function SlideCanvas({
   };
 
   return (
-    <div 
-      ref={containerRef}
-      onClick={onDeselect}
-      className="flex-1 bg-slate-200/70 overflow-auto flex items-center justify-center p-4 relative cursor-default"
-    >
-      {/* Thanh Phóng To Kính Lúp Chữ To Cho Giáo Viên 50+ */}
+    <div className="flex-1 flex flex-col min-h-0 bg-slate-200/70 overflow-hidden">
+      {/* Top Workspace Bar: Kính Lúp Thu Phóng Cho Giáo Viên 50+ (Nằm ngoài khung Canvas, KHÔNG che chữ) */}
       <div 
-        className="absolute top-3 right-4 z-40 bg-white/95 backdrop-blur-md border border-slate-300 rounded-2xl shadow-md px-3 py-1.5 flex items-center gap-2 font-times-new-roman"
+        className="bg-white/95 border-b border-slate-300 px-4 py-1.5 flex items-center justify-between text-xs font-times-new-roman shrink-0 shadow-2xs z-20 flex-wrap gap-2"
         onClick={(e) => e.stopPropagation()}
       >
-        <span className="text-[14px] font-black text-amber-950 flex items-center gap-1.5">
-          <span>🔍</span>
-          <span className="hidden sm:inline">Phóng to chữ (GV 50+):</span>
-        </span>
-        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
-          <button
-            type="button"
-            onClick={() => setZoomMultiplier(1)}
-            className={`px-2.5 py-1 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
-              zoomMultiplier === 1 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
-            }`}
-            title="Thu phóng vừa khít màn hình máy tính"
-          >
-            100%
-          </button>
-          <button
-            type="button"
-            onClick={() => setZoomMultiplier(1.25)}
-            className={`px-2.5 py-1 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
-              zoomMultiplier === 1.25 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
-            }`}
-            title="Phóng to 125% - chữ to rõ hơn"
-          >
-            125% (Rõ)
-          </button>
-          <button
-            type="button"
-            onClick={() => setZoomMultiplier(1.5)}
-            className={`px-2.5 py-1 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
-              zoomMultiplier === 1.5 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
-            }`}
-            title="Phóng to 150% - cực đại cho GV lớn tuổi"
-          >
-            150% (Cực To)
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] font-black text-amber-950 flex items-center gap-1.5">
+            <span>🔍</span>
+            <span>Phóng to chữ (GV 50+):</span>
+          </span>
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setZoomMultiplier(1)}
+              className={`px-2.5 py-0.5 rounded-md text-[12px] font-black transition-all cursor-pointer ${
+                zoomMultiplier === 1 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
+              }`}
+              title="Thu phóng vừa khít màn hình máy tính"
+            >
+              100%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomMultiplier(1.25)}
+              className={`px-2.5 py-0.5 rounded-md text-[12px] font-black transition-all cursor-pointer ${
+                zoomMultiplier === 1.25 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
+              }`}
+              title="Phóng to 125% - chữ to rõ hơn"
+            >
+              125% (Rõ)
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomMultiplier(1.5)}
+              className={`px-2.5 py-0.5 rounded-md text-[12px] font-black transition-all cursor-pointer ${
+                zoomMultiplier === 1.5 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
+              }`}
+              title="Phóng to 150% - cực đại cho GV lớn tuổi"
+            >
+              150% (Cực To)
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-[12px] font-bold text-slate-600">
+          <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+            📐 Tỉ lệ hiển thị slide: {Math.round(scale * zoomMultiplier * 100)}%
+          </span>
         </div>
       </div>
 
-      {/* 16:9 Canvas Frame */}
-      <div
-        ref={canvasRef}
+      {/* 16:9 Canvas Viewport */}
+      <div 
+        ref={containerRef}
+        onClick={onDeselect}
+        className="flex-1 bg-slate-200/50 overflow-auto flex items-center justify-center p-4 relative cursor-default"
+      >
+        {/* 16:9 Canvas Frame */}
+        <div
+          ref={canvasRef}
         onClick={(e) => {
           if (e.target === canvasRef.current) {
             onDeselect();
@@ -422,7 +432,7 @@ export default function SlideCanvas({
                         fontStyle: el.fontStyle || 'normal',
                         color: el.color || '#0f172a',
                         textAlign: el.textAlign || 'left',
-                        lineHeight: 1.3,
+                        lineHeight: 1.35,
                       }}
                     />
                   ) : (
@@ -437,7 +447,7 @@ export default function SlideCanvas({
                         color: el.color || '#0f172a',
                         textAlign: el.textAlign || 'left',
                         whiteSpace: 'pre-wrap',
-                        lineHeight: 1.3,
+                        lineHeight: 1.35,
                       }}
                     >
                       {el.text}
@@ -665,6 +675,7 @@ export default function SlideCanvas({
           }
         }}
       />
+      </div>
     </div>
   );
 }
