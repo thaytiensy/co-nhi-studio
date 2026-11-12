@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Play,
   Share2, 
@@ -45,6 +45,25 @@ export default function Header({
   onLogout
 }) {
   const [showFileMenu, setShowFileMenu] = useState(false);
+  const [isSeniorMode, setIsSeniorMode] = useState(() => {
+    return localStorage.getItem('co_nhi_senior_mode') === 'true';
+  });
+
+  useEffect(() => {
+    if (isSeniorMode) {
+      document.body.classList.add('senior-friendly-app');
+    } else {
+      document.body.classList.remove('senior-friendly-app');
+    }
+  }, [isSeniorMode]);
+
+  const toggleSeniorMode = () => {
+    const next = !isSeniorMode;
+    setIsSeniorMode(next);
+    try {
+      localStorage.setItem('co_nhi_senior_mode', String(next));
+    } catch {}
+  };
 
   const handleFileInput = (e) => {
     const file = e.target.files[0];
@@ -179,6 +198,21 @@ export default function Header({
               <span className="md:hidden">Video 6p</span>
             </button>
           )}
+
+          {/* Nút Chế Độ Chữ To Cho Giáo Viên 50+ */}
+          <button
+            onClick={toggleSeniorMode}
+            className={`px-3 py-1.5 text-[13px] md:text-[14px] font-black rounded-lg border flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+              isSeniorMode 
+                ? 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-300' 
+                : 'bg-white text-slate-700 hover:bg-amber-50 border-slate-300'
+            }`}
+            title="Bật/Tắt chế độ chữ to, tương phản cao hỗ trợ giáo viên trên 50 tuổi đọc rõ ràng"
+          >
+            <span>👓</span>
+            <span className="hidden lg:inline">{isSeniorMode ? 'Chữ To: Đang Bật' : 'Chữ To (GV 50+)'}</span>
+            <span className="lg:hidden">Chữ To</span>
+          </button>
 
           {/* Tải giáo án PowerPoint lên Button */}
           <button

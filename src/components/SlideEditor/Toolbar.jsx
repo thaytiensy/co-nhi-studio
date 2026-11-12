@@ -54,26 +54,26 @@ export default function Toolbar({
   return (
     <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 select-none shadow-2xs">
       {/* Left section: Insert Items */}
-      <div className="flex items-center gap-1.5 border-r border-slate-200 pr-3">
-        <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mr-1">Chèn</span>
+      <div className="flex items-center gap-2 border-r border-slate-200 pr-3">
+        <span className="text-[13px] font-black text-slate-500 uppercase tracking-wider mr-1">Chèn:</span>
 
         {/* Text Buttons */}
         <button
-          onClick={() => onAddText('Tiêu Đề Mới', 32, 'bold')}
-          className="px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-amber-50 hover:text-amber-800 border border-slate-200 rounded-lg flex items-center gap-1 transition-all"
-          title="Thêm hộp chữ tiêu đề"
+          onClick={() => onAddText('Tiêu Đề Mới (Chữ To)', 36, 'bold')}
+          className="px-3 py-1.5 text-[14px] md:text-[15px] font-black text-slate-800 bg-slate-50 hover:bg-amber-100 hover:text-amber-950 border border-slate-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+          title="Thêm hộp chữ tiêu đề (cỡ chữ 36pt chuẩn to rõ)"
         >
-          <Type className="w-3.5 h-3.5 text-amber-600" />
-          <span>Tiêu Đề</span>
+          <Type className="w-4 h-4 text-amber-600" />
+          <span>Tiêu Đề (36pt)</span>
         </button>
 
         <button
-          onClick={() => onAddText('Nội dung hướng dẫn hoặc câu hỏi thảo luận...', 18, 'normal')}
-          className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-amber-50 hover:text-amber-800 border border-slate-200 rounded-lg flex items-center gap-1 transition-all"
-          title="Thêm đoạn văn bản"
+          onClick={() => onAddText('Nội dung hướng dẫn bài học...', 24, 'bold')}
+          className="px-3 py-1.5 text-[14px] md:text-[15px] font-black text-slate-800 bg-slate-50 hover:bg-amber-100 hover:text-amber-950 border border-slate-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+          title="Thêm đoạn văn bản (cỡ chữ 24pt chuẩn to rõ)"
         >
-          <span className="font-serif font-bold text-slate-500">T</span>
-          <span>Văn Bản</span>
+          <span className="font-serif font-black text-slate-700">T</span>
+          <span>Văn Bản (24pt)</span>
         </button>
 
         {/* Shapes & Art Strokes Buttons */}
@@ -152,10 +152,10 @@ export default function Toolbar({
         {/* Insert Image */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 rounded-lg flex items-center gap-1.5 transition-all"
+          className="px-3 py-1.5 text-[14px] md:text-[15px] font-black text-slate-800 bg-slate-50 hover:bg-emerald-100 hover:text-emerald-950 border border-slate-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
           title="Chèn ảnh tranh mẫu từ máy tính"
         >
-          <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+          <ImageIcon className="w-4 h-4 text-emerald-600" />
           <span>Chèn Ảnh</span>
         </button>
         <input 
@@ -170,7 +170,7 @@ export default function Toolbar({
         {onOpenMediaModal && (
           <button
             onClick={onOpenMediaModal}
-            className="px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-50 hover:bg-rose-50 hover:text-rose-800 border border-slate-200 rounded-lg flex items-center gap-1.5 transition-all"
+            className="px-3 py-1.5 text-[14px] md:text-[15px] font-black text-slate-800 bg-slate-50 hover:bg-rose-100 hover:text-rose-950 border border-slate-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
             title="Thêm nhạc, video từ máy hoặc tìm video YouTube"
           >
             <span className="text-rose-600">▶️</span>
@@ -182,7 +182,7 @@ export default function Toolbar({
       {/* Center section: Formatting options for Selected Element */}
       {selectedElement ? (
         <div className="flex items-center gap-2 border-r border-slate-200 pr-3 animate-in fade-in duration-150">
-          <span className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider mr-1">
+          <span className="text-[13px] font-black text-amber-700 uppercase tracking-wider mr-1">
             {selectedElement.type === 'text' ? 'Định Dạng Chữ' : 'Định Dạng Hình'}
           </span>
 
@@ -192,7 +192,7 @@ export default function Toolbar({
               <select
                 value={selectedElement.fontFamily || 'Times New Roman'}
                 onChange={(e) => onUpdateElement({ fontFamily: e.target.value })}
-                className="text-[14px] font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 hover:border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-400 font-times-new-roman"
+                className="text-[15px] font-black text-slate-800 bg-white border border-slate-300 rounded-xl px-3 py-1.5 hover:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400 font-times-new-roman shadow-2xs"
                 title="Chọn phông chữ hiển thị"
               >
                 <option value="Times New Roman">Trang trọng (Times New Roman)</option>
@@ -203,20 +203,20 @@ export default function Toolbar({
               </select>
 
               {/* Font Size */}
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 font-times-new-roman">
+              <div className="flex items-center bg-white border border-slate-300 rounded-xl px-2 py-0.5 font-times-new-roman shadow-2xs">
                 <button
-                  onClick={() => onUpdateElement({ fontSize: Math.max(14, (selectedElement.fontSize || 16) - 2) })}
-                  className="px-1.5 text-[14px] font-bold text-slate-600 hover:text-amber-600 cursor-pointer"
+                  onClick={() => onUpdateElement({ fontSize: Math.max(14, (selectedElement.fontSize || 22) - 2) })}
+                  className="px-2 py-0.5 text-[16px] font-black text-slate-700 hover:text-amber-600 cursor-pointer"
                   title="Giảm cỡ chữ (nhỏ nhất là 14)"
                 >
                   -
                 </button>
-                <span className="text-[14px] font-bold text-slate-800 w-8 text-center">
-                  {Math.max(14, selectedElement.fontSize || 16)}
+                <span className="text-[16px] font-black text-slate-900 w-9 text-center">
+                  {Math.max(14, selectedElement.fontSize || 22)}
                 </span>
                 <button
-                  onClick={() => onUpdateElement({ fontSize: Math.min(96, (selectedElement.fontSize || 16) + 2) })}
-                  className="px-1.5 text-[14px] font-bold text-slate-600 hover:text-amber-600 cursor-pointer"
+                  onClick={() => onUpdateElement({ fontSize: Math.min(96, (selectedElement.fontSize || 22) + 2) })}
+                  className="px-2 py-0.5 text-[16px] font-black text-slate-700 hover:text-amber-600 cursor-pointer"
                   title="Tăng cỡ chữ"
                 >
                   +

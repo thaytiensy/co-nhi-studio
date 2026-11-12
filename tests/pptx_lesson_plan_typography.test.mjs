@@ -42,7 +42,7 @@ test('Kiểm định Quy chuẩn Typography Giáo Án PowerPoint (GA PP): Phông
   await t.test('3. SlideCanvas và Toolbar đặt cỡ chữ nhỏ nhất là 14 và Times New Roman', () => {
     const canvasPath = path.join(rootDir, 'src/components/SlideEditor/SlideCanvas.jsx');
     const canvasCode = fs.readFileSync(canvasPath, 'utf-8');
-    assert.match(canvasCode, /Math\.max\(14,\s*el\.fontSize/, 'SlideCanvas phải giới hạn kích thước tối thiểu là 14px');
+    assert.match(canvasCode, /Math\.max\((?:14|16),\s*el\.fontSize/, 'SlideCanvas phải giới hạn kích thước tối thiểu là 14px hoặc lớn hơn');
     assert.match(canvasCode, /Times New Roman/, 'SlideCanvas phải ưu tiên Times New Roman cho văn bản slide');
 
     const toolbarPath = path.join(rootDir, 'src/components/SlideEditor/Toolbar.jsx');
@@ -90,5 +90,40 @@ test('Kiểm định Quy chuẩn Typography Giáo Án PowerPoint (GA PP): Phông
     const code = fs.readFileSync(svcPath, 'utf-8');
     assert.match(code, /Math\.max\(14,\s*Math\.min\(maxFontSize,\s*42\)\)/, 'pptxImportService phải bảo đảm cỡ chữ nhỏ nhất 14px');
     assert.match(code, /fontFamily\s*\|\|\s*'Times New Roman'/, 'pptxImportService phải mặc định Times New Roman nếu file không chỉ định');
+  });
+
+  await t.test('7. Tính năng hỗ trợ giáo viên 50+ (Presbyopia / Lão thị): Chữ to rõ, kính lúp thu phóng và tùy chọn 24px', () => {
+    // 1. Kiểm tra SlideCanvas có công cụ kính lúp thu phóng 100%, 125%, 150%
+    const canvasPath = path.join(rootDir, 'src/components/SlideEditor/SlideCanvas.jsx');
+    const canvasCode = fs.readFileSync(canvasPath, 'utf-8');
+    assert.match(canvasCode, /zoomMultiplier/, 'SlideCanvas phải có trạng thái zoomMultiplier');
+    assert.match(canvasCode, /150%/, 'SlideCanvas phải có nút phóng to 150% cho GV 50+');
+
+    // 2. Kiểm tra SpeakerNotes có bộ chọn cỡ chữ lên đến 24px
+    const notesPath = path.join(rootDir, 'src/components/SlideEditor/SpeakerNotes.jsx');
+    const notesCode = fs.readFileSync(notesPath, 'utf-8');
+    assert.match(notesCode, /notesFontSize/, 'SpeakerNotes phải có trạng thái notesFontSize');
+    assert.match(notesCode, /24px \(GV 50\+\)/, 'SpeakerNotes phải có tùy chọn 24px cho GV 50+');
+
+    // 3. Kiểm tra Header có nút bật Chữ To GV 50+
+    const headerPath = path.join(rootDir, 'src/components/Header.jsx');
+    const headerCode = fs.readFileSync(headerPath, 'utf-8');
+    assert.match(headerCode, /toggleSeniorMode/, 'Header phải có hàm toggleSeniorMode');
+    assert.match(headerCode, /senior-friendly-app/, 'Header phải kích hoạt class senior-friendly-app');
+
+    // 4. Kiểm tra slide chuẩn sinh ra tiêu đề >= 30px và nội dung >= 22px
+    const mockPlan = {
+      title: 'Em Vẽ Ngôi Trường Em',
+      grade: 3,
+      week: 5,
+      period: 5,
+      objectives: 'Học sinh vẽ ngôi trường thân yêu',
+      materials: 'Màu sáp, giấy vẽ'
+    };
+    const slides = buildStandardSlidesForPlan(mockPlan);
+    const titleEl = slides[0].elements.find(e => e.type === 'text' && e.text.includes('BỘ SÁCH'));
+    assert.ok(titleEl && titleEl.fontSize >= 30, 'Tiêu đề slide phải đạt ít nhất 30px');
+    const contentEl = slides[1].elements.find(e => e.type === 'text' && e.text.includes('1. Các em hãy'));
+    assert.ok(contentEl && contentEl.fontSize >= 22, 'Nội dung hoạt động phải đạt ít nhất 22px cho người lớn tuổi dễ đọc');
   });
 });

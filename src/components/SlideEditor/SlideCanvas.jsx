@@ -28,6 +28,7 @@ export default function SlideCanvas({
   const canvasRef = useRef(null);
   const replaceImageInputRef = useRef(null);
   const [scale, setScale] = useState(1);
+  const [zoomMultiplier, setZoomMultiplier] = useState(1);
   const [editingTextId, setEditingTextId] = useState(null);
 
   // Dragging / Resizing states
@@ -96,8 +97,9 @@ export default function SlideCanvas({
     const handleMouseMove = (e) => {
       if (!isDragging || !originalElement || !selectedElementId) return;
 
-      const deltaX = (e.clientX - startPos.x) / scale;
-      const deltaY = (e.clientY - startPos.y) / scale;
+      const currentScale = scale * zoomMultiplier;
+      const deltaX = (e.clientX - startPos.x) / (currentScale || 1);
+      const deltaY = (e.clientY - startPos.y) / (currentScale || 1);
 
       if (dragAction === 'move') {
         onUpdateElement({
@@ -158,7 +160,7 @@ export default function SlideCanvas({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragAction, startPos, originalElement, scale, selectedElementId]);
+  }, [isDragging, dragAction, startPos, originalElement, scale, zoomMultiplier, selectedElementId]);
 
   const renderShape = (el) => {
     // 1. Hình vẽ tự do / Vector Path trích xuất từ PowerPoint (custGeom)
@@ -312,8 +314,51 @@ export default function SlideCanvas({
     <div 
       ref={containerRef}
       onClick={onDeselect}
-      className="flex-1 bg-slate-200/70 overflow-hidden flex items-center justify-center p-4 relative cursor-default"
+      className="flex-1 bg-slate-200/70 overflow-auto flex items-center justify-center p-4 relative cursor-default"
     >
+      {/* Thanh Phóng To Kính Lúp Chữ To Cho Giáo Viên 50+ */}
+      <div 
+        className="absolute top-3 right-4 z-40 bg-white/95 backdrop-blur-md border border-slate-300 rounded-2xl shadow-md px-3 py-1.5 flex items-center gap-2 font-times-new-roman"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="text-[14px] font-black text-amber-950 flex items-center gap-1.5">
+          <span>🔍</span>
+          <span className="hidden sm:inline">Phóng to chữ (GV 50+):</span>
+        </span>
+        <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+          <button
+            type="button"
+            onClick={() => setZoomMultiplier(1)}
+            className={`px-2.5 py-1 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
+              zoomMultiplier === 1 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
+            }`}
+            title="Thu phóng vừa khít màn hình máy tính"
+          >
+            100%
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomMultiplier(1.25)}
+            className={`px-2.5 py-1 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
+              zoomMultiplier === 1.25 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
+            }`}
+            title="Phóng to 125% - chữ to rõ hơn"
+          >
+            125% (Rõ)
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomMultiplier(1.5)}
+            className={`px-2.5 py-1 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
+              zoomMultiplier === 1.5 ? 'bg-amber-500 text-white shadow-xs' : 'text-slate-700 hover:bg-white'
+            }`}
+            title="Phóng to 150% - cực đại cho GV lớn tuổi"
+          >
+            150% (Cực To)
+          </button>
+        </div>
+      </div>
+
       {/* 16:9 Canvas Frame */}
       <div
         ref={canvasRef}
@@ -327,7 +372,7 @@ export default function SlideCanvas({
         style={{
           width: `${CANVAS_WIDTH}px`,
           height: `${CANVAS_HEIGHT}px`,
-          transform: `scale(${scale})`,
+          transform: `scale(${scale * zoomMultiplier})`,
           transformOrigin: 'center center',
           backgroundColor: slide?.background || '#ffffff',
         }}
@@ -372,27 +417,27 @@ export default function SlideCanvas({
                       className="w-full h-full p-1 bg-white/95 border-2 border-amber-500 rounded focus:outline-none resize-none font-times-new-roman"
                       style={{
                         fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Times New Roman', Times, serif` : "'Times New Roman', Times, serif",
-                        fontSize: `${Math.max(14, el.fontSize || 16)}px`,
-                        fontWeight: el.fontWeight || 'normal',
+                        fontSize: `${Math.max(16, el.fontSize || 22)}px`,
+                        fontWeight: el.fontWeight || 'bold',
                         fontStyle: el.fontStyle || 'normal',
-                        color: el.color || '#000000',
+                        color: el.color || '#0f172a',
                         textAlign: el.textAlign || 'left',
-                        lineHeight: 1.25,
+                        lineHeight: 1.3,
                       }}
                     />
                   ) : (
                     <div
                       className="w-full h-full p-1 select-none pointer-events-none break-words font-times-new-roman"
                       style={{
-                        fontSize: `${Math.max(14, el.fontSize || 16)}px`,
-                        fontWeight: el.fontWeight || 'normal',
+                        fontSize: `${Math.max(16, el.fontSize || 22)}px`,
+                        fontWeight: el.fontWeight || 'bold',
                         fontStyle: el.fontStyle || 'normal',
                         textDecoration: el.textDecoration || 'none',
                         fontFamily: el.fontFamily ? `"${el.fontFamily}", 'Times New Roman', Times, serif` : "'Times New Roman', Times, serif",
-                        color: el.color || '#000000',
+                        color: el.color || '#0f172a',
                         textAlign: el.textAlign || 'left',
                         whiteSpace: 'pre-wrap',
-                        lineHeight: 1.25,
+                        lineHeight: 1.3,
                       }}
                     >
                       {el.text}

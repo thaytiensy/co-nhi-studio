@@ -72,10 +72,20 @@ export default function SpeakerNotes({
 }) {
   const [speechState, setSpeechState] = useState(() => speechService.getState());
   const [isExpanded, setIsExpanded] = useState(true);
+  const [notesFontSize, setNotesFontSize] = useState(() => {
+    return Number(localStorage.getItem('co_nhi_notes_font_size')) || 20;
+  });
   const [localError, setLocalError] = useState('');
   const [isGeneratingAiSpeech, setIsGeneratingAiSpeech] = useState(false);
   const [speechSuccessNotice, setSpeechSuccessNotice] = useState(false);
   const streamIntervalRef = useRef(null);
+
+  const handleSetNotesFontSize = (size) => {
+    setNotesFontSize(size);
+    try {
+      localStorage.setItem('co_nhi_notes_font_size', String(size));
+    } catch {}
+  };
 
   useEffect(() => {
     const unsubscribe = speechService.subscribe(setSpeechState);
@@ -248,28 +258,64 @@ export default function SpeakerNotes({
   return (
     <div className="bg-white border-t border-slate-200 select-none shadow-xs transition-all">
       {/* Header bar of Speaker Notes */}
-      <div className="px-4 py-2 bg-slate-50 flex items-center justify-between border-b border-slate-100 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
+      <div className="px-4 py-2 bg-slate-50 flex items-center justify-between border-b border-slate-200 flex-wrap gap-2 font-times-new-roman">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
+            type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-amber-700"
+            className="flex items-center gap-1.5 text-[14px] md:text-[15px] font-black text-amber-950 bg-amber-100/90 hover:bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-xl cursor-pointer shadow-2xs transition-all active:scale-95"
+            title="Bấm để thu gọn lời giảng, giúp khung hình slide tự động phóng to tối đa"
           >
-            <span className="text-amber-600">📝</span>
-            <span>Ghi Chú & Lời Giảng Của Giáo Viên</span>
-            <span className="text-[10px] text-slate-400 font-normal">
-              ({isExpanded ? 'Bấm để thu gọn' : 'Bấm để mở rộng'})
-            </span>
+            <span className="text-amber-700">📝</span>
+            <span>{isExpanded ? '🔽 Thu gọn lời giảng (Để phóng to Slide)' : '🔼 Mở rộng lời giảng (GV)'}</span>
           </button>
+
+          {/* Senior Teacher Font Size Selector (Cỡ chữ to rõ cho GV 50+) */}
+          {isExpanded && (
+            <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-[13px] font-black text-slate-700 shadow-2xs">
+              <span className="text-amber-800">👓 Cỡ chữ:</span>
+              <button
+                type="button"
+                onClick={() => handleSetNotesFontSize(18)}
+                className={`px-2 py-0.5 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
+                  notesFontSize === 18 ? 'bg-amber-500 text-white shadow-xs' : 'hover:bg-slate-100 text-slate-600'
+                }`}
+                title="Cỡ chữ 18px"
+              >
+                18px
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetNotesFontSize(21)}
+                className={`px-2 py-0.5 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
+                  notesFontSize === 21 ? 'bg-amber-500 text-white shadow-xs' : 'hover:bg-slate-100 text-slate-600'
+                }`}
+                title="Cỡ chữ 21px - Rõ ràng"
+              >
+                21px (Rõ)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetNotesFontSize(24)}
+                className={`px-2 py-0.5 rounded-lg text-[13px] font-black transition-all cursor-pointer ${
+                  notesFontSize === 24 ? 'bg-amber-500 text-white shadow-xs' : 'hover:bg-slate-100 text-slate-600'
+                }`}
+                title="Cỡ chữ 24px - Cực lớn cho giáo viên 50+"
+              >
+                24px (GV 50+)
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Audio Speech Controls */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Voice Gender Switcher: Thầy giáo (Nam) / Cô giáo (Nữ) */}
-          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 text-[11px] font-bold">
+          <div className="flex items-center bg-white border border-slate-300 rounded-xl p-0.5 text-[13px] font-bold shadow-2xs">
             <button
               onClick={() => speechService.setGender('male')}
-              className={`px-2 py-0.5 rounded transition-all flex items-center gap-1 ${
-                speechState.gender === 'male' ? 'bg-amber-100 text-amber-900 font-extrabold shadow-2xs' : 'text-slate-600 hover:bg-slate-50'
+              className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                speechState.gender === 'male' ? 'bg-amber-100 text-amber-950 font-black shadow-2xs' : 'text-slate-600 hover:bg-slate-50'
               }`}
               title="Chuyển sang giọng đọc Thầy giáo (Nam)"
             >
@@ -278,8 +324,8 @@ export default function SpeakerNotes({
             </button>
             <button
               onClick={() => speechService.setGender('female')}
-              className={`px-2 py-0.5 rounded transition-all flex items-center gap-1 ${
-                speechState.gender === 'female' ? 'bg-pink-100 text-pink-900 font-extrabold shadow-2xs' : 'text-slate-600 hover:bg-slate-50'
+              className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                speechState.gender === 'female' ? 'bg-pink-100 text-pink-950 font-black shadow-2xs' : 'text-slate-600 hover:bg-slate-50'
               }`}
               title="Chuyển sang giọng đọc Cô giáo (Nữ)"
             >
@@ -289,14 +335,14 @@ export default function SpeakerNotes({
           </div>
 
           {/* Rate Selector */}
-          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 text-[11px] font-bold text-slate-600">
+          <div className="flex items-center bg-white border border-slate-300 rounded-xl p-0.5 text-[13px] font-bold text-slate-600 shadow-2xs">
             <span className="px-1.5 text-slate-400">Tốc độ:</span>
             {[0.75, 1.0, 1.25].map((r) => (
               <button
                 key={r}
                 onClick={() => handleRateChange(r)}
-                className={`px-1.5 py-0.5 rounded transition-all ${
-                  speechState.rate === r ? 'bg-amber-100 text-amber-900 font-extrabold' : 'hover:bg-slate-100'
+                className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                  speechState.rate === r ? 'bg-amber-100 text-amber-950 font-black' : 'hover:bg-slate-100'
                 }`}
               >
                 {r}x
@@ -304,32 +350,32 @@ export default function SpeakerNotes({
             ))}
           </div>
 
-          {/* Voice indicator badge - 100% Phân biệt chuẩn xác Nam Minh / Hoài My */}
-          <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-semibold flex items-center gap-1.5 shadow-2xs transition-colors ${
+          {/* Voice indicator badge */}
+          <span className={`text-[13px] px-3 py-1 rounded-full border font-bold flex items-center gap-1.5 shadow-2xs transition-colors ${
             speechState.gender === 'female' 
-              ? 'bg-pink-50 text-pink-700 border-pink-200' 
-              : 'bg-amber-50 text-amber-800 border-amber-200'
+              ? 'bg-pink-50 text-pink-800 border-pink-300' 
+              : 'bg-amber-50 text-amber-900 border-amber-300'
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+            <span className={`w-2 h-2 rounded-full animate-pulse ${
               speechState.gender === 'female' ? 'bg-pink-500' : 'bg-amber-500'
             }`}></span>
-            <span>🎙️ {speechState.gender === 'female' ? 'Cô giáo (Nữ - Hoài My)' : 'Thầy giáo (Nam - Nam Minh)'}</span>
+            <span>🎙️ {speechState.gender === 'female' ? 'Cô giáo (Hoài My)' : 'Thầy giáo (Nam Minh)'}</span>
           </span>
 
           {/* Nút Đọc Riêng Chữ Trên Slide */}
           <button
             onClick={() => handleToggleSpeak(true)}
-            className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-1 transition-all shadow-2xs"
+            className="px-3 py-1.5 text-[14px] font-black text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
             title="Đọc toàn bộ nội dung chữ, tiêu đề, câu hỏi đang hiển thị trên slide này"
           >
             <span>📢</span>
             <span>Đọc nội dung slide</span>
           </button>
 
-          {/* Play / Pause Button - Luôn luôn hoạt động, không bị vô hiệu */}
+          {/* Play / Pause Button */}
           <button
             onClick={() => handleToggleSpeak(false)}
-            className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-2xs ${
+            className={`px-3.5 py-1.5 text-[14px] font-black rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
               speechState.isSpeaking && !speechState.isPaused
                 ? 'bg-amber-500 text-white animate-pulse'
                 : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
@@ -338,12 +384,12 @@ export default function SpeakerNotes({
           >
             {speechState.isSpeaking && !speechState.isPaused ? (
               <>
-                <Pause className="w-3.5 h-3.5" />
+                <Pause className="w-4 h-4" />
                 <span>Tạm dừng</span>
               </>
             ) : (
               <>
-                <Volume2 className="w-3.5 h-3.5" />
+                <Volume2 className="w-4 h-4" />
                 <span>{speechState.isPaused ? 'Tiếp tục đọc' : 'Đọc lời giảng'}</span>
               </>
             )}
@@ -353,35 +399,35 @@ export default function SpeakerNotes({
           {speechState.isSpeaking && (
             <button
               onClick={handleStop}
-              className="p-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg transition-all"
+              className="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl transition-all cursor-pointer"
               title="Dừng đọc"
             >
-              <Square className="w-3.5 h-3.5" />
+              <Square className="w-4 h-4" />
             </button>
           )}
 
-          {/* Direct AI Speech Generation Button (Sinh lời giảng streaming như AI thật) */}
+          {/* Direct AI Speech Generation Button */}
           <button
             onClick={handleGenerateAiSpeech}
             disabled={isGeneratingAiSpeech}
-            className={`px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+            className={`px-3 py-1.5 text-[14px] font-black rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
               isGeneratingAiSpeech
-                ? 'bg-amber-100 text-amber-900 border border-amber-400 animate-pulse'
-                : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 active:scale-95'
+                ? 'bg-amber-100 text-amber-950 border border-amber-400 animate-pulse'
+                : 'text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 active:scale-95'
             }`}
             title="AI Thầy Cọ Nhí tự động phân tích trang slide và soạn thảo lời giảng truyền cảm hứng theo SGK Kết Nối Tri Thức Với Cuộc Sống"
           >
-            <Sparkles className={`w-3.5 h-3.5 text-amber-600 ${isGeneratingAiSpeech ? 'animate-spin' : ''}`} />
+            <Sparkles className={`w-4 h-4 text-amber-600 ${isGeneratingAiSpeech ? 'animate-spin' : ''}`} />
             <span>
               {isGeneratingAiSpeech 
                 ? 'AI đang soạn lời giảng...' 
                 : speechSuccessNotice 
-                ? '✓ Đã tạo lời giảng (Kết Nối Tri Thức)!' 
+                ? '✓ Đã tạo lời giảng!' 
                 : '✨ Gợi Ý Lời Giảng AI'}
             </span>
           </button>
 
-          {/* Open Assistant Drawer Button (Chuẩn Trợ Giảng AI 3D Pill Button) */}
+          {/* Open Assistant Drawer Button */}
           <TeacherAssistantPillButton
             size="sm"
             onClick={onOpenAssistant}
@@ -432,9 +478,9 @@ export default function SpeakerNotes({
               }
             }}
             placeholder="Nhập lời dẫn, câu hỏi gợi mở hoặc lời giảng của Thầy/Cô cho trang slide này. Sau đó bấm 'Đọc lời giảng' để nghe thử..."
-            rows={3}
-            className="w-full p-2.5 text-[14px] text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-y font-times-new-roman leading-relaxed"
-            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '14px' }}
+            rows={4}
+            className="w-full p-3 font-semibold text-slate-900 border-2 border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-amber-50/20 resize-y font-times-new-roman leading-relaxed shadow-xs"
+            style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: `${notesFontSize}px`, lineHeight: 1.6 }}
           />
         </div>
       )}

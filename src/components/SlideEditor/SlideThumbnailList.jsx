@@ -35,10 +35,10 @@ export default function SlideThumbnailList({
   return (
     <aside className="w-60 md:w-64 bg-slate-100/90 border-r border-slate-200 flex flex-col h-full select-none shrink-0 overflow-hidden">
       {/* Top action bar: Add slide & Templates */}
-      <div className="p-3 border-b border-slate-200 bg-white flex items-center justify-between gap-2 shadow-2xs shrink-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-extrabold text-xs text-slate-700 uppercase tracking-wider truncate">Slide</span>
-          <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 shrink-0">
+      <div className="p-3 border-b border-slate-200 bg-white flex items-center justify-between gap-2 shadow-2xs shrink-0 font-times-new-roman">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-black text-[15px] text-slate-800 uppercase tracking-wider truncate">Slide</span>
+          <span className="text-[13px] font-black bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full border border-slate-300 shrink-0">
             {slides.length}
           </span>
         </div>
@@ -46,19 +46,19 @@ export default function SlideThumbnailList({
         <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={() => setShowTemplateModal(true)}
-            className="px-2 py-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg flex items-center gap-1 transition-all"
+            className="px-2.5 py-1 text-[13px] md:text-[14px] font-black text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
             title="Thêm slide theo mẫu giáo án chuẩn"
           >
-            <LayoutTemplate className="w-3.5 h-3.5 text-amber-600" />
+            <LayoutTemplate className="w-4 h-4 text-amber-700" />
             <span className="hidden sm:inline">Mẫu</span>
           </button>
 
           <button
             onClick={() => onAddSlide()}
-            className="px-2 py-1 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-lg flex items-center gap-1 shadow-2xs transition-all"
+            className="px-2.5 py-1 text-[13px] md:text-[14px] font-black text-white bg-amber-500 hover:bg-amber-600 rounded-xl flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
             title="Thêm một trang slide mới trống"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             <span>Thêm</span>
           </button>
         </div>
@@ -88,13 +88,13 @@ export default function SlideThumbnailList({
               {/* Header inside thumbnail: Slide number & Title & Actions */}
               <div className="flex items-center justify-between mb-1.5 px-0.5 gap-1.5">
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span className={`text-[11px] font-black shrink-0 px-1.5 py-0.5 rounded ${
-                    isSelected ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-700'
+                  <span className={`text-[13px] font-black shrink-0 px-2 py-0.5 rounded-md ${
+                    isSelected ? 'bg-amber-500 text-white shadow-2xs' : 'bg-slate-200 text-slate-800'
                   }`}>
                     {index + 1}
                   </span>
                   <span 
-                    className={`text-[14px] font-bold truncate font-times-new-roman ${isSelected ? 'text-amber-900' : 'text-slate-800'}`}
+                    className={`text-[15px] font-bold truncate font-times-new-roman ${isSelected ? 'text-amber-950 font-black' : 'text-slate-900'}`}
                     title={titleText}
                   >
                     {titleText}

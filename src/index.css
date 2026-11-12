@@ -19,6 +19,39 @@
   font-family: 'Times New Roman', Times, 'Liberation Serif', serif !important;
 }
 
+/* Chế độ Chữ To & Tương Phản Cao Dành Cho Giáo Viên 50+ (Presbyopia / Lão Thị) */
+body.senior-friendly-app {
+  font-size: 17px !important;
+}
+
+body.senior-friendly-app button,
+body.senior-friendly-app input,
+body.senior-friendly-app select,
+body.senior-friendly-app textarea {
+  font-size: 16px !important;
+}
+
+body.senior-friendly-app .text-xs,
+body.senior-friendly-app .text-\[11px\],
+body.senior-friendly-app .text-\[10px\],
+body.senior-friendly-app .text-\[9px\] {
+  font-size: 15px !important;
+}
+
+body.senior-friendly-app .text-sm,
+body.senior-friendly-app .text-\[13px\],
+body.senior-friendly-app .text-\[14px\] {
+  font-size: 17px !important;
+}
+
+body.senior-friendly-app .text-base {
+  font-size: 19px !important;
+}
+
+body.senior-friendly-app textarea {
+  line-height: 1.65 !important;
+}
+
 /* Custom scrollbar for clean pedagogical UI */
 ::-webkit-scrollbar {
   width: 6px;
