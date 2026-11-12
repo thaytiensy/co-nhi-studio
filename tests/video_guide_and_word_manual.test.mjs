@@ -79,4 +79,33 @@ test('Bộ kiểm thử Video Hướng Dẫn & File Mô Tả App Word GDPT 2018'
     const cmdVideo2 = parseSmartCommand('video hướng dẫn app 6p');
     assert.equal(cmdVideo2.type, 'open_video_guide', 'Phải nhận diện video hướng dẫn app 6p');
   });
+
+  await t.test('5. Khối 5 có đầy đủ trọn bộ 8 chủ đề chuẩn SGK Kết nối tri thức từ Tuần 1 đến Tuần 8', () => {
+    const grade5Plans = DEFAULT_PLANS.filter(p => Number(p.grade) === 5);
+    assert.equal(grade5Plans.length, 8, 'Khối 5 phải có đủ 8 chủ đề');
+
+    const expectedTopics = [
+      'Chủ đề 1: Yếu tố tạo hình trong thực hành, sáng tạo theo chủ đề',
+      'Chủ đề 2: Hình tượng anh hùng dân tộc trong mĩ thuật tạo hình Việt Nam',
+      'Chủ đề 3: Gia đình',
+      'Chủ đề 4: Những hoạt động yêu thích ở trường em',
+      'Chủ đề 5: Những việc làm bình dị mà cao quý trong cuộc sống',
+      'Chủ đề 6: Cảnh sắc quê hương',
+      'Chủ đề 7: Việt Nam đất nước, con người',
+      'Chủ đề 8: Vì một thế giới hoà bình'
+    ];
+
+    grade5Plans.forEach((plan, idx) => {
+      assert.equal(plan.week, idx + 1, `Chủ đề ${idx + 1} Khối 5 phải có tuần bắt đầu từ tuần ${idx + 1}`);
+      assert.equal(plan.period, idx + 1, `Chủ đề ${idx + 1} Khối 5 phải có tiết ${idx + 1}`);
+      assert.ok(
+        plan.title.startsWith(`Chủ đề ${idx + 1}`),
+        `Kế hoạch ${idx + 1} phải bắt đầu bằng "Chủ đề ${idx + 1}", nhận được: ${plan.title}`
+      );
+      assert.ok(
+        plan.title.includes(expectedTopics[idx].split('(')[0].trim()),
+        `Tiêu đề bài học phải khớp SGK Kết nối tri thức: ${expectedTopics[idx]}`
+      );
+    });
+  });
 });

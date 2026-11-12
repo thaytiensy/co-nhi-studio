@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, SkipForward, SkipBack } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, SkipForward, SkipBack, ExternalLink } from 'lucide-react';
+import VideoVisualDemoStage from './VideoVisualDemoStage';
 
 export default function VideoPlayerStage({
   chapter,
@@ -53,7 +54,6 @@ export default function VideoPlayerStage({
   };
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const icons = { 1: '🎨', 2: '📊', 3: '🤖', 4: '📐', 5: '📸', 6: '🖥️' };
 
   return (
     <div className="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
@@ -64,40 +64,36 @@ export default function VideoPlayerStage({
         onEnded={onNextChapter}
         muted={isMuted}
       />
-      {/* 16:9 Video Canvas / Stage */}
-      <div className="flex-1 flex items-center justify-center p-3 sm:p-5 relative overflow-hidden bg-gradient-to-b from-slate-900 to-black">
-        <div className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900 flex flex-col items-center justify-center text-center p-6 group">
-          <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
-            <span className="bg-rose-600/90 text-white text-[11px] font-black uppercase px-2.5 py-1 rounded-md shadow">
+      {/* 16:9 Video Canvas / Visual Demo Stage */}
+      <div className="flex-1 flex items-center justify-center p-2 sm:p-4 relative overflow-hidden bg-gradient-to-b from-slate-900 to-black">
+        <div className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950 flex flex-col items-center justify-center text-center p-2 group">
+          {/* Top badges */}
+          <div className="absolute top-3 left-3 flex items-center gap-2 z-20">
+            <span className="bg-rose-600/90 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow">
               {chapter.partNumber}
             </span>
-            <span className="bg-slate-800/80 text-amber-300 text-[11px] font-bold px-2 py-1 rounded-md border border-slate-700">
+            <span className="bg-slate-900/90 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-700">
               {chapter.time}
             </span>
           </div>
 
-          <div className="relative z-10 max-w-lg space-y-3">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-3xl sm:text-4xl shadow-xl shadow-amber-500/20 transform group-hover:scale-105 transition-transform">
-              {icons[chapter.id] || '🎨'}
-            </div>
-            <div>
-              <h3 className="text-base sm:text-xl font-black text-white leading-tight drop-shadow-md">
-                {chapter.title}
-              </h3>
-              <p className="text-xs text-amber-400 font-semibold mt-1">
-                Thuyết minh giọng đọc Neural chuẩn Sư phạm
-              </p>
-            </div>
+          <div className="absolute top-3 right-3 z-20">
             <button
               onClick={() => onNavigateTab && onNavigateTab(chapter.targetTab)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] shadow-md transition-all active:scale-95 cursor-pointer"
             >
-              🚀 Trải Nghiệm Tính Năng Này
+              <span>🚀 Thử Tính Năng Này</span>
             </button>
           </div>
 
-          <div className="absolute bottom-4 inset-x-4 z-10 flex justify-center">
-            <div className="bg-black/85 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl max-w-2xl text-center shadow-xl">
+          {/* Visual Concrete Demonstration Screen */}
+          <div className="w-full h-full pt-8 pb-12 px-1 flex items-center justify-center">
+            <VideoVisualDemoStage chapterId={chapter.id} />
+          </div>
+
+          {/* Subtitles Teleprompter */}
+          <div className="absolute bottom-2.5 inset-x-4 z-20 flex justify-center">
+            <div className="bg-black/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl max-w-2xl text-center shadow-xl">
               <p className="text-amber-300 font-bold text-xs sm:text-sm leading-relaxed drop-shadow">
                 {chapter.sentences[activeSentenceIndex] || chapter.sentences[0]}
               </p>

@@ -383,42 +383,102 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     notes: 'Phân lớp tiền cảnh, trung cảnh và hậu cảnh rõ ràng.'
   },
 
-  // --- LỚP 5: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG ---
+  // --- LỚP 5: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (TRỌN BỘ 8 CHỦ ĐỀ CHUẨN SGK) ---
   {
     id: 'plan-g5-1',
-    week: 26,
-    period: 26,
+    week: 1,
+    period: 1,
     title: 'Chủ đề 1: Yếu tố tạo hình trong thực hành, sáng tạo theo chủ đề',
     grade: 5,
     className: '5A',
-    objectives: 'Vận dụng tổng hợp các yếu tố chấm, nét, mảng, hình khối và đậm nhạt để sáng tạo tác phẩm hoàn chỉnh.',
-    materials: 'Màu acrylic hoặc sáp dầu, giấy chuyên dụng.',
+    objectives: 'Nhận biết và vận dụng các yếu tố tạo hình (nét, hình, mảng, màu sắc, khối) và nguyên lí cân bằng, tương phản để thiết kế chữ trang trí hoặc poster cổ động.',
+    materials: 'Bút dạ, sáp màu, giấy A4, kéo, keo dán, vật liệu tái chế.',
     status: 'Đã dạy',
-    notes: 'Phát huy năng lực tự chủ và sáng tạo thẩm mỹ cá nhân.'
+    notes: 'Khám phá sự kết hợp hài hòa giữa hình tượng thị giác và chữ thông điệp.'
   },
   {
     id: 'plan-g5-2',
-    week: 27,
-    period: 27,
+    week: 2,
+    period: 2,
     title: 'Chủ đề 2: Hình tượng anh hùng dân tộc trong mĩ thuật tạo hình Việt Nam',
     grade: 5,
     className: '5A',
-    objectives: 'Tạo hình tượng các vị anh hùng lịch sử dân tộc qua tượng tròn, phù điêu hoặc tranh vẽ truyền thần.',
-    materials: 'Đất sét, bìa mô hình, màu vẽ.',
-    status: 'Sắp dạy',
-    notes: 'Giáo dục truyền thống yêu nước và lòng biết ơn thế hệ đi trước.'
+    objectives: 'Khám phá hình tượng anh hùng lịch sử (Hai Bà Trưng, Ngô Quyền, Trần Hưng Đạo, Bác Hồ) qua tranh tượng; thực hành vẽ tranh hoặc tạo hình tượng phù điêu.',
+    materials: 'Đất nặn, bìa carton, màu vẽ, bút chì.',
+    status: 'Đã dạy',
+    notes: 'Giáo dục lòng yêu nước, niềm tự hào dân tộc và lòng biết ơn các thế hệ đi trước.'
   },
   {
     id: 'plan-g5-3',
-    week: 28,
-    period: 28,
+    week: 3,
+    period: 3,
+    title: 'Chủ đề 3: Gia đình (Tình cảm gia đình, Mái ấm yêu thương)',
+    grade: 5,
+    className: '5A',
+    objectives: 'Thể hiện tình cảm gia đình, bữa cơm ấm áp, khoảnh khắc sum vầy bằng ngôn ngữ hội họa và các chất liệu mĩ thuật đa dạng.',
+    materials: 'Giấy vẽ A3, sáp dầu, màu nước, ảnh gia đình.',
+    status: 'Sắp dạy',
+    notes: 'Bồi dưỡng tình cảm gắn bó, kính trọng ông bà cha mẹ và trân trọng mái ấm gia đình.'
+  },
+  {
+    id: 'plan-g5-4',
+    week: 4,
+    period: 4,
+    title: 'Chủ đề 4: Những hoạt động yêu thích ở trường em',
+    grade: 5,
+    className: '5B',
+    objectives: 'Tái hiện sinh động khung cảnh học tập, giờ ra chơi, sinh hoạt ngoại khóa và lao động vệ sinh trường lớp với bố cục nhiều nhân vật.',
+    materials: 'Màu sáp, bút chì, giấy vẽ, thước kẻ.',
+    status: 'Sắp dạy',
+    notes: 'Rèn kỹ năng phác dáng người chuyển động và sắp xếp nhóm nhân vật hợp lý.'
+  },
+  {
+    id: 'plan-g5-5',
+    week: 5,
+    period: 5,
+    title: 'Chủ đề 5: Những việc làm bình dị mà cao quý trong cuộc sống',
+    grade: 5,
+    className: '5B',
+    objectives: 'Khắc họa hình ảnh người lao động thầm lặng (bác lao công, chú bộ đội, bác sĩ, thầy cô giáo) qua tranh vẽ hoặc kỹ thuật xé dán giấy màu.',
+    materials: 'Giấy thủ công màu, hồ dán, sáp màu, kéo.',
+    status: 'Sắp dạy',
+    notes: 'Tôn vinh vẻ đẹp của sự cống hiến thầm lặng và lòng nhân ái trong cộng đồng.'
+  },
+  {
+    id: 'plan-g5-6',
+    week: 6,
+    period: 6,
+    title: 'Chủ đề 6: Cảnh sắc quê hương (Non nước Việt Nam, Di sản thiên nhiên)',
+    grade: 5,
+    className: '5A',
+    objectives: 'Vẽ tranh phong cảnh non nước Việt Nam (vịnh Hạ Long, ruộng bậc thang, phố cổ) vận dụng quy luật xa gần và hòa sắc đậm nhạt.',
+    materials: 'Màu nước, sáp dầu, giấy vẽ Canson A3.',
+    status: 'Sắp dạy',
+    notes: 'Giúp học sinh thêm gắn bó, yêu mến và tự hào về danh lam thắng cảnh quê hương.'
+  },
+  {
+    id: 'plan-g5-7',
+    week: 7,
+    period: 7,
+    title: 'Chủ đề 7: Việt Nam đất nước, con người (Lễ hội truyền thống & Bản sắc văn hóa)',
+    grade: 5,
+    className: '5A',
+    objectives: 'Khám phá và tái hiện không khí lễ hội dân gian, nét đẹp trang phục truyền thống và phong tục tập quán các vùng miền.',
+    materials: 'Đất nặn, màu acrylic hoặc sáp màu, bìa cứng.',
+    status: 'Sắp dạy',
+    notes: 'Gìn giữ và tôn vinh bản sắc văn hóa các dân tộc anh em trên dải đất Việt Nam.'
+  },
+  {
+    id: 'plan-g5-8',
+    week: 8,
+    period: 8,
     title: 'Chủ đề 8: Vì một thế giới hoà bình (Hữu nghị bốn phương)',
     grade: 5,
     className: '5B',
-    objectives: 'Vẽ tranh cổ động hòa bình, tình hữu nghị giữa các dân tộc và trẻ em trên toàn thế giới.',
-    materials: 'Giấy A3, bút dạ, sáp màu nhũ.',
+    objectives: 'Sáng tạo tranh cổ động, biểu tượng chim bồ câu trắng, trẻ em năm châu nắm tay thể hiện khát vọng hòa bình và bảo vệ môi trường Trái Đất.',
+    materials: 'Giấy A3, bút dạ, sáp màu nhũ, kéo thủ công.',
     status: 'Sắp dạy',
-    notes: 'Lan tỏa thông điệp yêu thương, bảo vệ hòa bình thế giới.'
+    notes: 'Lan tỏa thông điệp yêu thương, tình đoàn kết quốc tế và ước mơ hòa bình thế giới.'
   }
 ];
 
@@ -442,7 +502,7 @@ export const DEFAULT_EVALUATIONS: StudentEvaluationItem[] = [
 ];
 
 export const DEFAULT_STUDIO_DATA: StudioStorageState = {
-  version: '2.1-ket-noi-tri-thuc',
+  version: '2.2-chuan-chu-de-khoi-5',
   project: {
     title: 'Kế Hoạch & Bài Giảng Mĩ Thuật GDPT 2018',
     slides: [
@@ -499,16 +559,20 @@ export function getStoredData(userScope?: string): StudioStorageState {
       saveStoredData(initial, userScope);
       return initial;
     }
-    // Tự động nâng cấp nếu phát hiện tiêu đề bài giảng cũ chưa khớp chuẩn SGK Kết Nối Tri Thức
+    // Tự động nâng cấp nếu phát hiện tiêu đề cũ hoặc thiếu chủ đề Khối 5
     const hasLegacyTitles = Array.isArray(parsed.plans) && parsed.plans.some((p: { title?: string }) =>
       p?.title?.includes('Mỹ thuật và Cuộc sống - Sắc màu thiên nhiên') ||
       p?.title?.includes('Nét vẽ kỳ diệu') ||
       p?.title?.includes('Ngôi nhà thân yêu - Tạo hình từ hình học cơ bản') ||
       p?.title?.includes('Khu vườn tuổi thơ')
     );
-    if (hasLegacyTitles || parsed.version !== '2.1-ket-noi-tri-thuc') {
+    const hasBrokenGrade5 = Array.isArray(parsed.plans) && (
+      parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 5).length < 8 ||
+      parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 5 && p?.week === 26)
+    );
+    if (hasLegacyTitles || hasBrokenGrade5 || parsed.version !== '2.2-chuan-chu-de-khoi-5') {
       parsed.plans = DEFAULT_PLANS;
-      parsed.version = '2.1-ket-noi-tri-thuc';
+      parsed.version = '2.2-chuan-chu-de-khoi-5';
       saveStoredData(parsed, userScope);
     }
     return parsed as StudioStorageState;
