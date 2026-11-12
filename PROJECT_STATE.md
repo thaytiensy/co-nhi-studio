@@ -1,8 +1,22 @@
 # BÁO CÁO TRẠNG THÁI DỰ ÁN CỌ NHÍ STUDIO (PROJECT_STATE.md)
 
-> **Cập nhật hệ thống:** 2026-11-11 23:25:00 (Giờ Việt Nam)  
+> **Cập nhật hệ thống:** 2026-11-12 20:30:00 (Giờ Việt Nam)  
 > **Kiến trúc:** React 19 + Vite 8 + Tailwind CSS + Strict TypeScript (Zero `any`)  
 > **Tiêu chuẩn:** GDPT 2018 • Công văn 2345/BGDĐT • Thông tư 27/2020/TT-BGDĐT • SMAS Viettel
+
+---
+
+## CẬP NHẬT MỚI NHẤT (2026-11-12)
+- **Thanh công cụ trình chiếu (Presentation Toolbar) chuyển sang dạng dọc theo cạnh slide**:
+  - Không che khuất chữ bài giảng ở đáy màn hình.
+  - Hỗ trợ đổi chiều Dọc / Ngang linh hoạt (`onToggleOrientation`), lưu cấu hình vào LocalStorage.
+  - Hỗ trợ thu gọn thành nút icon nhỏ gọn (`onCollapse`) và mở rộng tức thì.
+  - Kiến trúc phân rã thành các module sạch < 200 dòng code: `PresentationToolbar.jsx`, `PresentationVerticalToolbar.jsx`, `PresentationHorizontalToolbar.jsx`.
+- **Cam Chấm Tranh & Đồng bộ Sổ Điểm Thường Xuyên TT27**:
+  - Bổ sung chọn Tuần học (Tuần 1-35) và nút bấm nhanh Mức [ 🏆 T ], [ ⭐ H ], [ 📝 C ].
+  - Nâng cấp thuật toán phân tích màu sắc và độ phủ nét vẽ giúp đề xuất mức đánh giá chính xác chuẩn TT27.
+  - Cập nhật hàm `saveCameraEvaluationToSmas` lưu điểm chính xác vào cột Tuần (`weeklyLevels[week]`) theo tên học sinh (chuẩn hóa NFC/NFD/không dấu).
+  - Tự động kích hoạt sự kiện `conhi-smas-updated` để Sổ theo dõi thường xuyên 35 tuần cập nhật ngay lập tức.
 
 ---
 
