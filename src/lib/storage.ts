@@ -637,10 +637,10 @@ export function restoreDefaultData(userScope?: string): StudioStorageState {
 /**
  * Tính toán thống kê KPI thời gian thực.
  */
-export function computeKPI(state: StudioStorageState): StudioKPIData {
-  const plans = state.plans || [];
-  const evaluations = state.evaluations || [];
-  const slides = state.project?.slides || [];
+export function computeKPI(state?: StudioStorageState): StudioKPIData {
+  const plans = state?.plans || [];
+  const evaluations = state?.evaluations || [];
+  const slides = state?.project?.slides || [];
 
   const totalPlans = plans.length;
   const taughtPlans = plans.filter(p => p.status === 'Đã dạy').length;

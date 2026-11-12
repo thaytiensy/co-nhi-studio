@@ -22,10 +22,12 @@ export interface SmartCommandResult {
     | 'restore_json' 
     | 'load_sample' 
     | 'navigate_tab'
+    | 'export_app_doc'
+    | 'open_video_guide'
     | 'help';
   query?: string;
   filters?: SmartFilterCriteria;
-  payload?: any;
+  payload?: unknown;
   targetTab?: 'dashboard' | 'editor' | 'drawing' | 'games' | 'camera' | 'evaluation';
   message: string;
   confidence: number;
@@ -139,6 +141,24 @@ export function parseSmartCommand(rawInput: string): SmartCommandResult {
       type: 'help',
       message: 'Vui lòng nhập từ khóa hoặc chọn thao tác gợi ý nhanh phía dưới.',
       confidence: 1.0
+    };
+  }
+
+  // 0. Phân tích lệnh Xem Video Hướng Dẫn
+  if (/(?:video|clip)/i.test(norm) && /(?:huong dan|app|6p|7p|mo|xem|bat|studio)/i.test(norm)) {
+    return {
+      type: 'open_video_guide',
+      message: 'Đang mở bộ video hướng dẫn sử dụng Cọ Nhí Studio (6 phút)...',
+      confidence: 0.98
+    };
+  }
+
+  // 0.1 Phân tích lệnh Tải tài liệu mô tả app Word (.doc)
+  if (!/(?:video|clip)/i.test(norm) && (/(?:mo ta|huong dan|tai lieu).*(?:app|phan mem|word|doc)/i.test(norm) || /(?:tai|xuat).*(?:mo ta|hdsd)/i.test(norm))) {
+    return {
+      type: 'export_app_doc',
+      message: 'Đang tải tệp Word (.doc) mô tả tính năng và hướng dẫn sử dụng Cọ Nhí Studio chuẩn Sư phạm...',
+      confidence: 0.98
     };
   }
 

@@ -31,6 +31,7 @@ import { auth } from './utils/firebaseClient';
 import { Sparkles } from 'lucide-react';
 import TeacherAssistantPillButton from './components/UI/TeacherAssistantPillButton';
 import { buildStandardSlidesForPlan } from './utils/planSlideGenerator';
+import { restoreDefaultData } from './lib/storage';
 
 // Khởi tạo trang slide trắng tinh (App hoàn toàn sạch, không chứa file mẫu có sẵn)
 const BLANK_INITIAL_SLIDE = {
@@ -87,6 +88,22 @@ class SafeTabErrorBoundary extends React.Component {
     console.error('[SafeTabErrorBoundary] Caught error:', error, info);
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
+  handleRestoreDefaults = () => {
+    try {
+      restoreDefaultData();
+      window.dispatchEvent(new CustomEvent('conhi-storage-updated'));
+    } catch (err) {
+      console.warn('[SafeTabErrorBoundary] Restore default failed:', err);
+    }
+    this.setState({ hasError: false, error: null });
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -99,12 +116,21 @@ class SafeTabErrorBoundary extends React.Component {
             <p className="text-xs text-slate-600 mb-4 leading-relaxed">
               Hệ thống đã tự động bảo vệ giao diện để không bị trắng màn hình. Thầy/Cô bấm nút bên dưới để khôi phục lại tính năng.
             </p>
-            <button
-              onClick={() => this.setState({ hasError: false, error: null })}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
-            >
-              🔄 Khôi Phục & Thử Lại
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <button
+                onClick={() => this.setState({ hasError: false, error: null })}
+                className="w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                🔄 Khôi Phục & Thử Lại
+              </button>
+              <button
+                onClick={this.handleRestoreDefaults}
+                className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                title="Đặt lại 10 bài dạy & sổ điểm chuẩn GDPT 2018"
+              >
+                ⚡ Nạp Dữ Liệu Gốc GDPT 2018
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -687,7 +713,7 @@ export default function App() {
         )}
 
         <main className="flex-1 flex overflow-hidden relative">
-          <SafeTabErrorBoundary>
+          <SafeTabErrorBoundary resetKey={activeTab}>
             <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải không gian làm việc...</div>}>
               {activeTab === 'dashboard' && (
                 <BentoDashboardView
@@ -710,6 +736,7 @@ export default function App() {
                     setIsSaved(false);
                     setActiveTab('editor');
                   }}
+                  onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
                   slides={slides}
                 />
               )}
@@ -829,6 +856,7 @@ export default function App() {
           <VideoGuideModal
             isOpen={isVideoGuideOpen}
             onClose={() => setIsVideoGuideOpen(false)}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         )}
 

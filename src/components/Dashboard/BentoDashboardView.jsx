@@ -34,9 +34,11 @@ import {
   restoreDefaultData,
   computeKPI,
   exportBackupJson,
-  importRestoreJson
+  importRestoreJson,
+  DEFAULT_STUDIO_DATA
 } from '../../lib/storage';
 import { exportWordReport, exportExcelReport, exportCsvReport } from '../../lib/export-engine';
+import { downloadAppDescriptionWordDoc } from '../../utils/appDescriptionWordService';
 import {
   getFirebaseDatabaseStatus,
   syncStorageToFirebase,
@@ -49,6 +51,7 @@ export default function BentoDashboardView({
   onNavigateTab,
   onOpenSlideWithTitle,
   onImportPlanSlides,
+  onOpenVideoGuide,
   slides = []
 }) {
   const [data, setData] = useState(() => getStoredData());
@@ -121,12 +124,23 @@ export default function BentoDashboardView({
 
   // Lọc danh sách bài dạy theo khối lớp và trạng thái
   const filteredPlans = useMemo(() => {
-    return (data.plans || []).filter((p) => {
-      const matchGrade = selectedGrade === 'all' || p.grade.toLowerCase().includes(selectedGrade.toLowerCase());
+    const plans = data?.plans || [];
+    return plans.filter((p) => {
+      if (!p) return false;
+      const pGradeStr = String(p.grade || '');
+      const pGradeNum = pGradeStr.replace(/\D/g, '');
+      const selectedGradeNum = String(selectedGrade || '').replace(/\D/g, '');
+
+      const matchGrade =
+        selectedGrade === 'all' ||
+        (selectedGradeNum && pGradeNum
+          ? pGradeNum === selectedGradeNum
+          : pGradeStr.toLowerCase().includes(String(selectedGrade).toLowerCase()));
+
       const matchStatus = statusFilter === 'all' || p.status === statusFilter;
       return matchGrade && matchStatus;
     });
-  }, [data.plans, selectedGrade, statusFilter]);
+  }, [data?.plans, selectedGrade, statusFilter]);
 
   // Nạp lại dữ liệu mẫu mặc định
   const handleRestoreDefaults = () => {
@@ -646,10 +660,12 @@ export default function BentoDashboardView({
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-900">
-                          {plan.grade}
+                          {typeof plan.grade === 'number' || /^\d+$/.test(String(plan.grade || ''))
+                            ? `Lớp ${plan.grade}`
+                            : (plan.grade || 'Lớp 1')}
                         </span>
                         <span className="text-[11px] font-semibold text-slate-500">
-                          Tuần {plan.week} • Tiết {plan.lessonNumber}
+                          Tuần {plan.week} • Tiết {plan.lessonNumber || plan.period || 1}
                         </span>
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
@@ -731,6 +747,25 @@ export default function BentoDashboardView({
               </p>
 
               <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  onClick={() => {
+                    downloadAppDescriptionWordDoc();
+                    showToast('Đã tải tài liệu Mô Tả Phần Mềm Word (.doc) chuẩn Sư phạm!', 'success');
+                  }}
+                  className="p-3 rounded-2xl bg-blue-50/90 hover:bg-blue-100 border border-blue-200 text-left transition-all cursor-pointer group active:scale-95 col-span-2"
+                  title="Tải trọn bộ tài liệu mô tả ứng dụng, cơ sở pháp lý GDPT 2018 và hướng dẫn sử dụng định dạng Word"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-blue-950 block">Tải File Mô Tả App Word (.doc)</span>
+                      <span className="text-[10px] text-blue-700 block">Chuẩn văn bản GDPT 2018, Công văn 2345, TT27</span>
+                    </div>
+                  </div>
+                </button>
+
                 <button
                   onClick={() => {
                     exportWordReport();

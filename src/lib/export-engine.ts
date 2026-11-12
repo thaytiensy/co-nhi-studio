@@ -55,8 +55,8 @@ export function exportWordReport(options: ExportReportOptions = {}): string {
   let evaluations = options.evaluations || currentData.evaluations || [];
 
   if (options.filterClass && options.filterClass !== 'all') {
-    plans = plans.filter(p => p.className.toLowerCase() === options.filterClass?.toLowerCase());
-    evaluations = evaluations.filter(e => e.className.toLowerCase() === options.filterClass?.toLowerCase());
+    plans = plans.filter(p => (p.className || '').toLowerCase() === options.filterClass?.toLowerCase());
+    evaluations = evaluations.filter(e => (e.className || '').toLowerCase() === options.filterClass?.toLowerCase());
   }
 
   if (options.filterWeek) {
@@ -291,8 +291,8 @@ export function exportExcelReport(options: ExportReportOptions = {}): string {
   let evaluations = options.evaluations || currentData.evaluations || [];
 
   if (options.filterClass && options.filterClass !== 'all') {
-    plans = plans.filter(p => p.className.toLowerCase() === options.filterClass?.toLowerCase());
-    evaluations = evaluations.filter(e => e.className.toLowerCase() === options.filterClass?.toLowerCase());
+    plans = plans.filter(p => (p.className || '').toLowerCase() === options.filterClass?.toLowerCase());
+    evaluations = evaluations.filter(e => (e.className || '').toLowerCase() === options.filterClass?.toLowerCase());
   }
 
   const wb = XLSX.utils.book_new();
