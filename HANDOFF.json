@@ -1,7 +1,7 @@
 {
   "status": "success",
   "phase": "verified",
-  "time": "2026-11-12T20:29:00.000Z",
+  "time": "2026-11-12T20:52:00.000Z",
   "tests": {
     "total": 139,
     "passed": 139,
@@ -12,11 +12,11 @@
     "exitCode": 0
   },
   "fixes": [
-    "Di chuyển thanh công cụ trình chiếu (Presentation Toolbar) sang dạng dọc theo cạnh slide (docked right/left margin), không che chữ bài giảng",
-    "Thêm nút thu gọn thành pill icon, nút đổi chế độ dọc/ngang (vertical/horizontal toggle) lưu trạng thái LocalStorage",
-    "Tách thanh công cụ PresentationToolbar thành 3 module nhỏ < 200 dòng (PresentationToolbar, PresentationVerticalToolbar, PresentationHorizontalToolbar)",
-    "Nâng cấp chuẩn tính mức TT27 (calculateRubricLevel) và phân tích pixel thông minh trong Cam Chấm Tranh",
-    "Thêm bộ chọn Tuần (1-35) và nút chọn nhanh mức T/H/C trong Cam Chấm Tranh",
-    "Đồng bộ lưu điểm từ Cam Chấm Tranh trực tiếp vào Sổ theo dõi thường xuyên (weeklyLevels[week]) theo đúng tên học sinh (chuẩn hóa NFC/NFD/không dấu)"
+    "Sửa lỗi các ô đáp án Trò Chơi Mĩ Thuật bị nhảy lung tung: Khóa cố định danh sách câu hỏi trong SlideGameWidget và memoize activeGameElement trong PresentationModal chống re-render theo timer 1s",
+    "Tách SlideGameWidget thành các module con < 200 dòng (SlideGameWidget, SlideGameOptions, SlideGameResult)",
+    "Xóa nút Trợ Giảng AI thừa trong thanh công cụ Lời Giảng của SpeakerNotes theo yêu cầu của Thầy/Cô",
+    "Nâng cấp nút Trợ Giảng AI nổi ở góc màn hình thành DraggableAssistantButton: có thể kéo thả di chuyển tự do bằng chuột/cảm ứng đến mọi vị trí, tự lưu tọa độ vào LocalStorage, không còn che khuất nút Đọc lời giảng",
+    "Thanh công cụ trình chiếu dọc theo cạnh slide (PresentationVerticalToolbar), hỗ trợ thu gọn và chuyển đổi linh hoạt",
+    "Đồng bộ kết quả Cam Chấm Tranh vào Sổ Theo Dõi Thường Xuyên 35 tuần theo đúng tên học sinh"
   ]
 }
