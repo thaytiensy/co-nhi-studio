@@ -20,11 +20,12 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel } from '../../utils/smasExcelService';
+import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel, normalizeClassLabel } from '../../utils/smasExcelService';
 import { getScopedStorageKey } from '../../utils/userWorkspaceService';
 import { 
   batchSynthesizeClassEvaluations, 
-  PERIODIC_COMMENTS_BANK 
+  PERIODIC_COMMENTS_BANK,
+  writeSmasData 
 } from '../../utils/smasEvaluationBridge';
 
 // Ngân hàng nhận xét môn Mĩ thuật chuẩn Thông tư 27/2020/TT-BGDĐT
@@ -231,18 +232,24 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     return () => clearTimeout(timer);
   }, [hasUploadedOrSelected, className, classOptions, selectedClassFilter, semester, students]);
 
-  // Danh sách các lớp được trích xuất (kết hợp danh sách lớp dạy của GV và dữ liệu học sinh)
-  const allClasses = Array.from(new Set([
-    ...teachingClasses.map(c => (String(c).startsWith('Lớp') ? String(c) : `Lớp ${c}`)),
-    ...(className ? [className] : []),
-    ...classOptions,
-    ...students.map(s => s.className).filter(Boolean)
-  ])).filter(Boolean);
+  // Danh sách các lớp được trích xuất và chuẩn hóa (1A, 1B, 1C...) không bao giờ bị trùng lặp
+  const allClasses = useMemo(() => {
+    const rawList = [
+      ...students.map(s => s.className),
+      ...(className ? [className] : []),
+      ...classOptions,
+      ...teachingClasses
+    ];
+    return Array.from(new Set(rawList.map(c => normalizeClassLabel(c)).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+  }, [students, className, classOptions, teachingClasses]);
 
-  // Danh sách học sinh hiển thị theo bộ lọc lớp
-  const displayedStudents = selectedClassFilter === 'all'
-    ? students
-    : students.filter(s => (s.className || className || '').trim() === selectedClassFilter.trim());
+  // Danh sách học sinh hiển thị theo bộ lọc lớp (chuẩn hóa tên lớp để khớp chính xác 100%)
+  const displayedStudents = useMemo(() => {
+    if (selectedClassFilter === 'all') return students;
+    const target = normalizeClassLabel(selectedClassFilter);
+    return students.filter(s => normalizeClassLabel(s.className || className) === target);
+  }, [students, selectedClassFilter, className]);
 
   // Thống kê số liệu KPI linh hoạt theo chế độ xem (35 tuần thường xuyên hoặc tổng hợp định kỳ)
   const currentKpi = useMemo(() => {
@@ -351,10 +358,10 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   // Hành động: Giáo viên chọn một lớp dạy cụ thể
   const handleSelectTeachingClass = (targetClass) => {
     if (!targetClass) return;
-    const cleanClass = targetClass.trim();
+    const cleanClass = normalizeClassLabel(targetClass);
     setClassName(cleanClass);
     setSelectedClassFilter(cleanClass);
-    setClassOptions(prev => Array.from(new Set([...prev, cleanClass])));
+    setClassOptions(prev => Array.from(new Set([...prev.map(normalizeClassLabel), cleanClass])));
     setHasUploadedOrSelected(true);
   };
 
@@ -362,13 +369,12 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   const handleAddNewClass = () => {
     const newCls = prompt('Nhập tên lớp dạy mới (ví dụ: 1A1, 2C, 3D, 4E, 5G):');
     if (newCls && newCls.trim()) {
-      const clean = newCls.trim().replace(/^Lớp\s+/i, '');
-      const full = `Lớp ${clean}`;
+      const clean = normalizeClassLabel(newCls);
       if (!teachingClasses.includes(clean)) {
         saveTeachingClasses([...teachingClasses, clean]);
       }
-      handleSelectTeachingClass(full);
-      setExportNotice(`✅ Đã thêm ${full} vào danh sách lớp dạy!`);
+      handleSelectTeachingClass(clean);
+      setExportNotice(`✅ Đã thêm Lớp ${clean} vào danh sách lớp dạy!`);
       setTimeout(() => setExportNotice(''), 3000);
     }
   };
@@ -376,10 +382,18 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   // Nạp dữ liệu mẫu thử nghiệm
   const handleLoadSampleData = () => {
     setStudents(INITIAL_STUDENTS);
-    setClassName('Lớp 1A');
-    setClassOptions(['Lớp 1A']);
+    setClassName('1A');
+    setClassOptions(['1A']);
     setSelectedClassFilter('all');
     setHasUploadedOrSelected(true);
+    writeSmasData({
+      hasUploadedOrSelected: true,
+      className: '1A',
+      classOptions: ['1A'],
+      selectedClassFilter: 'all',
+      semester,
+      students: INITIAL_STUDENTS
+    });
     setExportNotice('✅ Đã nạp danh sách mẫu 6 em để thử nghiệm tính năng!');
     setTimeout(() => setExportNotice(''), 3000);
   };
@@ -395,8 +409,20 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     setSelectedClassFilter('all');
     setHasUploadedOrSelected(false);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(SMAS_STORAGE_KEY);
+      try {
+        localStorage.removeItem(getSmasStorageKey());
+      } catch (_) {}
     }
+    writeSmasData({
+      hasUploadedOrSelected: false,
+      className: '',
+      classOptions: [],
+      selectedClassFilter: 'all',
+      semester,
+      students: []
+    });
+    setExportNotice('✅ Đã làm mới sổ nhận xét. Thầy/Cô có thể tải lên danh sách lớp mới!');
+    setTimeout(() => setExportNotice(''), 3000);
   };
 
   // Mở cửa sổ chọn tệp danh sách học sinh
@@ -532,13 +558,33 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       // Tệp .txt có thể là danh sách tên mỗi dòng; CSV/TSV được đọc theo cột ở bên dưới.
       if (fileName.endsWith('.txt')) {
         const text = await file.text();
-        const parsed = parseRawTextLines(text);
+        const parsed = parseRawTextLines(text).map(st => ({
+          ...st,
+          className: normalizeClassLabel(st.className || className)
+        }));
         if (parsed.length > 0) {
-          const detectedClasses = Array.from(new Set(parsed.map(student => student.className).filter(Boolean)));
+          const detectedClasses = Array.from(new Set(parsed.map(st => st.className).filter(Boolean)));
+          const targetClass = detectedClasses[0] || '1A';
+
           setStudents(parsed);
           setClassOptions(detectedClasses);
-          if (detectedClasses.length === 1) setClassName(detectedClasses[0]);
+          setClassName(targetClass);
+          setSelectedClassFilter('all');
           setHasUploadedOrSelected(true);
+
+          writeSmasData({
+            hasUploadedOrSelected: true,
+            className: targetClass,
+            classOptions: detectedClasses,
+            selectedClassFilter: 'all',
+            semester,
+            students: parsed
+          });
+
+          if (detectedClasses.length > 0) {
+            saveTeachingClasses(detectedClasses);
+          }
+
           setExportNotice(`✅ Đã đọc thành công ${parsed.length} học sinh từ tệp!`);
           setTimeout(() => setExportNotice(''), 4000);
           return;
@@ -556,13 +602,32 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         return;
       }
 
-      setStudents(parsedStudents);
-      setClassOptions(detectedClasses);
-      if (detectedClasses.length > 0) {
-        setClassName(detectedClasses[0]);
-        setSelectedClassFilter('all');
-      }
+      const normalizedStudents = parsedStudents.map(st => ({
+        ...st,
+        className: normalizeClassLabel(st.className)
+      }));
+      const normClasses = Array.from(new Set(detectedClasses.map(c => normalizeClassLabel(c)).filter(Boolean)));
+      const targetClass = normClasses[0] || '1A';
+
+      setStudents(normalizedStudents);
+      setClassOptions(normClasses);
+      setClassName(targetClass);
+      setSelectedClassFilter('all');
       setHasUploadedOrSelected(true);
+
+      // Lưu đồng bộ ngay lập tức để không bao giờ bị nạp lại dữ liệu cũ khi F5/chuyển tab
+      writeSmasData({
+        hasUploadedOrSelected: true,
+        className: targetClass,
+        classOptions: normClasses,
+        selectedClassFilter: 'all',
+        semester,
+        students: normalizedStudents
+      });
+
+      if (normClasses.length > 0) {
+        saveTeachingClasses(normClasses);
+      }
 
       if (/giua|ghk/i.test(fileName)) {
         setSemester('Giữa kì I');
@@ -570,14 +635,18 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         setSemester('Học kì I');
       }
 
-      const tCount = parsedStudents.filter(s => s.level === 'T').length;
-      const hCount = parsedStudents.filter(s => s.level === 'H').length;
-      const cCount = parsedStudents.filter(s => s.level === 'C').length;
-      setExportNotice(`✅ Đã nạp thành công toàn bộ ${parsedStudents.length} học sinh (${tCount} T, ${hCount} H, ${cCount} C) từ "${file.name}"!`);
+      const tCount = normalizedStudents.filter(s => s.level === 'T').length;
+      const hCount = normalizedStudents.filter(s => s.level === 'H').length;
+      const cCount = normalizedStudents.filter(s => s.level === 'C').length;
+      setExportNotice(`✅ Đã nạp thành công toàn bộ ${normalizedStudents.length} học sinh (${tCount} T, ${hCount} H, ${cCount} C) từ "${file.name}"!`);
       setTimeout(() => setExportNotice(''), 4000);
     } catch (err) {
       console.error('Lỗi nạp tệp học sinh:', err);
       alert('Lỗi đọc tệp danh sách học sinh: ' + err.message + '\nThầy/Cô có thể dùng tính năng Dán Danh Sách (Copy-Paste) để nạp ngay.');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -586,16 +655,33 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     if (!pasteInputText.trim()) return;
     const parsed = parseRawTextLines(pasteInputText).map(student => ({
       ...student,
-      className: student.className || className || ''
+      className: normalizeClassLabel(student.className || className)
     }));
     if (parsed.length > 0) {
-      setStudents(parsed);
       const detectedClasses = Array.from(new Set(parsed.map(student => student.className).filter(Boolean)));
+      const targetClass = detectedClasses[0] || className || '1A';
+
+      setStudents(parsed);
       setClassOptions(detectedClasses);
-      if (detectedClasses.length === 1) setClassName(detectedClasses[0]);
+      setClassName(targetClass);
+      setSelectedClassFilter('all');
       setHasUploadedOrSelected(true);
       setShowPasteModal(false);
       setPasteInputText('');
+
+      writeSmasData({
+        hasUploadedOrSelected: true,
+        className: targetClass,
+        classOptions: detectedClasses,
+        selectedClassFilter: 'all',
+        semester,
+        students: parsed
+      });
+
+      if (detectedClasses.length > 0) {
+        saveTeachingClasses(detectedClasses);
+      }
+
       setExportNotice(`✅ Đã thêm ${parsed.length} học sinh từ văn bản dán!`);
       setTimeout(() => setExportNotice(''), 4000);
     } else {
@@ -669,7 +755,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   const handleBatchSetLevel = (lvl) => {
     const bank = TT27_COMMENTS_BANK[lvl] || TT27_COMMENTS_BANK.H;
     const updated = students.map((st, idx) => {
-      if (selectedClassFilter !== 'all' && (st.className || className || '').trim() !== selectedClassFilter.trim()) {
+      if (selectedClassFilter !== 'all' && normalizeClassLabel(st.className || className) !== normalizeClassLabel(selectedClassFilter)) {
         return st;
       }
       return {
@@ -1063,7 +1149,8 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                 Tất Cả ({students.length})
               </button>
               {allClasses.map((cls) => {
-                const count = students.filter(s => (s.className || className || '').trim() === cls.trim()).length;
+                const count = students.filter(s => normalizeClassLabel(s.className || className) === cls).length;
+                const isSelected = selectedClassFilter !== 'all' && normalizeClassLabel(selectedClassFilter) === cls;
                 return (
                   <button
                     key={cls}
@@ -1072,14 +1159,14 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                       setClassName(cls);
                     }}
                     className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
-                      selectedClassFilter === cls
+                      isSelected
                         ? 'bg-purple-600 text-white border-purple-700 shadow-xs font-black'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    <span>{cls}</span>
+                    <span>Lớp {cls}</span>
                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      selectedClassFilter === cls ? 'bg-purple-800 text-purple-200' : 'bg-slate-200 text-slate-600'
+                      isSelected ? 'bg-purple-800 text-purple-200' : 'bg-slate-200 text-slate-600'
                     }`}>
                       {count}
                     </span>
@@ -1158,15 +1245,18 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
               <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
                 <span>🏫</span> Chọn Lớp Dạy:
               </span>
-              {teachingClasses.map((cls) => (
-                <button
-                  key={cls}
-                  onClick={() => handleSelectTeachingClass(cls.startsWith('Lớp') ? cls : `Lớp ${cls}`)}
-                  className="px-2.5 py-1 text-xs font-bold rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white transition-all cursor-pointer shadow-2xs"
-                >
-                  {cls.startsWith('Lớp') ? cls : `Lớp ${cls}`}
-                </button>
-              ))}
+              {teachingClasses.map((cls) => {
+                const norm = normalizeClassLabel(cls);
+                return (
+                  <button
+                    key={norm}
+                    onClick={() => handleSelectTeachingClass(norm)}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white transition-all cursor-pointer shadow-2xs"
+                  >
+                    Lớp {norm}
+                  </button>
+                );
+              })}
               <button
                 onClick={handleAddNewClass}
                 className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg flex items-center gap-1 cursor-pointer"

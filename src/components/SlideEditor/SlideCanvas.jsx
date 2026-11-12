@@ -366,7 +366,12 @@ export default function SlideCanvas({
       {/* 16:9 Canvas Viewport */}
       <div 
         ref={containerRef}
-        onClick={onDeselect}
+        onClick={(e) => {
+          if (e.target === containerRef.current) {
+            onDeselect();
+            setEditingTextId(null);
+          }
+        }}
         className="flex-1 bg-slate-200/50 overflow-auto flex items-center justify-center p-4 relative cursor-default"
       >
         {/* 16:9 Canvas Frame */}
@@ -395,6 +400,10 @@ export default function SlideCanvas({
           return (
             <div
               key={el.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectElement(el.id);
+              }}
               onMouseDown={(e) => handleElementMouseDown(e, el)}
               onDoubleClick={(e) => {
                 e.stopPropagation();

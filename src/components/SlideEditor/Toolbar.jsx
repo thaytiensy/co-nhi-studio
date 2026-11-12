@@ -55,7 +55,11 @@ export default function Toolbar({
   };
 
   return (
-    <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 select-none shadow-2xs">
+    <div 
+      className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 select-none shadow-2xs"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
       {/* Left section: Insert Items */}
       <div className="flex items-center gap-2 border-r border-slate-200 pr-3">
         <span className="text-[13px] font-black text-slate-500 uppercase tracking-wider mr-1">Chèn:</span>

@@ -1,6 +1,7 @@
 import { getScopedStorageKey } from './userWorkspaceService.js';
-import { TT27_COMMENTS_BANK } from './smasExcelService.js';
+import { TT27_COMMENTS_BANK, normalizeClassLabel } from './smasExcelService.js';
 
+export { normalizeClassLabel };
 export const BASE_SMAS_STORAGE_KEY = 'conhi_smas_evaluations_state_v2';
 export const getSmasStorageKey = () => getScopedStorageKey(BASE_SMAS_STORAGE_KEY);
 export const getTeachingClassesKey = () => getScopedStorageKey('conhi_teaching_classes');
@@ -353,7 +354,7 @@ export function batchSynthesizeClassEvaluations({
 
   const updatedStudents = students.map((student) => {
     const isTarget = targetClass === 'all' || 
-      (student.className || '').trim().replace(/^Lớp\s+/i, '') === String(targetClass).trim().replace(/^Lớp\s+/i, '');
+      normalizeClassLabel(student.className) === normalizeClassLabel(targetClass);
 
     if (!isTarget) {
       return student;

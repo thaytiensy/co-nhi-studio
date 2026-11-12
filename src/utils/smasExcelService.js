@@ -14,6 +14,14 @@ export const TT27_COMMENTS_BANK = {
 
 const NON_STUDENT_REGEX = /^(lớp|khối|trường|phòng|sở|bảng|năm học|học kỳ|học kì|môn|giáo viên|danh sách|tổng cộng|người lập|chữ ký|ngày sinh|stt|mã|họ và tên|studentid)/i;
 
+/**
+ * Chuẩn hóa tên lớp bỏ tiền tố "Lớp" dư thừa (ví dụ: "Lớp 1A" -> "1A", "  2B " -> "2B")
+ */
+export function normalizeClassLabel(cls) {
+  if (!cls) return '';
+  return String(cls).trim().replace(/^lớp\s*/i, '').trim();
+}
+
 export function parseLevel(value) {
   if (!value) return 'H';
   const raw = String(value).trim().toUpperCase();
@@ -138,7 +146,7 @@ function parseSheetRows(rawRows, defaultClass = '', options = {}) {
     if (NON_STUDENT_REGEX.test(fullName)) continue;
 
     const rawId = (idColIdx !== -1 && row[idColIdx]) ? row[idColIdx].toString().trim() : `HS${(result.length + 1).toString().padStart(3, '0')}`;
-    const rawClass = (classColIdx !== -1 && row[classColIdx]) ? row[classColIdx].toString().trim() : detectedClass;
+    const rawClass = normalizeClassLabel((classColIdx !== -1 && row[classColIdx]) ? row[classColIdx].toString().trim() : detectedClass);
     const rawLevel = (levelColIdx !== -1 && row[levelColIdx]) ? parseLevel(row[levelColIdx]) : 'H';
     let rawComment = (commentColIdx !== -1 && row[commentColIdx]) ? row[commentColIdx].toString().trim() : '';
     const hasComment = Boolean(rawComment);
@@ -170,15 +178,16 @@ export function parseSmasWorkbook(workbook, options = {}) {
     const studentsInSheet = parseSheetRows(rawRows, sheetName, options);
     for (const st of studentsInSheet) {
       allStudents.push(st);
-      if (st.className) detectedClasses.add(st.className);
+      if (st.className) detectedClasses.add(normalizeClassLabel(st.className));
     }
   }
   return { students: allStudents, detectedClasses: Array.from(detectedClasses) };
 }
 
 export function shuffleClassComments(students = [], targetClass = '') {
+  const normTarget = normalizeClassLabel(targetClass);
   return students.map((st, idx) => {
-    if (targetClass && targetClass !== 'all' && (st.className || '').trim() !== targetClass.trim()) return st;
+    if (normTarget && normTarget !== 'all' && normalizeClassLabel(st.className) !== normTarget) return st;
     const bank = TT27_COMMENTS_BANK[st.level] || TT27_COMMENTS_BANK.H;
     const comment = bank[(idx + Math.floor(Math.random() * bank.length)) % bank.length];
     return { ...st, comment, commentSource: 'generated' };
