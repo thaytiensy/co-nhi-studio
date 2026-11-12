@@ -963,18 +963,6 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
             </button>
           )}
 
-          {/* Nút Tổng Hợp Định Kỳ Giữa Kỳ & Cuối Kỳ */}
-          {students.length > 0 && (
-            <button
-              onClick={() => setShowSynthesisModal(true)}
-              className="px-3 py-1.5 text-xs font-black text-amber-900 bg-gradient-to-r from-amber-200 via-amber-300 to-yellow-200 hover:from-amber-300 hover:to-yellow-300 border border-amber-400 rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer transform active:scale-95"
-              title="Tổng hợp tự động mức xếp loại T/H/C và nhận xét giữa kì / cuối kì theo Thông tư 27"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-800" />
-              <span>⚡ Tổng Hợp Định Kỳ</span>
-            </button>
-          )}
-
           {/* Nút Cam Chấm Tranh liên kết */}
           {onNavigateToCamera && (
             <button
@@ -1345,12 +1333,12 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
           {/* Thanh Điều Khiển Chế Độ Sổ Điểm & KPI Thống Kê */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              {/* Bộ Chuyển Chế Độ Xem (Sổ Thường Xuyên 35 Tuần | Sổ Tổng Hợp Định Kỳ & Nhận Xét | Xem Tất Cả) */}
-              <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200">
+              {/* Bộ Chuyển Chế Độ Xem (Sổ Điểm Thường Xuyên 35 Tuần | Sổ Điểm Tổng Hợp) */}
+              <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setViewMode('weekly')}
-                  className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'weekly'
                       ? 'bg-amber-500 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -1358,41 +1346,27 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                   title="Sổ theo dõi thường xuyên 35 tuần học (chỉ ghi nhận mức T/H/C, không cần nhận xét)"
                 >
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>📅 Sổ Thường Xuyên (Tuần 1 - 35)</span>
+                  <span>📅 Sổ Điểm Thường Xuyên (35 Tuần)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setViewMode('periodic')}
-                  className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-3.5 py-1.5 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                     viewMode === 'periodic'
                       ? 'bg-purple-600 text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                   }`}
-                  title="Sổ tổng hợp định kỳ Giữa kỳ, Cuối kỳ, Cả năm và Lời nhận xét chuẩn Thông tư 27 & SMAS"
+                  title="Sổ điểm tổng hợp giữa kỳ, cuối kì, cả năm chuẩn mẫu SMAS (tính từ sổ điểm thường xuyên)"
                 >
                   <Award className="w-3.5 h-3.5" />
-                  <span>🏆 Sổ Tổng Hợp Định Kỳ & Nhận Xét (TT27)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setViewMode('all')}
-                  className={`px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
-                    viewMode === 'all'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-                  }`}
-                  title="Xem đồng thời cả 35 tuần thường xuyên và cột nhận xét tổng hợp định kỳ trên cùng một bảng"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span>👁️ Xem Toàn Diện</span>
+                  <span>🏆 Sổ Điểm Tổng Hợp (Giữa kỳ, Cuối kì, Cả năm)</span>
                 </button>
               </div>
 
               {/* Các nút chức năng ngữ cảnh tùy theo viewMode */}
               <div className="flex items-center gap-2 flex-wrap">
-                {(viewMode === 'periodic' || viewMode === 'all') && (
+                {viewMode === 'periodic' && (
                   <>
                     <div className="flex items-center gap-1 bg-purple-50 border border-purple-200 p-1 rounded-xl">
                       <span className="text-[11px] font-black text-purple-900 uppercase px-2">Kỳ:</span>
@@ -1436,20 +1410,17 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
 
                     <button
                       type="button"
-                      onClick={() => {
-                        setSynthesisTargetPeriod(periodicPeriod);
-                        setShowSynthesisModal(true);
-                      }}
-                      className="px-3 py-1.5 text-xs font-black text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl flex items-center gap-1.5 transition-all shadow-sm cursor-pointer active:scale-95"
-                      title="Tự động tổng hợp điểm mức T/H/C và sinh lời nhận xét từ 35 tuần học thường xuyên"
+                      onClick={() => handleSynthesizePeriodic(periodicPeriod)}
+                      className="px-3 py-1.5 text-xs font-black text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-800 rounded-xl flex items-center gap-1.5 transition-all shadow-sm cursor-pointer active:scale-95"
+                      title={`Tự động tổng hợp mức T/H/C và nhận xét ${periodicPeriod === 'GK' ? 'Giữa Kì I' : periodicPeriod === 'CK' ? 'Cuối Kì I' : 'Cả Năm'} từ điểm các tuần thường xuyên`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                      <span>⚡ Tổng Hợp Từ 35 Tuần</span>
+                      <span>⚡ Tính Từ Sổ Thường Xuyên</span>
                     </button>
                   </>
                 )}
 
-                {(viewMode === 'weekly' || viewMode === 'all') && onNavigateToCamera && (
+                {viewMode === 'weekly' && onNavigateToCamera && (
                   <button
                     type="button"
                     onClick={onNavigateToCamera}
@@ -1467,6 +1438,12 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
               <div className="text-[11px] text-amber-900 bg-amber-50/80 border border-amber-200 px-3 py-1.5 rounded-xl flex items-center justify-between">
                 <span>💡 <strong>Quy chuẩn sư phạm:</strong> Sổ theo dõi thường xuyên 35 tuần chỉ ghi nhận mức <strong>T</strong> (Tốt) / <strong>H</strong> (Hoàn thành) / <strong>C</strong> (Cần cố gắng), không cần viết nhận xét theo tuần. Bấm vào từng ô để đổi nhanh <strong>T ➜ H ➜ C ➜ —</strong>.</span>
                 <span className="font-bold text-amber-800 shrink-0 ml-2">Tuần 1 ➔ Tuần 35</span>
+              </div>
+            )}
+            {viewMode === 'periodic' && (
+              <div className="text-[11px] text-purple-900 bg-purple-50/80 border border-purple-200 px-3 py-1.5 rounded-xl flex items-center justify-between">
+                <span>🏆 <strong>Sổ Điểm Tổng Hợp Chuẩn Mẫu SMAS:</strong> Tự động tính tổng điểm từ sổ điểm thường xuyên. Bấm nút <strong>⚡ Tính Từ Sổ Thường Xuyên</strong> để tính mức T/H/C và tự động điền lời nhận xét theo Thông tư 27.</span>
+                <span className="font-bold text-purple-800 shrink-0 ml-2">Chuẩn Xuất SMAS Viettel</span>
               </div>
             )}
 
@@ -1537,10 +1514,12 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                     <th className="py-2.5 px-2 w-24">Mã HS</th>
                     <th className="py-2.5 px-3 min-w-36 sticky left-10 bg-slate-50 z-10">Họ và Tên</th>
                     <th className="py-2.5 px-2 w-16 text-center">Lớp</th>
-                    <th className="py-2.5 px-2 w-20 text-center">Cam Chấm</th>
+                    {viewMode === 'weekly' && (
+                      <th className="py-2.5 px-2 w-20 text-center">Cam Chấm</th>
+                    )}
 
-                    {/* 35 Cột Tuần (T1 -> T35) - Không có nhận xét tuần */}
-                    {(viewMode === 'weekly' || viewMode === 'all') && (
+                    {/* 35 Cột Tuần (T1 -> T35) */}
+                    {viewMode === 'weekly' && (
                       <>
                         {Array.from({ length: 35 }, (_, i) => i + 1).map((w) => (
                           <th
@@ -1556,17 +1535,14 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                       </>
                     )}
 
-                    {/* Sổ Tổng Hợp Định Kỳ & Lời Nhận Xét (Chuẩn TT27 & SMAS) */}
-                    {(viewMode === 'periodic' || viewMode === 'all') && (
+                    {/* Sổ Tổng Hợp Định Kỳ Chuẩn Mẫu SMAS (Không có 35 tuần, chuẩn mẫu SMAS tính từ sổ thường xuyên) */}
+                    {viewMode === 'periodic' && (
                       <>
-                        <th className="py-2.5 px-2 w-28 text-center bg-purple-50/50 text-purple-900 border-l border-slate-200">
-                          Tiến Độ 35 Tuần
-                        </th>
-                        <th className="py-2.5 px-2 w-32 text-center bg-purple-50/70 text-purple-900 border-l border-slate-200">
-                          Mức {periodicPeriod === 'GK' ? 'Giữa Kì (GK1)' : periodicPeriod === 'CK' ? 'Cuối Kì (CK1)' : 'Cả Năm (CN)'}
+                        <th className="py-2.5 px-3 w-36 text-center bg-purple-50/80 text-purple-900 border-l border-slate-200">
+                          Mức {periodicPeriod === 'GK' ? 'Giữa Kì I (GK1)' : periodicPeriod === 'CK' ? 'Cuối Kì I (CK1)' : 'Cả Năm (CN)'}
                         </th>
                         <th className="py-2.5 px-4 min-w-96 border-l border-slate-200">
-                          Lời Nhận Xét Tổng Hợp Định Kỳ (Chuẩn TT27 & SMAS)
+                          Nội Dung Nhận Xét (Chuẩn SMAS Viettel & TT27)
                         </th>
                       </>
                     )}
@@ -1577,7 +1553,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                   {displayedStudents.length === 0 ? (
                     <tr>
-                      <td colSpan={viewMode === 'weekly' ? 41 : viewMode === 'periodic' ? 9 : 44} className="py-12 text-center text-slate-500">
+                      <td colSpan={viewMode === 'weekly' ? 41 : 7} className="py-12 text-center text-slate-500">
                         <p className="font-bold text-sm text-slate-700">Lớp {selectedClassFilter} chưa có học sinh nào</p>
                         <p className="text-xs text-slate-400 mt-1">Bấm nút "Thêm Em" ở phía trên để thêm học sinh hoặc "Tải Danh Sách" để nạp từ tệp Excel</p>
                         <button
@@ -1640,33 +1616,35 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                               className="w-14 text-center px-1 py-0.5 text-xs text-slate-700 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none"
                             />
                           </td>
-                          <td className="py-2 px-1 text-center">
-                            {hasCamHistory ? (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedStudentForCamModal(st)}
-                                className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
-                                title="Bấm để xem lại ảnh và điểm các bài vẽ đã chấm qua camera"
-                              >
-                                <Camera className="w-3 h-3 text-rose-600" />
-                                <span>{st.camHistory.length}</span>
-                              </button>
-                            ) : onNavigateToCamera ? (
-                              <button
-                                type="button"
-                                onClick={onNavigateToCamera}
-                                className="text-[10px] font-bold text-slate-300 hover:text-rose-600 cursor-pointer"
-                                title="Chấm bài vẽ cho em này bằng Camera"
-                              >
-                                <Camera className="w-3 h-3 inline" />
-                              </button>
-                            ) : (
-                              <span className="text-slate-300 text-xs">—</span>
-                            )}
-                          </td>
+                          {viewMode === 'weekly' && (
+                            <td className="py-2 px-1 text-center">
+                              {hasCamHistory ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedStudentForCamModal(st)}
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                                  title="Bấm để xem lại ảnh và điểm các bài vẽ đã chấm qua camera"
+                                >
+                                  <Camera className="w-3 h-3 text-rose-600" />
+                                  <span>{st.camHistory.length}</span>
+                                </button>
+                              ) : onNavigateToCamera ? (
+                                <button
+                                  type="button"
+                                  onClick={onNavigateToCamera}
+                                  className="text-[10px] font-bold text-slate-300 hover:text-rose-600 cursor-pointer"
+                                  title="Chấm bài vẽ cho em này bằng Camera"
+                                >
+                                  <Camera className="w-3 h-3 inline" />
+                                </button>
+                              ) : (
+                                <span className="text-slate-300 text-xs">—</span>
+                              )}
+                            </td>
+                          )}
 
                           {/* 35 Cột Tuần (T1 -> T35) */}
-                          {(viewMode === 'weekly' || viewMode === 'all') && (
+                          {viewMode === 'weekly' && (
                             <>
                               {Array.from({ length: 35 }, (_, i) => i + 1).map((w) => {
                                 const lvl = weekly[w] || weekly[String(w)] || '';
@@ -1697,18 +1675,11 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                             </>
                           )}
 
-                          {/* Cột Sổ Tổng Hợp Định Kỳ & Nhận Xét */}
-                          {(viewMode === 'periodic' || viewMode === 'all') && (
+                          {/* Cột Sổ Tổng Hợp Định Kỳ & Nhận Xét Chuẩn SMAS */}
+                          {viewMode === 'periodic' && (
                             <>
-                              {/* Tiến độ 35 tuần */}
-                              <td className="py-2 px-2 text-center border-l border-slate-100 bg-purple-50/20">
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 whitespace-nowrap">
-                                  {totalWeekly > 0 ? `${tCount}T • ${hCount}H${cCount > 0 ? ` • ${cCount}C` : ''}` : 'Chưa có điểm'}
-                                </span>
-                              </td>
-
                               {/* Mức Định Kỳ (GK, CK, CN) */}
-                              <td className="py-2 px-2 border-l border-slate-100 bg-purple-50/20">
+                              <td className="py-2 px-2 border-l border-slate-100 bg-purple-50/20 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   {[
                                     { key: 'T', activeCls: 'bg-emerald-600 text-white border-emerald-700 shadow-sm' },
@@ -1719,7 +1690,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                                       key={lvl.key}
                                       type="button"
                                       onClick={() => handlePeriodicLevelChange(st.id, periodicPeriod, lvl.key)}
-                                      className={`px-1.5 py-0.5 text-[11px] font-black rounded border transition-all cursor-pointer ${
+                                      className={`px-2 py-1 text-xs font-black rounded border transition-all cursor-pointer ${
                                         currentPeriodLevel === lvl.key
                                           ? `${lvl.activeCls} scale-105`
                                           : 'bg-white text-slate-400 border-slate-200 hover:bg-slate-100'
@@ -1738,7 +1709,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                                   value={currentPeriodComment}
                                   onChange={(e) => handlePeriodicCommentChange(st.id, periodicPeriod, e.target.value)}
                                   rows={2}
-                                  placeholder="Lời nhận xét định kỳ chuẩn TT27 (bấm '⚡ Tổng Hợp Từ 35 Tuần' để tự động điền)..."
+                                  placeholder="Nội dung nhận xét chuẩn TT27 & SMAS (bấm '⚡ Tính Từ Sổ Thường Xuyên' để tự động điền)..."
                                   className="w-full p-2 text-xs text-slate-700 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 resize-y font-sans leading-relaxed"
                                 />
                               </td>

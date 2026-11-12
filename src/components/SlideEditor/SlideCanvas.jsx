@@ -37,33 +37,46 @@ export default function SlideCanvas({
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const [originalElement, setOriginalElement] = useState(null);
 
+  const lastWidthRef = useRef(0);
+
   // Dynamic responsive scale calculation with ResizeObserver
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const updateScale = () => {
+    const updateScale = (force = false) => {
       const { clientWidth, clientHeight } = container;
-      const paddingX = 24;
+      if (!clientWidth) return;
+
+      // Nếu chiều ngang không đổi (chỉ do mở thanh công cụ sửa chữ làm đổi nhẹ chiều dọc),
+      // TUYỆT ĐỐI KHÔNG thu nhỏ slide gây giật và co rúm màn hình của Thầy/Cô!
+      if (!force && lastWidthRef.current && Math.abs(clientWidth - lastWidthRef.current) < 12) {
+        return;
+      }
+      lastWidthRef.current = clientWidth;
+
+      const paddingX = 32;
       const paddingY = 24;
-      const availableWidth = Math.max(100, clientWidth - paddingX);
-      const availableHeight = Math.max(100, clientHeight - paddingY);
+      const availableWidth = Math.max(300, clientWidth - paddingX);
+      const availableHeight = Math.max(250, clientHeight - paddingY);
 
       const scaleX = availableWidth / CANVAS_WIDTH;
       const scaleY = availableHeight / CANVAS_HEIGHT;
-      // Bảo đảm vừa khít trong khung, tỉ lệ 16:9, không bao giờ tràn ngang
-      const calculatedScale = Math.min(scaleX, scaleY, 1.15);
-      setScale(Math.max(calculatedScale, 0.15));
+
+      // Bảo đảm slide luôn to rõ, tỉ lệ chuẩn tối thiểu 0.72 (không bao giờ bị co rúm về 0.30 - 0.40)
+      const calculatedScale = Math.max(0.72, Math.min(scaleX, Math.max(scaleY, 0.72), 1.15));
+      setScale(calculatedScale);
     };
 
-    updateScale();
-    const ro = new ResizeObserver(() => updateScale());
+    updateScale(true);
+    const ro = new ResizeObserver(() => updateScale(false));
     ro.observe(container);
-    window.addEventListener('resize', updateScale);
+    const handleWinResize = () => updateScale(true);
+    window.addEventListener('resize', handleWinResize);
 
     return () => {
       ro.disconnect();
-      window.removeEventListener('resize', updateScale);
+      window.removeEventListener('resize', handleWinResize);
     };
   }, []);
 

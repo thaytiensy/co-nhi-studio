@@ -466,7 +466,7 @@ export default function ArtCameraRubric({
   return (
     <div className="flex-1 flex overflow-hidden bg-slate-100 select-none">
       {/* Left Column: Camera / Image Viewer */}
-      <div className="w-1/2 p-6 flex flex-col justify-between border-r border-slate-200 bg-white shadow-xs">
+      <div className="w-1/2 p-4 md:p-5 flex flex-col border-r border-slate-200 bg-white shadow-xs overflow-y-auto custom-scrollbar">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -558,7 +558,7 @@ export default function ArtCameraRubric({
                 fileInputRef.current?.click();
               }
             }}
-            className={`mt-4 aspect-video bg-slate-900 rounded-2xl overflow-hidden relative shadow-inner flex items-center justify-center border border-slate-300 ${
+            className={`mt-3 w-full max-h-[36vh] min-h-[200px] aspect-video bg-slate-900 rounded-2xl overflow-hidden relative shadow-inner flex items-center justify-center border border-slate-300 shrink-0 ${
               !isCameraActive && !capturedImage ? 'cursor-pointer hover:border-amber-400 group' : ''
             }`}
           >
@@ -649,7 +649,7 @@ export default function ArtCameraRubric({
 
         {/* Action below image */}
         {capturedImage && (
-          <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
+          <div className="mt-4 pt-3 border-t border-slate-100 space-y-3 shrink-0 pb-8">
             {/* Phân tích màu cục bộ; rubric vẫn do giáo viên quyết định */}
             <button
               onClick={handleAnalyzeArtwork}
