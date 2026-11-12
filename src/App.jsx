@@ -303,15 +303,11 @@ export default function App() {
     };
   }, [currentUserSession?.role, isAdminModalOpen]);
 
-  // Khởi tạo không gian làm việc từ session hiện tại (nếu có khi F5 tải lại tab)
+  // Mặc định luôn yêu cầu đăng nhập qua LoginGateModal khi mở ứng dụng (chống auto-login)
   useEffect(() => {
-    const session = getCurrentSession();
-    if (session && session.email) {
-      setActiveUserScope(session.email);
-      setCurrentUserSession(session);
-      setIsAuthenticated(true);
-      loadUserWorkspace(session.email);
-    }
+    setIsAuthenticated(false);
+    setCurrentUserSession(null);
+    clearActiveUserScope();
   }, []);
 
   // Áp dụng bản nháp tự động khôi phục sau sự cố

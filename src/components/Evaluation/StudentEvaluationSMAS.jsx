@@ -20,7 +20,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel, normalizeClassLabel } from '../../utils/smasExcelService';
+import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel, normalizeClassLabel, isNonStudentName } from '../../utils/smasExcelService';
 import { getScopedStorageKey } from '../../utils/userWorkspaceService';
 import { 
   batchSynthesizeClassEvaluations, 
@@ -132,7 +132,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed.students)) {
-          return parsed.students;
+          return parsed.students.filter(s => s && s.name && !isNonStudentName(s.name));
         }
       }
     } catch (_) {}
@@ -542,7 +542,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         if (commentCandidate >= 0) { comment = values[commentCandidate]; used.add(commentCandidate); }
       }
 
-      if (!name || /^(stt|danh sach|ho va ten|ho ten)$/i.test(normalize(name))) return;
+      if (!name || isNonStudentName(name)) return;
       const hasProvidedComment = Boolean(comment);
       if (!comment) {
         const bank = TT27_COMMENTS_BANK[level] || TT27_COMMENTS_BANK.H;

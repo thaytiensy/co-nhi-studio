@@ -12,6 +12,32 @@ export const TT27_COMMENTS_BANK = {
   C: ['Em cần chú ý quan sát mẫu kĩ hơn, tô màu cẩn thận và hoàn thiện bài vẽ đúng hạn.', 'Cần tập trung hơn trong giờ thực hành mĩ thuật, chuẩn bị đủ sáp màu khi đến lớp.', 'Nét vẽ còn rụt rè, em hãy tự tin vẽ nét to rõ hơn và phối thêm màu sắc sinh động nhé.', 'Em cần hoàn thành phần tô màu nền để bức tranh thêm sinh động và hoàn chỉnh hơn.']
 };
 
+/**
+ * Kiểm tra xem một chuỗi có phải là tiêu đề/lớp/trường/không phải tên học sinh hay không.
+ * Hỗ trợ 100% cả NFC lẫn NFD, có dấu và không dấu.
+ */
+export function isNonStudentName(name) {
+  if (!name || typeof name !== 'string') return true;
+  const clean = name.trim().replace(/^\d+[.\s-]+/, '').trim();
+  if (clean.length < 2) return true;
+  if (/^(?:lớp|lop)?\s*[0-9]{1,2}\s*[A-Za-z0-9_-]+$/i.test(clean)) return true;
+
+  const norm = clean.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+
+  const nonStudentKeywords = [
+    'lop', 'khoi', 'truong', 'phong', 'so gd', 'so gd&dt', 'bang', 'nam hoc',
+    'hoc ky', 'hoc ki', 'mon', 'giao vien', 'gv', 'danh sach', 'tong cong',
+    'tong so', 'nguoi lap', 'chu ky', 'ngay sinh', 'stt', 'ma hs', 'ma dinh danh',
+    'ho va ten', 'ho ten', 'studentid', 'student id', 'so thu tu', 'xep loai',
+    'danh gia', 'nhan xet', 'ghi chu', 'muc dat', 'ket qua'
+  ];
+
+  return nonStudentKeywords.some(kw => norm.startsWith(kw) || norm === kw);
+}
+
 const NON_STUDENT_REGEX = /^(lớp|khối|trường|phòng|sở|bảng|năm học|học kỳ|học kì|môn|giáo viên|danh sách|tổng cộng|người lập|chữ ký|ngày sinh|stt|mã|họ và tên|studentid)/i;
 
 /**
@@ -141,9 +167,9 @@ function parseSheetRows(rawRows, defaultClass = '', options = {}) {
       const candidate = row.find(c => typeof c === 'string' && c.trim().split(/\s+/).length >= 2 && /[a-zA-ZÀ-ỹ]/.test(c));
       if (candidate) fullName = candidate.toString().trim();
     }
-    if (!fullName || NON_STUDENT_REGEX.test(fullName) || fullName.length < 2) continue;
+    if (!fullName || isNonStudentName(fullName) || fullName.length < 2) continue;
     fullName = fullName.replace(/^\d+[.\s-]+/, '').trim();
-    if (NON_STUDENT_REGEX.test(fullName)) continue;
+    if (isNonStudentName(fullName)) continue;
 
     const rawId = (idColIdx !== -1 && row[idColIdx]) ? row[idColIdx].toString().trim() : `HS${(result.length + 1).toString().padStart(3, '0')}`;
     const rawClass = normalizeClassLabel((classColIdx !== -1 && row[classColIdx]) ? row[classColIdx].toString().trim() : detectedClass);
