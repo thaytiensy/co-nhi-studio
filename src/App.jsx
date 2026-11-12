@@ -29,7 +29,7 @@ import BottomNavBar from './components/Navigation/BottomNavBar';
 import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
 import { Sparkles } from 'lucide-react';
-import TeacherAssistantPillButton from './components/UI/TeacherAssistantPillButton';
+import DraggableAssistantButton from './components/UI/DraggableAssistantButton';
 import { buildStandardSlidesForPlan } from './utils/planSlideGenerator';
 import { restoreDefaultData } from './lib/storage';
 
@@ -830,11 +830,9 @@ export default function App() {
         <BottomNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
 
-      {/* 3. Floating Teacher Assistant Bubble Button (Bottom Right) với hình ảnh Cô Trợ Giảng AI Chuẩn Thiết Kế */}
+      {/* 3. Floating Teacher Assistant Button: Có thể kéo thả di chuyển tự do trên màn hình */}
       {!isPresentationOpen && !isAssistantOpen && (
-        <div className="fixed bottom-6 right-6 z-40">
-          <TeacherAssistantPillButton onClick={() => setIsAssistantOpen(true)} />
-        </div>
+        <DraggableAssistantButton onClick={() => setIsAssistantOpen(true)} />
       )}
 
       <React.Suspense fallback={null}>

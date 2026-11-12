@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, VolumeX, Play, Pause, Square, Sparkles, AlertCircle, Info, Check } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 import { requestTeachingAi, externalAiEnabled } from '../../utils/aiLessonGenerator.js';
-import TeacherAssistantPillButton from '../UI/TeacherAssistantPillButton';
 
 /**
  * Động cơ Sư Phạm GDPT 2018 - Tự động xây dựng lời giảng truyền cảm hứng theo từng slide
@@ -442,12 +441,6 @@ export default function SpeakerNotes({
                 : '✨ Gợi Ý Lời Giảng AI'}
             </span>
           </button>
-
-          {/* Open Assistant Drawer Button */}
-          <TeacherAssistantPillButton
-            size="sm"
-            onClick={onOpenAssistant}
-          />
         </div>
       </div>
 

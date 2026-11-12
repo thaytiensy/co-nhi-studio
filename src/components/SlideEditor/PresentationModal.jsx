@@ -655,15 +655,32 @@ export default function PresentationModal({
     }
   };
 
-  // Trích xuất chủ đề slide
-  const getSlideTheme = () => {
+  // Trích xuất chủ đề slide ổn định
+  const slideTheme = (() => {
     const textEl = currentSlide?.elements?.find(e => e.type === 'text' && e.text?.trim());
     if (textEl) return textEl.text.split('\n')[0].slice(0, 40).trim();
     return 'Mĩ Thuật Sáng Tạo';
-  };
+  })();
 
   const currentSlideGame = currentSlide?.elements?.find(e => e.type === 'game');
-  const fallbackGameQuestions = generateGameQuestionsByTheme(1, getSlideTheme(), 'all');
+
+  // Khóa ổn định câu hỏi trò chơi theo trang slide hiện tại:
+  // CHỈ sinh lại khi đổi trang slide (currentIndex / slide id), TUYỆT ĐỐI không sinh lại trên mỗi nhịp timer 1s
+  // để các ô lựa chọn đáp án không bị xáo trộn, nhảy lung tung trước mắt học sinh.
+  const fallbackGameQuestions = useMemo(() => {
+    return generateGameQuestionsByTheme(1, slideTheme, 'all');
+  }, [currentSlide?.id, currentIndex, slideTheme]);
+
+  const activeGameElement = useMemo(() => {
+    if (currentSlideGame) return currentSlideGame;
+    return {
+      id: `game-modal-${currentSlide?.id || currentIndex}`,
+      title: `Trò Chơi Mĩ Thuật: ${slideTheme}`,
+      grade: 1,
+      questions: fallbackGameQuestions
+    };
+  }, [currentSlideGame, currentSlide?.id, currentIndex, slideTheme, fallbackGameQuestions]);
+
   const activePhase = PEDAGOGY_PHASES[currentPhaseIdx];
 
   const handleContainerClick = () => {
@@ -1639,11 +1656,7 @@ export default function PresentationModal({
               </button>
             </div>
             <SlideGameWidget 
-              element={currentSlideGame || {
-                title: `Trò Chơi Mĩ Thuật: ${getSlideTheme()}`,
-                grade: 1,
-                questions: fallbackGameQuestions
-              }} 
+              element={activeGameElement} 
               isPresentationMode={true} 
             />
           </div>

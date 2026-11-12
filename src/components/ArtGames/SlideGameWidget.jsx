@@ -1,26 +1,31 @@
-import React, { useState } from 'react';
-import { 
-  Gamepad2, 
-  CheckCircle2, 
-  XCircle, 
-  Trophy, 
-  Sparkles, 
-  RotateCcw,
-  Palette,
-  Award
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Gamepad2, Trophy, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import SlideGameResult from './SlideGameResult';
+import SlideGameOptions from './SlideGameOptions';
 
-export default function SlideGameWidget({
-  element,
-  isPresentationMode = false
-}) {
-  const questions = element.questions || [];
+export default function SlideGameWidget({ element }) {
+  // Cố định danh sách câu hỏi trong suốt phiên chơi của slide hiện tại,
+  // ngăn chặn tình trạng component cha re-render làm hoán đổi vị trí các ô đáp án
+  const [questions, setQuestions] = useState(() => element?.questions || []);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
+
+  const elementKey = element?.id || element?.title || '';
+
+  useEffect(() => {
+    if (element?.questions && element.questions.length > 0) {
+      setQuestions(element.questions);
+      setCurrentIdx(0);
+      setSelectedOpt(null);
+      setIsAnswered(false);
+      setScore(0);
+      setShowResult(false);
+    }
+  }, [elementKey]);
 
   const currentQ = questions[currentIdx] || {
     question: 'Chưa có câu hỏi nào trong trò chơi này.',
@@ -39,14 +44,8 @@ export default function SlideGameWidget({
     if (idx === currentQ.correctAnswer) {
       setScore(prev => prev + 10);
       try {
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.6 }
-        });
-      } catch (err) {
-        // Safe fallback
-      }
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      } catch (err) {}
     }
   };
 
@@ -59,11 +58,7 @@ export default function SlideGameWidget({
     } else {
       setShowResult(true);
       try {
-        confetti({
-          particleCount: 100,
-          spread: 90,
-          origin: { y: 0.5 }
-        });
+        confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
       } catch (err) {}
     }
   };
@@ -91,10 +86,10 @@ export default function SlideGameWidget({
           </span>
           <div className="min-w-0">
             <h4 className="font-black text-xs md:text-sm truncate">
-              {element.title || 'Trò Chơi Mĩ Thuật Tương Tác'}
+              {element?.title || 'Trò Chơi Mĩ Thuật Tương Tác'}
             </h4>
             <span className="text-[10px] text-indigo-100 font-bold uppercase tracking-wider">
-              Môn Mĩ Thuật Lớp {element.grade || 1} • {questions.length} Thử Thách
+              Môn Mĩ Thuật Lớp {element?.grade || 1} • {questions.length} Thử Thách
             </span>
           </div>
         </div>
@@ -104,10 +99,9 @@ export default function SlideGameWidget({
             <Trophy className="w-3.5 h-3.5 text-amber-900" />
             <span>{score} điểm</span>
           </div>
-
           <button
             onClick={handleRestart}
-            className="p-1 hover:bg-white/20 text-white rounded-lg transition-colors"
+            className="p-1 hover:bg-white/20 text-white rounded-lg transition-colors cursor-pointer"
             title="Chơi lại từ đầu"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -161,36 +155,14 @@ export default function SlideGameWidget({
             </div>
 
             {/* Options Grid */}
-            <div className="grid grid-cols-2 gap-2.5 my-2">
-              {currentQ.options?.map((opt, oIdx) => {
-                const isSelected = selectedOpt === oIdx;
-                const isCorrect = oIdx === currentQ.correctAnswer;
-
-                let btnClass = 'bg-white border-slate-300 text-slate-700 hover:border-indigo-400 hover:bg-indigo-50/50';
-                if (isAnswered) {
-                  if (isCorrect) {
-                    btnClass = 'bg-emerald-500 text-white border-emerald-600 shadow-sm';
-                  } else if (isSelected) {
-                    btnClass = 'bg-rose-500 text-white border-rose-600 shadow-sm';
-                  } else {
-                    btnClass = 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
-                  }
-                }
-
-                return (
-                  <button
-                    key={oIdx}
-                    disabled={isAnswered}
-                    onClick={(e) => handleSelectOption(oIdx, e)}
-                    className={`p-3 rounded-xl border-2 text-xs font-bold text-left transition-all flex items-center justify-between ${btnClass}`}
-                  >
-                    <span className="leading-snug">{opt}</span>
-                    {isAnswered && isCorrect && <CheckCircle2 className="w-4 h-4 text-white shrink-0 ml-1.5" />}
-                    {isAnswered && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-white shrink-0 ml-1.5" />}
-                  </button>
-                );
-              })}
-            </div>
+            <SlideGameOptions
+              options={currentQ.options}
+              currentIdx={currentIdx}
+              selectedOpt={selectedOpt}
+              isAnswered={isAnswered}
+              correctAnswer={currentQ.correctAnswer}
+              onSelectOption={handleSelectOption}
+            />
 
             {/* Explanation & Next Button */}
             {isAnswered && (
@@ -200,7 +172,7 @@ export default function SlideGameWidget({
                 </p>
                 <button
                   onClick={handleNext}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-xs transition-all shrink-0"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
                 >
                   {currentIdx < questions.length - 1 ? 'Câu Tiếp →' : 'Kết Quả 🎉'}
                 </button>
@@ -208,24 +180,7 @@ export default function SlideGameWidget({
             )}
           </div>
         ) : (
-          /* Result Summary */
-          <div className="text-center py-6 space-y-3 animate-in zoom-in-95 flex-1 flex flex-col justify-center items-center">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-3xl shadow-sm">
-              🏆
-            </div>
-            <h3 className="text-lg font-black text-slate-800">Hoan Hô Cả Lớp!</h3>
-            <p className="text-xs text-slate-600 max-w-sm">
-              Các em đã hoàn thành thử thách mĩ thuật xuất sắc với số điểm là <strong>{score} điểm</strong>!
-            </p>
-            <div className="pt-2">
-              <button
-                onClick={handleRestart}
-                className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-black text-xs rounded-xl shadow-xs transition-all"
-              >
-                Chơi Lại Vòng Này
-              </button>
-            </div>
-          </div>
+          <SlideGameResult score={score} onRestart={handleRestart} />
         )}
       </div>
     </div>
