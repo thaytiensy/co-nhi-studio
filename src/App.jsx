@@ -86,6 +86,18 @@ class SafeTabErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error('[SafeTabErrorBoundary] Caught error:', error, info);
+    try {
+      if (typeof window !== 'undefined') {
+        const msg = error?.message || String(error);
+        if (/dynamically imported module|loading chunk|failed to fetch/i.test(msg)) {
+          const reloaded = sessionStorage.getItem('conhi_chunk_auto_reloaded');
+          if (!reloaded) {
+            sessionStorage.setItem('conhi_chunk_auto_reloaded', '1');
+            window.location.reload();
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   componentDidUpdate(prevProps) {
@@ -93,6 +105,15 @@ class SafeTabErrorBoundary extends React.Component {
       this.setState({ hasError: false, error: null });
     }
   }
+
+  handleRetry = () => {
+    const errorMsg = this.state.error?.message || '';
+    if (/dynamically imported module|loading chunk|failed to fetch/i.test(errorMsg)) {
+      window.location.reload();
+      return;
+    }
+    this.setState({ hasError: false, error: null });
+  };
 
   handleRestoreDefaults = () => {
     try {
@@ -106,22 +127,44 @@ class SafeTabErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const isChunkError = /dynamically imported module|loading chunk|failed to fetch/i.test(this.state.error?.message || '');
+
       return (
         <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
-          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-amber-300 p-6 text-center">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-amber-300 p-6 text-center animate-in fade-in">
             <div className="w-12 h-12 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-3">
               ⚠️
             </div>
-            <h3 className="font-extrabold text-slate-800 text-base mb-1">Đang khôi phục mô-đun</h3>
-            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
-              Hệ thống đã tự động bảo vệ giao diện để không bị trắng màn hình. Thầy/Cô bấm nút bên dưới để khôi phục lại tính năng.
+            <h3 className="font-extrabold text-slate-800 text-base mb-1">
+              {isChunkError ? 'Đã có phiên bản cập nhật mới' : 'Đang khôi phục mô-đun'}
+            </h3>
+            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+              {isChunkError
+                ? 'Hệ thống vừa cập nhật phiên bản mới. Thầy/Cô vui lòng bấm "Tải lại trang" để nạp ngay bản mới nhất.'
+                : 'Hệ thống đã tự động bảo vệ giao diện để không bị trắng màn hình. Thầy/Cô bấm nút bên dưới để khôi phục lại tính năng.'}
             </p>
+
+            {this.state.error && (
+              <div className="mb-4 text-left p-2.5 bg-rose-50 border border-rose-200 rounded-xl">
+                <span className="text-[10px] font-bold text-rose-700 block mb-0.5">Thông tin:</span>
+                <p className="text-[10.5px] text-rose-800 font-mono break-all line-clamp-3">
+                  {this.state.error.message || String(this.state.error)}
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               <button
-                onClick={() => this.setState({ hasError: false, error: null })}
+                onClick={this.handleRetry}
                 className="w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
               >
                 🔄 Khôi Phục & Thử Lại
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                🚀 Tải Lại Trang (F5)
               </button>
               <button
                 onClick={this.handleRestoreDefaults}

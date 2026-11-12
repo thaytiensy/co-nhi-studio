@@ -50,7 +50,7 @@ export default function ArtCameraRubric({
     return data.className || '1A';
   });
   const [selectedStudentId, setSelectedStudentId] = useState('');
-  const [studentName, setStudentName] = useState('Nguyễn Văn An');
+  const [studentName, setStudentName] = useState('');
   const [evaluationPeriod, setEvaluationPeriod] = useState('TX'); // 'TX' | 'GK' | 'CK'
   const [selectedWeek, setSelectedWeek] = useState(1);
 
@@ -102,10 +102,31 @@ export default function ArtCameraRubric({
 
   // Danh sách học sinh theo lớp đang chọn
   const studentsInSelectedClass = (smasState.students || []).filter(s => {
-    const sClass = (s.className || '').replace(/^Lớp\s+/i, '').trim();
+    const sClass = (s.className || smasState.className || '').replace(/^Lớp\s+/i, '').trim();
     const curClass = selectedClass.replace(/^Lớp\s+/i, '').trim();
     return sClass.toLowerCase() === curClass.toLowerCase();
   });
+
+  // Tự động đồng bộ học sinh đầu tiên trong lớp nếu chưa chọn hoặc khi đổi lớp
+  useEffect(() => {
+    if (studentsInSelectedClass.length > 0) {
+      const match = studentsInSelectedClass.find(s => s.id === selectedStudentId);
+      if (!match) {
+        const first = studentsInSelectedClass[0];
+        setSelectedStudentId(first.id);
+        setStudentName(first.name);
+        if (first.level === 'T') {
+          setRubricLevels({ requirement: 3, technique: 3, creativity: 3, presentation: 2 });
+        } else if (first.level === 'C') {
+          setRubricLevels({ requirement: 2, technique: 1, creativity: 1, presentation: 1 });
+        } else {
+          setRubricLevels({ requirement: 3, technique: 2, creativity: 2, presentation: 2 });
+        }
+      }
+    } else if (!selectedStudentId && !studentName) {
+      setStudentName('Học sinh');
+    }
+  }, [studentsInSelectedClass, selectedStudentId, studentName]);
 
   // Tự động cập nhật tên học sinh khi chọn từ danh sách
   const handleSelectStudentFromList = (stId) => {
@@ -182,12 +203,17 @@ export default function ArtCameraRubric({
         ctx.drawImage(img, 0, 0, 120, 120);
 
         const imgData = ctx.getImageData(0, 0, 120, 120).data;
-        let warmPixels = 0, coolPixels = 0;
+        let warmPixels = 0, coolPixels = 0, nonWhitePixels = 0;
 
         for (let i = 0; i < imgData.length; i += 4) {
           const r = imgData[i];
           const g = imgData[i + 1];
           const b = imgData[i + 2];
+
+          // Nhận diện điểm ảnh có nét vẽ hoặc màu sắc (khác nền giấy trắng)
+          if (r < 240 || g < 240 || b < 240) {
+            nonWhitePixels++;
+          }
 
           if (r > g + 20 && r > b + 20) warmPixels++;
           else if (b > r + 15 || g > r + 15) coolPixels++;
@@ -206,7 +232,7 @@ export default function ArtCameraRubric({
         if (colorCoverage >= 35 && (warmPixels > 150 || coolPixels > 150)) {
           setRubricLevels({ requirement: 3, technique: 3, creativity: 3, presentation: 2 });
         } else if (colorCoverage >= 15) {
-          setRubricLevels({ requirement: 2, technique: 2, creativity: 2, presentation: 2 });
+          setRubricLevels({ requirement: 3, technique: 2, creativity: 2, presentation: 2 });
         } else {
           setRubricLevels({ requirement: 2, technique: 1, creativity: 1, presentation: 1 });
         }

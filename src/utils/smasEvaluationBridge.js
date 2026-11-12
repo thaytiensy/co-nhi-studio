@@ -309,6 +309,14 @@ export function saveCameraEvaluationToSmas({
       currentWeekly[String(targetWeek)] = normLevel;
     }
 
+    // Đồng bộ sang kỳ tương ứng (GK1, CK1, GK2, CK2) để Thầy/Cô xem ở cả 2 sổ đều cập nhật tức thì
+    const autoPeriodicUpdates = isWeekly ? {
+      ...(targetWeek <= 9 ? { gkLevel: normLevel, gk1Level: normLevel, ...(comment.trim() ? { gkComment: comment.trim() } : {}) } : {}),
+      ...(targetWeek > 9 && targetWeek <= 18 ? { ckLevel: normLevel, ck1Level: normLevel, ...(comment.trim() ? { ckComment: comment.trim() } : {}) } : {}),
+      ...(targetWeek > 18 && targetWeek <= 27 ? { gk2Level: normLevel, ...(comment.trim() ? { gk2Comment: comment.trim() } : {}) } : {}),
+      ...(targetWeek > 27 ? { ck2Level: normLevel, ...(comment.trim() ? { ck2Comment: comment.trim() } : {}) } : {})
+    } : {};
+
     targetStudent = {
       ...existing,
       level: normLevel,
@@ -317,6 +325,7 @@ export function saveCameraEvaluationToSmas({
       commentSource: 'cam_rubric',
       lastEvaluatedAt: timestamp,
       camHistory: [evalRecord, ...existingHistory.slice(0, 19)],
+      ...autoPeriodicUpdates,
       ...(isMidTerm ? { gkLevel: normLevel, gk1Level: normLevel, gkComment: comment.trim(), ...(isGk2 ? { gk2Level: normLevel, gk2Comment: comment.trim() } : {}) } : {}),
       ...(isFinalTerm ? { ckLevel: normLevel, ck1Level: normLevel, ckComment: comment.trim(), ...(isCk2 ? { ck2Level: normLevel, ck2Comment: comment.trim() } : {}) } : {})
     };

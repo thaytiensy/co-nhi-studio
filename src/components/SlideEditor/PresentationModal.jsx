@@ -307,6 +307,36 @@ export default function PresentationModal({
     }
   }, [powerPointMode, revealCount, currentIndex, slides, goToPrev]);
 
+  // Helper trích xuất lời giảng phù hợp
+  const getLectureTextToSpeak = (targetSlide = currentSlide) => {
+    const s = targetSlide || currentSlide;
+    const parts = [];
+    if (s?.title && s.title.trim() && !s.title.startsWith('Trang ') && !isWatermark(s.title)) {
+      parts.push(s.title.trim());
+    }
+
+    (s?.elements || []).forEach(el => {
+      if ((el.type === 'text' || el.type === 'shape') && el.text?.trim()) {
+        if (!isWatermark(el.text)) {
+          parts.push(el.text.trim());
+        }
+      }
+    });
+
+    const slideText = parts.join('. ');
+
+    if (s?.notes && s.notes.trim() && !isWatermark(s.notes)) {
+      return s.notes.trim();
+    }
+
+    if (slideText) {
+      return slideText;
+    }
+
+    const slideNum = slides.indexOf(s) >= 0 ? slides.indexOf(s) + 1 : currentIndex + 1;
+    return `Trang ${slideNum}. Mời các em học sinh chú ý quan sát nội dung trên màn hình và làm theo hướng dẫn của Thầy Cô.`;
+  };
+
   // Tự động đọc tiêu đề / nội dung mở đầu khi đổi trang slide
   useEffect(() => {
     setRevealCount(1);
@@ -506,35 +536,7 @@ export default function PresentationModal({
     }, 4000);
   };
 
-  // Helper trích xuất lời giảng phù hợp
-  const getLectureTextToSpeak = (targetSlide = currentSlide) => {
-    const s = targetSlide || currentSlide;
-    const parts = [];
-    if (s?.title && s.title.trim() && !s.title.startsWith('Trang ') && !isWatermark(s.title)) {
-      parts.push(s.title.trim());
-    }
 
-    (s?.elements || []).forEach(el => {
-      if ((el.type === 'text' || el.type === 'shape') && el.text?.trim()) {
-        if (!isWatermark(el.text)) {
-          parts.push(el.text.trim());
-        }
-      }
-    });
-
-    const slideText = parts.join('. ');
-
-    if (s?.notes && s.notes.trim() && !isWatermark(s.notes)) {
-      return s.notes.trim();
-    }
-
-    if (slideText) {
-      return slideText;
-    }
-
-    const slideNum = slides.indexOf(s) >= 0 ? slides.indexOf(s) + 1 : currentIndex + 1;
-    return `Trang ${slideNum}. Mời các em học sinh chú ý quan sát nội dung trên màn hình và làm theo hướng dẫn của Thầy Cô.`;
-  };
 
   const handleToggleSpeak = () => {
     if (speechState.isSpeaking) {

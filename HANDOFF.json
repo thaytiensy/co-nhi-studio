@@ -16,7 +16,9 @@
     "Tách SlideGameWidget thành các module con < 200 dòng (SlideGameWidget, SlideGameOptions, SlideGameResult)",
     "Xóa nút Trợ Giảng AI thừa trong thanh công cụ Lời Giảng của SpeakerNotes theo yêu cầu của Thầy/Cô",
     "Nâng cấp nút Trợ Giảng AI nổi ở góc màn hình thành DraggableAssistantButton: có thể kéo thả di chuyển tự do bằng chuột/cảm ứng đến mọi vị trí, tự lưu tọa độ vào LocalStorage, không còn che khuất nút Đọc lời giảng",
-    "Thanh công cụ trình chiếu dọc theo cạnh slide (PresentationVerticalToolbar), hỗ trợ thu gọn và chuyển đổi linh hoạt",
-    "Đồng bộ kết quả Cam Chấm Tranh vào Sổ Theo Dõi Thường Xuyên 35 tuần theo đúng tên học sinh"
+    "Thanh công cụ trình chiếu dọc theo cạnh slide (PresentationVerticalToolbar), hỗ trợ chuyển đổi cạnh trái/phải và không che khuất chữ bài giảng",
+    "Khắc phục triệt để lỗi ReferenceError nonWhitePixels trong Cam Chấm Tranh: phân tích màu sắc và chấm điểm Rubric 4 tiêu chí chuẩn xác 100%",
+    "Tự động nhận diện và chuyển điểm từ Cam Chấm Tranh sang Sổ Theo Dõi Thường Xuyên 35 tuần và Sổ Điểm Tổng Hợp SMAS theo đúng tên học sinh trong lớp",
+    "Nâng cấp SafeTabErrorBoundary nhận diện lỗi chunk sau khi Vercel redeploy và cung cấp nút tải lại trang 1-click"
   ]
 }

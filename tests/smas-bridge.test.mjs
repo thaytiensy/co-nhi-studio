@@ -86,6 +86,8 @@ describe('Giai đoạn 6 - Cam Chấm Tranh Liên Kết Sổ Điểm SMAS & Tổ
     assert.ok(result1.success);
     assert.equal(result1.student.name, 'Trần Bảo Ngọc');
     assert.equal(result1.student.level, 'T');
+    assert.equal(result1.student.weeklyLevels[1], 'T', 'Điểm Tuần 1 sổ thường xuyên phải được cập nhật mức T');
+    assert.equal(result1.student.gkLevel, 'T', 'Điểm định kỳ giữa kì 1 cũng phải được đồng bộ mức T');
     assert.equal(result1.student.camHistory.length, 1);
     assert.equal(result1.student.camHistory[0].level, 'T');
 

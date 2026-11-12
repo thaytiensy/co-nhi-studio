@@ -13,7 +13,7 @@ export default function PresentationVerticalToolbar(props) {
     onOpenAiTips, isWhiteboardOpen, onToggleWhiteboard, onBlackScreen,
     onOpenGame, onOpenSlidePicker, onExportHtml, onPrintPdf,
     showNotesOverlay, onToggleNotes, showShortcutsHelp, onToggleShortcutsHelp,
-    onToggleOrientation, onCollapse, onClose, dockSide = 'right'
+    onToggleOrientation, onCollapse, onClose, dockSide = 'right', onToggleDockSide
   } = props;
 
   const toggleFullscreen = () => {
@@ -26,11 +26,18 @@ export default function PresentationVerticalToolbar(props) {
       onClick={(e) => e.stopPropagation()}
       className={`fixed ${dockSide === 'left' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-1.5 flex flex-col items-center gap-1.5 text-white shadow-2xl z-40 max-h-[92vh] overflow-y-auto no-scrollbar`}
     >
-      {/* Header: Đếm slide & nút thu gọn */}
+      {/* Header: Đếm slide, đổi cạnh & nút thu gọn */}
       <div className="flex flex-col items-center pb-1 border-b border-slate-800 w-full gap-1">
-        <button onClick={onCollapse} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-300" title="Thu gọn thanh công cụ">
-          <PanelRight className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={onCollapse} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-300" title="Thu gọn thanh công cụ">
+            <PanelRight className="w-3.5 h-3.5" />
+          </button>
+          {onToggleDockSide && (
+            <button onClick={onToggleDockSide} className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-300 text-[10px] font-black" title={`Chuyển thanh sang cạnh ${dockSide === 'right' ? 'trái' : 'phải'}`}>
+              {dockSide === 'right' ? '◀' : '▶'}
+            </button>
+          )}
+        </div>
         <span className="text-[11px] font-black text-amber-300 tracking-wider">{currentIndex + 1}/{totalSlides}</span>
       </div>
 

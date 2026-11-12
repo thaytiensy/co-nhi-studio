@@ -40,6 +40,10 @@ export default function PresentationToolbar(props) {
     setOrientation(prev => (prev === 'vertical' ? 'horizontal' : 'vertical'));
   };
 
+  const toggleDockSide = () => {
+    setDockSide(prev => (prev === 'right' ? 'left' : 'right'));
+  };
+
   const handleCollapse = () => setCollapsed(true);
   const handleExpand = () => setCollapsed(false);
 
@@ -82,6 +86,7 @@ export default function PresentationToolbar(props) {
       <PresentationVerticalToolbar
         {...props}
         dockSide={dockSide}
+        onToggleDockSide={toggleDockSide}
         onToggleOrientation={toggleOrientation}
         onCollapse={handleCollapse}
       />

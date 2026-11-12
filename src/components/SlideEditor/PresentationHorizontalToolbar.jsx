@@ -26,9 +26,14 @@ export default function PresentationHorizontalToolbar(props) {
       onClick={(e) => e.stopPropagation()}
       className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-full px-4 py-2 flex items-center gap-2 text-white shadow-2xl z-40 max-w-[96vw] overflow-x-auto no-scrollbar"
     >
-      {/* Nút chuyển sang thanh dọc theo slide */}
-      <button onClick={onToggleOrientation} className="p-1.5 rounded-full hover:bg-slate-800 text-amber-300 border border-amber-400/40" title="Chuyển thanh điều khiển dọc theo cạnh slide (không che chữ)">
-        <Columns className="w-4 h-4" />
+      {/* Nút chuyển sang thanh dọc theo slide (chống che chữ bài giảng) */}
+      <button 
+        onClick={onToggleOrientation} 
+        className="px-2.5 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-400/60 flex items-center gap-1.5 text-xs font-black shadow-xs cursor-pointer" 
+        title="Chuyển thanh điều khiển sang dạng DỌC theo cạnh slide (không bao giờ che chữ bài giảng)"
+      >
+        <Columns className="w-3.5 h-3.5" />
+        <span>Dọc Slide</span>
       </button>
 
       {/* Slide Counter */}
