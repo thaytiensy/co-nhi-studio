@@ -54,6 +54,48 @@ export const PERIODIC_COMMENTS_BANK = {
       'Em hãy dành thêm thời gian luyện tập phối màu và tạo khối cơ bản để đạt kết quả tốt hơn trong năm học tới.'
     ]
   },
+  GK2: {
+    T: [
+      'Giữa kì II có nhiều tiến bộ nổi bật môn Mĩ thuật; tư duy tạo hình và sử dụng màu sắc rất tự tin, phong phú; tích cực chia sẻ cùng bạn bè.',
+      'Hoàn thành xuất sắc mục tiêu mĩ thuật giữa kì 2; nét vẽ chững chạc, bố cục sáng tạo, thể hiện rõ tình cảm trong tác phẩm.',
+      'Giữa kì II đạt kết quả rất tốt; kỹ năng phối hợp chất liệu màu sáp, đất nặn linh hoạt; luôn chủ động giúp đỡ bạn trong nhóm.',
+      'Nửa đầu học kì 2 thể hiện niềm say mê hội họa; đường nét dứt khoát, gam màu tươi tắn, bài vẽ sinh động và độc đáo.',
+      'Tư duy thẩm mĩ tiến bộ vượt trội ở giữa kì 2; tự tin thể hiện ý tưởng sáng tạo cá nhân trong mọi bài thực hành.'
+    ],
+    H: [
+      'Giữa kì II hoàn thành tốt các nội dung bài học mĩ thuật; vẽ hình rõ ràng, màu sắc hài hòa; có ý thức giữ gìn góc học tập sạch sẽ.',
+      'Nắm vững kiến thức kĩ năng mĩ thuật giữa kì 2; hoàn thành sản phẩm đúng tiến độ; tích cực tham gia các hoạt động nhóm.',
+      'Có sự tiến bộ rõ rệt trong nửa đầu học kì II; nét vẽ mềm mại hơn, biết lắng nghe hướng dẫn của Thầy/Cô để hoàn thiện bài.',
+      'Thực hiện tốt các yêu cầu bài học mĩ thuật giữa kì 2; chăm chỉ thực hành; cần mạnh dạn hơn khi chia sẻ ý tưởng trước lớp.',
+      'Sử dụng màu sắc và tạo hình đúng kỹ thuật ở giữa kì II; hoàn thành đầy đủ các sản phẩm học tập theo chuẩn.'
+    ],
+    C: [
+      'Giữa kì II em cần chú ý tập trung hoàn thiện bài vẽ đúng giờ; rèn luyện thêm kĩ năng tô màu đều tay và cẩn thận hơn.',
+      'Cần chuẩn bị đầy đủ đồ dùng học tập mĩ thuật khi đến lớp; mạnh dạn nhờ Thầy/Cô hướng dẫn thêm khi thực hành nhé.',
+      'Nét vẽ còn ngập ngừng, em hãy tự tin phối màu tươi sáng hơn và cố gắng hoàn thành sản phẩm kịp tiến độ bài học.'
+    ]
+  },
+  CK2: {
+    T: [
+      'Cuối kì II hoàn thành xuất sắc môn Mĩ thuật; tư duy thẩm mĩ và khả năng sáng tạo vượt trội; sản phẩm nghệ thuật giàu cảm xúc và tính nhân văn.',
+      'Năng lực mĩ thuật nổi bật trong học kì 2; sử dụng linh hoạt các chất liệu tạo hình; nét vẽ tự tin, phối màu độc đáo, đạt chuẩn khen thưởng.',
+      'Hoàn thành xuất sắc nhiệm vụ học tập mĩ thuật cuối kì 2; có nhiều tác phẩm ấn tượng được trưng bày; luôn gương mẫu, chủ động giúp đỡ bạn bè.',
+      'Học kì 2 thể hiện niềm đam mê hội họa sâu sắc; kỹ năng vẽ tranh, nặn và xé dán rất điêu luyện; thuyết trình tự tin và truyền cảm hứng trước lớp.',
+      'Có phong cách tạo hình độc đáo, kỹ năng thẩm mĩ xuất sắc; luôn hoàn thành vượt mức yêu cầu cần đạt của môn học trong cả kỳ 2.'
+    ],
+    H: [
+      'Cuối kì II hoàn thành tốt các yêu cầu môn Mĩ thuật; nắm vững kỹ thuật vẽ nét và phối màu; sản phẩm thể hiện rõ chủ đề và sạch sẽ.',
+      'Đạt đầy đủ các chuẩn kiến thức kĩ năng môn Mĩ thuật học kì 2; có ý thức tự giác rèn luyện, hoàn thành tốt các sản phẩm thực hành.',
+      'Có nhiều tiến bộ trong học kì 2; biết phối hợp các gam màu hài hòa, bố cục tranh cân đối; tham gia tích cực hoạt động trưng bày cuối kì.',
+      'Hoàn thành chương trình môn học kì 2 đúng tiến độ; thái độ học tập nghiêm túc, chăm chỉ; biết yêu quý và gìn giữ vẻ đẹp của các tác phẩm nghệ thuật.',
+      'Nắm chắc các kĩ năng tạo hình cơ bản trong học kì 2; tự tin chia sẻ cảm xúc về bài vẽ của mình và trân trọng sản phẩm của bạn bè.'
+    ],
+    C: [
+      'Cuối kì II em cần rèn luyện thêm kỹ năng vẽ nét và tô màu; cố gắng chuẩn bị đầy đủ đồ dùng học tập để hoàn thành sản phẩm kịp tiến độ.',
+      'Cần tích cực và tập trung hơn trong các hoạt động mĩ thuật cuối kì 2; mạnh dạn trao đổi cùng Thầy/Cô để tự tin nâng cao tay nghề nhé.',
+      'Em hãy dành thêm thời gian luyện tập phối màu và tạo khối cơ bản để đạt kết quả tốt hơn trong năm học tới.'
+    ]
+  },
   CN: {
     T: [
       'Cả năm học hoàn thành xuất sắc môn Mĩ thuật; tư duy tạo hình và cảm thụ thẩm mỹ vượt trội; luôn tự tin, tích cực và sáng tạo độc đáo.',
@@ -71,6 +113,10 @@ export const PERIODIC_COMMENTS_BANK = {
     ]
   }
 };
+
+// Aliases cho các khóa chuẩn
+PERIODIC_COMMENTS_BANK.GK1 = PERIODIC_COMMENTS_BANK.GK;
+PERIODIC_COMMENTS_BANK.CK1 = PERIODIC_COMMENTS_BANK.CK;
 
 /**
  * Tính toán mức đánh giá Thông tư 27 (T, H, C) từ 4 tiêu chí Rubric Cam Chấm Tranh
@@ -277,21 +323,56 @@ export function saveCameraEvaluationToSmas({
 /**
  * Tổng hợp đánh giá định kỳ (Giữa kỳ hoặc Cuối kỳ) cho 1 học sinh dựa trên lịch sử chấm
  * @param {Object} student Đối tượng học sinh
- * @param {'GK' | 'CK'} [targetPeriod] 'GK' (Giữa kỳ) hoặc 'CK' (Cuối kỳ)
+ * @param {'GK' | 'CK' | 'GK1' | 'CK1' | 'GK2' | 'CK2' | 'CN'} [targetPeriod] Kỳ đánh giá
  * @returns {{ level: 'T' | 'H' | 'C', comment: string }}
  */
 export function synthesizePeriodicEvaluation(student, targetPeriod = 'GK') {
   if (!student) return { level: 'H', comment: '' };
 
-  const periodKey = targetPeriod === 'CN' ? 'CN' : targetPeriod === 'CK' ? 'CK' : 'GK';
+  const normPeriod = String(targetPeriod || 'GK').toUpperCase();
+  const periodKey = normPeriod === 'CN' ? 'CN'
+    : normPeriod === 'GK2' ? 'GK2'
+    : normPeriod === 'CK2' ? 'CK2'
+    : normPeriod === 'CK' || normPeriod === 'CK1' ? 'CK'
+    : 'GK';
+
   const history = Array.isArray(student.camHistory) ? student.camHistory : [];
   const weekly = student.weeklyLevels || {};
-  const maxWeek = periodKey === 'GK' ? 9 : periodKey === 'CK' ? 18 : 35;
-  const weeklyRecords = [];
-  for (let w = 1; w <= maxWeek; w++) {
+
+  // Xác định khoảng tuần tính toán theo tiến trình GDPT 2018 (35 tuần)
+  let startWeek = 1;
+  let endWeek = 35;
+  if (normPeriod === 'GK' || normPeriod === 'GK1') {
+    startWeek = 1;
+    endWeek = 9;
+  } else if (normPeriod === 'CK' || normPeriod === 'CK1') {
+    startWeek = 1;
+    endWeek = 18;
+  } else if (normPeriod === 'GK2') {
+    startWeek = 19;
+    endWeek = 27;
+  } else if (normPeriod === 'CK2') {
+    startWeek = 19;
+    endWeek = 35;
+  } else {
+    startWeek = 1;
+    endWeek = 35;
+  }
+
+  let weeklyRecords = [];
+  for (let w = startWeek; w <= endWeek; w++) {
     const lvl = weekly[w] || weekly[String(w)];
     if (lvl) weeklyRecords.push({ level: lvl });
   }
+
+  // Nếu là GK2 hoặc CK2 mà Thầy/Cô chưa nhập tuần 19+, lấy điểm tổng thể các tuần đã nhập
+  if (weeklyRecords.length === 0 && startWeek > 1) {
+    for (let w = 1; w <= endWeek; w++) {
+      const lvl = weekly[w] || weekly[String(w)];
+      if (lvl) weeklyRecords.push({ level: lvl });
+    }
+  }
+
   const allRecords = [...history, ...weeklyRecords];
 
   // 1. Tính toán mức đạt được tổng hợp từ các tuần thường xuyên & lịch sử chấm
@@ -314,18 +395,25 @@ export function synthesizePeriodicEvaluation(student, targetPeriod = 'GK') {
     } else {
       finalLevel = 'H';
     }
-  } else if (periodKey === 'GK' && student.gkLevel) {
-    finalLevel = student.gkLevel;
-  } else if (periodKey === 'CK' && student.ckLevel) {
-    finalLevel = student.ckLevel;
-  } else if (periodKey === 'CN' && (student.cnLevel || student.ckLevel || student.gkLevel)) {
-    finalLevel = student.cnLevel || student.ckLevel || student.gkLevel;
+  } else if ((normPeriod === 'GK' || normPeriod === 'GK1') && (student.gk1Level || student.gkLevel)) {
+    finalLevel = student.gk1Level || student.gkLevel;
+  } else if ((normPeriod === 'CK' || normPeriod === 'CK1') && (student.ck1Level || student.ckLevel)) {
+    finalLevel = student.ck1Level || student.ckLevel;
+  } else if (normPeriod === 'GK2' && (student.gk2Level || student.gkLevel)) {
+    finalLevel = student.gk2Level || student.gkLevel;
+  } else if (normPeriod === 'CK2' && (student.ck2Level || student.ckLevel)) {
+    finalLevel = student.ck2Level || student.ckLevel;
+  } else if (normPeriod === 'CN' && (student.cnLevel || student.ck2Level || student.ckLevel || student.gkLevel)) {
+    finalLevel = student.cnLevel || student.ck2Level || student.ckLevel || student.gkLevel;
   }
 
   // 2. Chọn lời nhận xét định kỳ chuẩn TT27 đa dạng, không trùng lặp
-  const bank = PERIODIC_COMMENTS_BANK[periodKey]?.[finalLevel] || PERIODIC_COMMENTS_BANK[periodKey]?.H;
+  const bank = PERIODIC_COMMENTS_BANK[normPeriod]?.[finalLevel] || 
+               PERIODIC_COMMENTS_BANK[periodKey]?.[finalLevel] || 
+               PERIODIC_COMMENTS_BANK.GK[finalLevel] || 
+               PERIODIC_COMMENTS_BANK.GK.H;
   const hash = String(student.id || student.name).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const comment = bank[hash % bank.length];
+  const comment = bank[hash % bank.length] || '';
 
   return {
     level: finalLevel,
@@ -338,7 +426,7 @@ export function synthesizePeriodicEvaluation(student, targetPeriod = 'GK') {
  * @param {Object} params
  * @param {Array} params.students Danh sách học sinh
  * @param {string} [params.targetClass] Lớp cần tổng hợp ('all' hoặc tên lớp)
- * @param {'GK' | 'CK'} [params.targetPeriod] 'GK' hoặc 'CK'
+ * @param {'GK' | 'CK' | 'GK1' | 'CK1' | 'GK2' | 'CK2' | 'CN'} [params.targetPeriod] Kỳ đánh giá
  * @returns {{ students: Array, summary: { total: number, tCount: number, hCount: number, cCount: number } }}
  */
 export function batchSynthesizeClassEvaluations({
@@ -346,11 +434,17 @@ export function batchSynthesizeClassEvaluations({
   targetClass = 'all',
   targetPeriod = 'GK'
 }) {
-  const periodKey = targetPeriod === 'CN' ? 'CN' : targetPeriod === 'CK' ? 'CK' : 'GK';
+  const normPeriod = String(targetPeriod || 'GK').toUpperCase();
   let tCount = 0;
   let hCount = 0;
   let cCount = 0;
   let updatedCount = 0;
+
+  const isGk1 = normPeriod === 'GK' || normPeriod === 'GK1';
+  const isCk1 = normPeriod === 'CK' || normPeriod === 'CK1';
+  const isGk2 = normPeriod === 'GK2';
+  const isCk2 = normPeriod === 'CK2';
+  const isCn = normPeriod === 'CN';
 
   const updatedStudents = students.map((student) => {
     const isTarget = targetClass === 'all' || 
@@ -360,7 +454,7 @@ export function batchSynthesizeClassEvaluations({
       return student;
     }
 
-    const { level, comment } = synthesizePeriodicEvaluation(student, periodKey);
+    const { level, comment } = synthesizePeriodicEvaluation(student, normPeriod);
 
     if (level === 'T') tCount++;
     else if (level === 'H') hCount++;
@@ -372,9 +466,11 @@ export function batchSynthesizeClassEvaluations({
       level, // Cập nhật mức chung
       comment,
       commentSource: 'periodic_synthesized',
-      ...(periodKey === 'GK' ? { gkLevel: level, gkComment: comment } : {}),
-      ...(periodKey === 'CK' ? { ckLevel: level, ckComment: comment } : {}),
-      ...(periodKey === 'CN' ? { cnLevel: level, cnComment: comment } : {})
+      ...(isGk1 ? { gkLevel: level, gkComment: comment, gk1Level: level, gk1Comment: comment } : {}),
+      ...(isCk1 ? { ckLevel: level, ckComment: comment, ck1Level: level, ck1Comment: comment } : {}),
+      ...(isGk2 ? { gk2Level: level, gk2Comment: comment } : {}),
+      ...(isCk2 ? { ck2Level: level, ck2Comment: comment } : {}),
+      ...(isCn ? { cnLevel: level, cnComment: comment } : {})
     };
   });
 

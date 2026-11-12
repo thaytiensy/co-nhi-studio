@@ -279,11 +279,18 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     } else {
       let t = 0, h = 0, c = 0;
       displayedStudents.forEach(s => {
-        const lvl = periodicPeriod === 'GK'
-          ? (s.gkLevel || s.level)
-          : periodicPeriod === 'CK'
-          ? (s.ckLevel || s.level)
-          : (s.cnLevel || s.ckLevel || s.level);
+        let lvl = s.level || 'H';
+        if (periodicPeriod === 'GK' || periodicPeriod === 'GK1') {
+          lvl = s.gk1Level || s.gkLevel || s.level || 'H';
+        } else if (periodicPeriod === 'CK' || periodicPeriod === 'CK1') {
+          lvl = s.ck1Level || s.ckLevel || s.level || 'H';
+        } else if (periodicPeriod === 'GK2') {
+          lvl = s.gk2Level || s.gkLevel || s.level || 'H';
+        } else if (periodicPeriod === 'CK2') {
+          lvl = s.ck2Level || s.ckLevel || s.level || 'H';
+        } else if (periodicPeriod === 'CN') {
+          lvl = s.cnLevel || s.ck2Level || s.ckLevel || s.level || 'H';
+        }
         if (lvl === 'T') t++;
         else if (lvl === 'H') h++;
         else if (lvl === 'C') c++;
@@ -770,33 +777,55 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     setTimeout(() => setExportNotice(''), 3000);
   };
 
-  // Thay đổi mức đánh giá định kỳ (Giữa kỳ hoặc Cuối kỳ)
+  // Thay đổi mức đánh giá định kỳ (Giữa kỳ hoặc Cuối kỳ các đợt GK1, CK1, GK2, CK2, CN)
   const handlePeriodicLevelChange = (id, periodKey, newLevel) => {
     setStudents(prev => prev.map(student => {
       if (student.id !== id) return student;
-      const bank = PERIODIC_COMMENTS_BANK[periodKey]?.[newLevel] || PERIODIC_COMMENTS_BANK[periodKey]?.H;
+      const bank = PERIODIC_COMMENTS_BANK[periodKey]?.[newLevel] || 
+                   PERIODIC_COMMENTS_BANK[periodKey]?.H ||
+                   (periodKey.startsWith('GK') ? PERIODIC_COMMENTS_BANK.GK[newLevel] : PERIODIC_COMMENTS_BANK.CK[newLevel]);
       const hash = String(student.id || student.name).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const newComment = bank[hash % bank.length] || '';
+      const newComment = bank ? bank[hash % bank.length] : '';
       
-      if (periodKey === 'GK') {
+      const shouldUpdate = (cur) => !cur || student.commentSource === 'periodic_synthesized';
+
+      if (periodKey === 'GK' || periodKey === 'GK1') {
         return {
           ...student,
           gkLevel: newLevel,
-          gkComment: (!student.gkComment || student.commentSource === 'periodic_synthesized') ? newComment : student.gkComment
+          gk1Level: newLevel,
+          gkComment: shouldUpdate(student.gkComment) ? newComment : student.gkComment,
+          gk1Comment: shouldUpdate(student.gk1Comment) ? newComment : student.gk1Comment
         };
       }
-      if (periodKey === 'CK') {
+      if (periodKey === 'CK' || periodKey === 'CK1') {
         return {
           ...student,
           ckLevel: newLevel,
-          ckComment: (!student.ckComment || student.commentSource === 'periodic_synthesized') ? newComment : student.ckComment
+          ck1Level: newLevel,
+          ckComment: shouldUpdate(student.ckComment) ? newComment : student.ckComment,
+          ck1Comment: shouldUpdate(student.ck1Comment) ? newComment : student.ck1Comment
+        };
+      }
+      if (periodKey === 'GK2') {
+        return {
+          ...student,
+          gk2Level: newLevel,
+          gk2Comment: shouldUpdate(student.gk2Comment) ? newComment : student.gk2Comment
+        };
+      }
+      if (periodKey === 'CK2') {
+        return {
+          ...student,
+          ck2Level: newLevel,
+          ck2Comment: shouldUpdate(student.ck2Comment) ? newComment : student.ck2Comment
         };
       }
       if (periodKey === 'CN') {
         return {
           ...student,
           cnLevel: newLevel,
-          cnComment: (!student.cnComment || student.commentSource === 'periodic_synthesized') ? newComment : student.cnComment
+          cnComment: shouldUpdate(student.cnComment) ? newComment : student.cnComment
         };
       }
       return student;
@@ -807,11 +836,17 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   const handlePeriodicCommentChange = (id, periodKey, newComment) => {
     setStudents(prev => prev.map(student => {
       if (student.id !== id) return student;
-      if (periodKey === 'GK') {
-        return { ...student, gkComment: newComment };
+      if (periodKey === 'GK' || periodKey === 'GK1') {
+        return { ...student, gkComment: newComment, gk1Comment: newComment };
       }
-      if (periodKey === 'CK') {
-        return { ...student, ckComment: newComment };
+      if (periodKey === 'CK' || periodKey === 'CK1') {
+        return { ...student, ckComment: newComment, ck1Comment: newComment };
+      }
+      if (periodKey === 'GK2') {
+        return { ...student, gk2Comment: newComment };
+      }
+      if (periodKey === 'CK2') {
+        return { ...student, ck2Comment: newComment };
       }
       if (periodKey === 'CN') {
         return { ...student, cnComment: newComment };
@@ -832,7 +867,11 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       targetPeriod
     });
     setStudents(result.students);
-    const periodTitle = targetPeriod === 'CN' ? 'Cả năm' : targetPeriod === 'CK' ? 'Cuối kì I' : 'Giữa kì I';
+    const periodTitle = targetPeriod === 'CN' ? 'Cả năm' 
+      : targetPeriod === 'CK2' ? 'Cuối kì II' 
+      : targetPeriod === 'GK2' ? 'Giữa kì II'
+      : (targetPeriod === 'CK' || targetPeriod === 'CK1') ? 'Cuối kì I' 
+      : 'Giữa kì I';
     const targetClassText = selectedClassFilter === 'all' ? 'Tất cả các lớp' : selectedClassFilter;
     setExportNotice(`⚡ Đã tổng hợp điểm & nhận xét ${periodTitle} cho ${result.summary.total} học sinh lớp ${targetClassText} (${result.summary.tCount} T, ${result.summary.hCount} H, ${result.summary.cCount} C)!`);
     setShowSynthesisModal(false);
@@ -1368,16 +1407,16 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
               <div className="flex items-center gap-2 flex-wrap">
                 {viewMode === 'periodic' && (
                   <>
-                    <div className="flex items-center gap-1 bg-purple-50 border border-purple-200 p-1 rounded-xl">
+                    <div className="flex items-center gap-1 bg-purple-50 border border-purple-200 p-1 rounded-xl flex-wrap">
                       <span className="text-[11px] font-black text-purple-900 uppercase px-2">Kỳ:</span>
                       <button
                         type="button"
                         onClick={() => {
-                          setPeriodicPeriod('GK');
-                          setActivePeriodTab('GK');
+                          setPeriodicPeriod('GK1');
+                          setActivePeriodTab('GK1');
                         }}
                         className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                          periodicPeriod === 'GK' ? 'bg-blue-600 text-white font-black shadow-xs' : 'text-purple-800 hover:bg-purple-100'
+                          periodicPeriod === 'GK1' || periodicPeriod === 'GK' ? 'bg-blue-600 text-white font-black shadow-xs' : 'text-purple-800 hover:bg-purple-100'
                         }`}
                       >
                         Giữa Kì I (GK1)
@@ -1385,14 +1424,38 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                       <button
                         type="button"
                         onClick={() => {
-                          setPeriodicPeriod('CK');
-                          setActivePeriodTab('CK');
+                          setPeriodicPeriod('CK1');
+                          setActivePeriodTab('CK1');
                         }}
                         className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                          periodicPeriod === 'CK' ? 'bg-indigo-600 text-white font-black shadow-xs' : 'text-purple-800 hover:bg-purple-100'
+                          periodicPeriod === 'CK1' || periodicPeriod === 'CK' ? 'bg-indigo-600 text-white font-black shadow-xs' : 'text-purple-800 hover:bg-purple-100'
                         }`}
                       >
                         Cuối Kì I (CK1)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPeriodicPeriod('GK2');
+                          setActivePeriodTab('GK2');
+                        }}
+                        className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          periodicPeriod === 'GK2' ? 'bg-emerald-600 text-white font-black shadow-xs' : 'text-purple-800 hover:bg-purple-100'
+                        }`}
+                      >
+                        Giữa Kì II (GK2)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPeriodicPeriod('CK2');
+                          setActivePeriodTab('CK2');
+                        }}
+                        className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          periodicPeriod === 'CK2' ? 'bg-teal-600 text-white font-black shadow-xs' : 'text-purple-800 hover:bg-purple-100'
+                        }`}
+                      >
+                        Cuối Kì II (CK2)
                       </button>
                       <button
                         type="button"
@@ -1412,7 +1475,13 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                       type="button"
                       onClick={() => handleSynthesizePeriodic(periodicPeriod)}
                       className="px-3 py-1.5 text-xs font-black text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-800 rounded-xl flex items-center gap-1.5 transition-all shadow-sm cursor-pointer active:scale-95"
-                      title={`Tự động tổng hợp mức T/H/C và nhận xét ${periodicPeriod === 'GK' ? 'Giữa Kì I' : periodicPeriod === 'CK' ? 'Cuối Kì I' : 'Cả Năm'} từ điểm các tuần thường xuyên`}
+                      title={`Tự động tổng hợp mức T/H/C và nhận xét ${
+                        periodicPeriod === 'GK2' ? 'Giữa Kì II' :
+                        periodicPeriod === 'CK2' ? 'Cuối Kì II' :
+                        (periodicPeriod === 'CK' || periodicPeriod === 'CK1') ? 'Cuối Kì I' :
+                        periodicPeriod === 'CN' ? 'Cả Năm' :
+                        'Giữa Kì I'
+                      } từ điểm các tuần thường xuyên`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                       <span>⚡ Tính Từ Sổ Thường Xuyên</span>
@@ -1539,7 +1608,13 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                     {viewMode === 'periodic' && (
                       <>
                         <th className="py-2.5 px-3 w-36 text-center bg-purple-50/80 text-purple-900 border-l border-slate-200">
-                          Mức {periodicPeriod === 'GK' ? 'Giữa Kì I (GK1)' : periodicPeriod === 'CK' ? 'Cuối Kì I (CK1)' : 'Cả Năm (CN)'}
+                          Mức {
+                            periodicPeriod === 'GK2' ? 'Giữa Kì II (GK2)' :
+                            periodicPeriod === 'CK2' ? 'Cuối Kì II (CK2)' :
+                            (periodicPeriod === 'CK' || periodicPeriod === 'CK1') ? 'Cuối Kì I (CK1)' :
+                            periodicPeriod === 'CN' ? 'Cả Năm (CN)' :
+                            'Giữa Kì I (GK1)'
+                          }
                         </th>
                         <th className="py-2.5 px-4 min-w-96 border-l border-slate-200">
                           Nội Dung Nhận Xét (Chuẩn SMAS Viettel & TT27)
@@ -1567,17 +1642,19 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                     </tr>
                   ) : (
                     displayedStudents.map((st, idx) => {
-                      const currentPeriodLevel = periodicPeriod === 'GK'
-                        ? (st.gkLevel || st.level || 'H')
-                        : periodicPeriod === 'CK'
-                        ? (st.ckLevel || st.level || 'H')
-                        : (st.cnLevel || st.ckLevel || st.level || 'H');
+                      const currentPeriodLevel = 
+                        (periodicPeriod === 'GK' || periodicPeriod === 'GK1') ? (st.gk1Level || st.gkLevel || st.level || 'H')
+                        : (periodicPeriod === 'CK' || periodicPeriod === 'CK1') ? (st.ck1Level || st.ckLevel || st.level || 'H')
+                        : periodicPeriod === 'GK2' ? (st.gk2Level || st.gkLevel || st.level || 'H')
+                        : periodicPeriod === 'CK2' ? (st.ck2Level || st.ckLevel || st.level || 'H')
+                        : (st.cnLevel || st.ck2Level || st.ckLevel || st.level || 'H');
 
-                      const currentPeriodComment = periodicPeriod === 'GK'
-                        ? (st.gkComment || st.comment || '')
-                        : periodicPeriod === 'CK'
-                        ? (st.ckComment || st.comment || '')
-                        : (st.cnComment || st.ckComment || st.comment || '');
+                      const currentPeriodComment = 
+                        (periodicPeriod === 'GK' || periodicPeriod === 'GK1') ? (st.gk1Comment || st.gkComment || st.comment || '')
+                        : (periodicPeriod === 'CK' || periodicPeriod === 'CK1') ? (st.ck1Comment || st.ckComment || st.comment || '')
+                        : periodicPeriod === 'GK2' ? (st.gk2Comment || st.gkComment || st.comment || '')
+                        : periodicPeriod === 'CK2' ? (st.ck2Comment || st.ckComment || st.comment || '')
+                        : (st.cnComment || st.ck2Comment || st.ckComment || st.comment || '');
 
                       const hasCamHistory = Array.isArray(st.camHistory) && st.camHistory.length > 0;
                       const weekly = st.weeklyLevels || {};

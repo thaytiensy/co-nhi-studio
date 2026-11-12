@@ -240,24 +240,26 @@ export function exportSmasExcel({ students = [], className = '1A', semester = 'H
     }
 
     if (isMidTermMode) {
+      const isGk2 = /gk2|giua.*2/i.test(exportMode) || /giua.*2/i.test(semester);
       return {
         'STT': idx + 1,
         'Mã học sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
         'Họ và tên': st.name,
         'Lớp': cls,
-        'Mức đánh giá giữa kì': parseLevel(st.gkLevel || st.level || 'H'),
-        'Nội dung nhận xét giữa kì': st.gkComment || st.comment || ''
+        'Mức đánh giá giữa kì': parseLevel(isGk2 ? (st.gk2Level || st.gkLevel || st.level || 'H') : (st.gk1Level || st.gkLevel || st.level || 'H')),
+        'Nội dung nhận xét giữa kì': isGk2 ? (st.gk2Comment || st.gkComment || st.comment || '') : (st.gk1Comment || st.gkComment || st.comment || '')
       };
     }
 
     if (isFinalTermMode) {
+      const isCk2 = /ck2|cuoi.*2/i.test(exportMode) || /cuoi.*2/i.test(semester);
       return {
         'STT': idx + 1,
         'Mã học sinh': st.id || `HS${String(idx + 1).padStart(3, '0')}`,
         'Họ và tên': st.name,
         'Lớp': cls,
-        'Mức đánh giá cuối kì': parseLevel(st.ckLevel || st.level || 'H'),
-        'Nội dung nhận xét cuối kì': st.ckComment || st.comment || ''
+        'Mức đánh giá cuối kì': parseLevel(isCk2 ? (st.ck2Level || st.ckLevel || st.level || 'H') : (st.ck1Level || st.ckLevel || st.level || 'H')),
+        'Nội dung nhận xét cuối kì': isCk2 ? (st.ck2Comment || st.ckComment || st.comment || '') : (st.ck1Comment || st.ckComment || st.comment || '')
       };
     }
 
