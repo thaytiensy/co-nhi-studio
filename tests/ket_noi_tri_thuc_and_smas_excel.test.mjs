@@ -253,4 +253,28 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
     assert.ok(assistantContent.includes('ChatMessageItem'), 'Phải sử dụng component ChatMessageItem');
     assert.ok(assistantContent.includes('ChatInputBar'), 'Phải sử dụng component ChatInputBar');
   });
+
+  it('12. Đồng bộ giọng nam/nữ xuyên suốt app và loại bỏ lỗi phát âm ở slide 2+ (& -> và, emoji, fallback)', async () => {
+    const { cleanSmartVietnameseSpeechText, speechService } = await import('../src/utils/speechService.js');
+
+    // 1. Kiểm tra chuẩn hóa dấu & thành "và" (triệt tiêu lỗi XML SSML của Microsoft Edge TTS ở slide 2+)
+    const rawSlide2 = 'Hoạt động 1: Quan Sát & Khám Phá. ❓ Điểm nào ấn tượng nhất? 🎨 Đồ dùng: Giấy vẽ & màu sáp.';
+    const cleaned = cleanSmartVietnameseSpeechText(rawSlide2);
+    assert.strictEqual(cleaned.includes('&'), false, 'Không được còn dấu & gây lỗi XML SSML');
+    assert.ok(cleaned.includes('và Khám Phá'), 'Phải chuyển thành chữ "và" tự nhiên');
+    assert.ok(cleaned.includes('và màu sáp'), 'Phải chuyển thành chữ "và"');
+    assert.strictEqual(cleaned.includes('❓'), false, 'Phải lọc emoji question mark');
+    assert.strictEqual(cleaned.includes('🎨'), false, 'Phải lọc emoji art');
+
+    // 2. Kiểm tra chuyển đổi giọng nam / nữ xuyên suốt toàn app
+    speechService.setGender('male', false);
+    assert.strictEqual(speechService.gender, 'male');
+    assert.strictEqual(speechService.getState().gender, 'male');
+    assert.ok(speechService.getState().voiceName.includes('Nam Minh'));
+
+    speechService.setGender('female', false);
+    assert.strictEqual(speechService.gender, 'female');
+    assert.strictEqual(speechService.getState().gender, 'female');
+    assert.ok(speechService.getState().voiceName.includes('Hoài My'));
+  });
 });

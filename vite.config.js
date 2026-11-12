@@ -10,8 +10,9 @@ let ttsQueue = Promise.resolve();
 async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
   const task = ttsQueue.then(async () => {
     for (let attempt = 1; attempt <= 3; attempt++) {
+      let tts = null;
       try {
-        const tts = new MsEdgeTTS();
+        tts = new MsEdgeTTS();
         await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
         const { audioStream } = tts.toStream(cleanText);
         const chunks = [];
@@ -39,7 +40,12 @@ async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
         throw new Error('Edge TTS trả về âm thanh rỗng');
       } catch (error) {
         if (attempt === 3) throw error;
-        await new Promise(resolve => setTimeout(resolve, 350));
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } finally {
+        if (tts) {
+          try { tts.close(); } catch (_) {}
+          tts = null;
+        }
       }
     }
     throw new Error('Không thể tổng hợp âm thanh qua Edge TTS');
@@ -117,7 +123,9 @@ const ttsPlugin = () => ({
         }
 
         const cleanText = text
-          .replace(/[#*_`~-]/g, ' ')
+          .replace(/\s*&\s*/g, ' và ')
+          .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ' ')
+          .replace(/[#*_`~<>{}[\]\\-]/g, ' ')
           .replace(/\n+/g, '. ')
           .replace(/https?:\/\/\S+/g, '')
           .slice(0, 1000)

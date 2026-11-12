@@ -313,7 +313,7 @@ export default function PresentationModal({
       const slide = slides[currentIndex];
       if (!slide) return;
       if (!powerPointMode) {
-        const fullLecture = getLectureTextToSpeak();
+        const fullLecture = getLectureTextToSpeak(slide);
         if (fullLecture) {
           speechService.stop();
           speechService.speak(fullLecture);
@@ -506,13 +506,14 @@ export default function PresentationModal({
   };
 
   // Helper trích xuất lời giảng phù hợp
-  const getLectureTextToSpeak = () => {
+  const getLectureTextToSpeak = (targetSlide = currentSlide) => {
+    const s = targetSlide || currentSlide;
     const parts = [];
-    if (currentSlide?.title && currentSlide.title.trim() && !currentSlide.title.startsWith('Trang ') && !isWatermark(currentSlide.title)) {
-      parts.push(currentSlide.title.trim());
+    if (s?.title && s.title.trim() && !s.title.startsWith('Trang ') && !isWatermark(s.title)) {
+      parts.push(s.title.trim());
     }
 
-    (currentSlide?.elements || []).forEach(el => {
+    (s?.elements || []).forEach(el => {
       if ((el.type === 'text' || el.type === 'shape') && el.text?.trim()) {
         if (!isWatermark(el.text)) {
           parts.push(el.text.trim());
@@ -522,15 +523,16 @@ export default function PresentationModal({
 
     const slideText = parts.join('. ');
 
-    if (currentSlide?.notes && currentSlide.notes.trim() && !isWatermark(currentSlide.notes)) {
-      return currentSlide.notes.trim();
+    if (s?.notes && s.notes.trim() && !isWatermark(s.notes)) {
+      return s.notes.trim();
     }
 
     if (slideText) {
       return slideText;
     }
 
-    return `Trang ${currentIndex + 1}. Mời các em học sinh chú ý quan sát nội dung trên màn hình và làm theo hướng dẫn của Thầy Cô.`;
+    const slideNum = slides.indexOf(s) >= 0 ? slides.indexOf(s) + 1 : currentIndex + 1;
+    return `Trang ${slideNum}. Mời các em học sinh chú ý quan sát nội dung trên màn hình và làm theo hướng dẫn của Thầy Cô.`;
   };
 
   const handleToggleSpeak = () => {

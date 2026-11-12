@@ -62,8 +62,9 @@ async function synthesizeGoogleTts(cleanText) {
 async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
   const task = ttsQueue.then(async () => {
     for (let attempt = 1; attempt <= 3; attempt++) {
+      let tts = null;
       try {
-        const tts = new MsEdgeTTS();
+        tts = new MsEdgeTTS();
         await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
         const { audioStream } = tts.toStream(cleanText, { rate: '+0%', pitch: '+0Hz', volume: '+0%' });
         const chunks = [];
@@ -91,7 +92,12 @@ async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
         throw new Error('Edge TTS trả về âm thanh rỗng');
       } catch (err) {
         if (attempt === 3) throw err;
-        await new Promise(r => setTimeout(r, 350));
+        await new Promise(r => setTimeout(r, 200));
+      } finally {
+        if (tts) {
+          try { tts.close(); } catch (_) {}
+          tts = null;
+        }
       }
     }
     throw new Error('Không thể tổng hợp âm thanh qua Edge TTS');
@@ -106,21 +112,12 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Chỉ chấp nhận GET.' });
 
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Phương thức yêu cầu không được hỗ trợ. Chỉ chấp nhận GET.' });
-    return;
-  }
-
-  // Chống lạm dụng: Kiểm tra tần suất yêu cầu (Rate limiting)
   const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '127.0.0.1').split(',')[0].trim();
   if (!checkRateLimit(clientIp)) {
-    res.status(429).json({ error: 'Quá nhiều yêu cầu đọc giọng nói. Vui lòng thử lại sau giây lát.' });
-    return;
+    return res.status(429).json({ error: 'Quá nhiều yêu cầu đọc. Vui lòng thử lại sau.' });
   }
 
   try {
@@ -138,7 +135,9 @@ export default async function handler(req, res) {
     }
 
     const cleanText = text
-      .replace(/[#*_`~-]/g, ' ')
+      .replace(/\s*&\s*/g, ' và ')
+      .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, ' ')
+      .replace(/[#*_`~<>{}[\]\\-]/g, ' ')
       .replace(/\n+/g, '. ')
       .replace(/https?:\/\/\S+/g, '')
       .trim();
@@ -171,23 +170,19 @@ export default async function handler(req, res) {
       console.warn(`[Vercel TTS] MsEdgeTTS (${voiceName}) failed:`, edgeErr.message);
     }
 
-    // 2. Google TTS Fallback
-    // LƯU Ý SƯ PHẠM: Google Translate TTS là giọng NỮ chuẩn tiếng Việt.
-    // Chỉ phục vụ khi người dùng chọn Cô giáo (isFemale = true).
-    if (isFemale) {
-      try {
-        const googleBuf = await synthesizeGoogleTts(cleanText);
-        if (googleBuf && googleBuf.length > 0) {
-          ttsCache.set(cacheKey, googleBuf);
-          res.setHeader('Content-Type', 'audio/mpeg');
-          res.setHeader('Content-Length', googleBuf.length);
-          res.setHeader('X-TTS-Voice', 'Google-Vietnamese-Female');
-          res.status(200).send(googleBuf);
-          return;
-        }
-      } catch (gErr) {
-        console.warn('[Vercel TTS] Google TTS fallback failed:', gErr.message);
+    // 2. Google TTS Fallback (Hỗ trợ 100% dự phòng cho cả Giọng Thầy và Giọng Cô để không bao giờ bị lỗi ở slide 2+)
+    try {
+      const googleBuf = await synthesizeGoogleTts(cleanText);
+      if (googleBuf && googleBuf.length > 0) {
+        ttsCache.set(cacheKey, googleBuf);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Length', googleBuf.length);
+        res.setHeader('X-TTS-Voice', isFemale ? 'Google-Vietnamese-Female' : 'Google-Vietnamese-Male-Fallback');
+        res.status(200).send(googleBuf);
+        return;
       }
+    } catch (gErr) {
+      console.warn('[Vercel TTS] Google TTS fallback failed:', gErr.message);
     }
 
     // Trả thông báo lỗi an toàn, không văng stack trace hay chi tiết nội bộ ra client

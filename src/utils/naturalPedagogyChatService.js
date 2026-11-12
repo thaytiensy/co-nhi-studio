@@ -2,13 +2,14 @@
 import { findRelevantPedagogyTheme } from './offlineAssistantMatchService.js';
 import { PEDAGOGY_BANK } from '../data/pedagogyBank.js';
 
-// Dạng văn bản nói trôi chảy ngắn gọn, độ trễ 0.3s - 0.4s dành cho Cô Giáo Robot phát âm trực tiếp
-export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThemeTitle = '') {
+// Dạng văn bản nói trôi chảy ngắn gọn, độ trễ 0.3s - 0.4s dành cho Cô/Thầy Giáo Robot phát âm trực tiếp
+export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThemeTitle = '', currentGender = 'female') {
   const query = (userText || '').trim();
   const qLower = query.toLowerCase();
+  const roleName = currentGender === 'male' ? 'Thầy Giáo Robot AI' : 'Cô Giáo Robot AI';
 
-  if (/^(chào|xin chào|hello|hi|alo|chào em|chào cô)\b/i.test(qLower) || /bạn là ai|em là ai|tên gì/i.test(qLower)) {
-    return 'Dạ em chào Thầy Cô ạ! Em là Cô Giáo Robot AI của Cọ Nhí Studio. Hôm nay Thầy Cô cần em hỗ trợ chuẩn bị bài học hay tình huống nào trong lớp ạ?';
+  if (/^(chào|xin chào|hello|hi|alo|chào em|chào cô|chào thầy)\b/i.test(qLower) || /bạn là ai|em là ai|tên gì/i.test(qLower)) {
+    return `Dạ em chào Thầy Cô ạ! Em là ${roleName} của Cọ Nhí Studio. Hôm nay Thầy Cô cần em hỗ trợ chuẩn bị bài học hay tình huống nào trong lớp ạ?`;
   }
   if (/cảm ơn|thank|tuyệt vời|hay quá|tốt lắm/i.test(qLower)) {
     return 'Dạ không có gì đâu ạ! Được đồng hành cùng Thầy Cô là niềm vui của em. Chúc Thầy Cô và các bé có một tiết học thật vui và sáng tạo nhé!';
@@ -46,13 +47,14 @@ export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThe
   return `Dạ em đã hiểu ý Thầy Cô về ${query} rồi ạ! Thầy Cô hãy cho các bé quan sát thực tế, khơi gợi cảm xúc tự nhiên và hướng dẫn từng bước tạo hình thật vui nhé!`;
 }
 
-export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentThemeTitle = '') {
+export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentThemeTitle = '', currentGender = 'female') {
   const query = (userText || '').trim();
   const qLower = query.toLowerCase();
+  const roleTitle = currentGender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
 
   // 1. Chào hỏi xã giao & Nhận diện danh tính
   if (/^(chào|xin chào|hello|hi|alo|chào em|chào cô|chào bạn|chào thầy)\b/i.test(qLower) || /bạn là ai|em là ai|tên gì|giới thiệu/i.test(qLower)) {
-    return `Dạ em chào Thầy/Cô ạ! ❤️ Em là Cô Trợ Giảng AI của Cọ Nhí Studio, người bạn đồng hành sư phạm mĩ thuật của Thầy/Cô.\n\nHôm nay Thầy/Cô đang chuẩn bị bài giảng cho khối lớp nào, hoặc lớp mình có bé nào gặp khó khăn khi vẽ không ạ? Thầy/Cô cứ trò chuyện tự nhiên, em sẵn sàng cùng Thầy/Cô lên ý tưởng khởi động, soạn câu hỏi gợi mở hay xử lý tình huống lớp học nhé!`;
+    return `Dạ em chào Thầy/Cô ạ! ❤️ Em là ${roleTitle} của Cọ Nhí Studio, người bạn đồng hành sư phạm mĩ thuật của Thầy/Cô.\n\nHôm nay Thầy/Cô đang chuẩn bị bài giảng cho khối lớp nào, hoặc lớp mình có bé nào gặp khó khăn khi vẽ không ạ? Thầy/Cô cứ trò chuyện tự nhiên, em sẵn sàng cùng Thầy/Cô lên ý tưởng khởi động, soạn câu hỏi gợi mở hay xử lý tình huống lớp học nhé!`;
   }
 
   // 2. Cảm ơn & Khen ngợi & Tạm biệt

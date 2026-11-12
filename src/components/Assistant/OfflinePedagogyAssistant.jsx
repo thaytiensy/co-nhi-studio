@@ -76,7 +76,8 @@ export default function OfflinePedagogyAssistant({
   };
 
   const handleCharacterClick = () => {
-    const prompt = 'Dạ em chào Thầy Cô ạ! Thầy Cô cần em tư vấn mẹo xử lý học sinh sợ vẽ sai, hay trò chơi khởi động năm phút không ạ?';
+    const roleTitle = currentGender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
+    const prompt = `Dạ em chào Thầy Cô ạ! Em là ${roleTitle} của Cọ Nhí Studio. Thầy Cô cần em tư vấn mẹo xử lý học sinh sợ vẽ sai, hay trò chơi khởi động năm phút không ạ?`;
     setCurrentSpokenText(prompt);
     speechService.speak(prompt);
   };
@@ -92,14 +93,14 @@ export default function OfflinePedagogyAssistant({
     setIsLoading(true);
 
     // 1. Phản hồi giọng nói tự nhiên tức thì trong 0.3s - 0.4s
-    const spokenText = getSpokenDialogueResponse(text, currentGrade, currentSlide?.title || '');
+    const spokenText = getSpokenDialogueResponse(text, currentGrade, currentSlide?.title || '', currentGender);
     setCurrentSpokenText(spokenText);
     if (isAutoSpeak) {
       speechService.speak(spokenText);
     }
 
     // 2. Cập nhật nội dung văn bản chuẩn sư phạm cho lịch sử
-    const fullText = getNaturalPedagogyResponse(text, currentGrade, currentSlide?.title || '');
+    const fullText = getNaturalPedagogyResponse(text, currentGrade, currentSlide?.title || '', currentGender);
     const assistantMsgId = `${Date.now()}-assistant`;
     setMessages(prev => [
       ...prev,
@@ -136,6 +137,7 @@ export default function OfflinePedagogyAssistant({
           onCharacterClick={handleCharacterClick}
           onToggleViewMode={() => setViewMode('chat')}
           activeTopicLabel={currentSlide?.title || ''}
+          currentGender={currentGender}
         />
       ) : (
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3.5 space-y-1 scroll-smooth bg-gradient-to-b from-slate-900 to-slate-950">
@@ -145,7 +147,7 @@ export default function OfflinePedagogyAssistant({
               onClick={() => setViewMode('stage')}
               className="px-2.5 py-1 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg shadow-md cursor-pointer transition-all"
             >
-              🤖 Quay lại Cô Giáo Robot 3D
+              🤖 {currentGender === 'male' ? 'Quay lại Thầy Giáo Robot 3D' : 'Quay lại Cô Giáo Robot 3D'}
             </button>
           </div>
           {messages.map(msg => (

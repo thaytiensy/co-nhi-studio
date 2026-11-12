@@ -12,6 +12,7 @@ export default function RobotTeacherStage({
   onCharacterClick,
   onToggleViewMode,
   activeTopicLabel = '',
+  currentGender = 'female',
 }) {
   return (
     <div className="relative flex-1 bg-slate-950 flex flex-col items-center justify-center overflow-hidden select-none">
@@ -64,7 +65,7 @@ export default function RobotTeacherStage({
             {isSpeaking ? (
               <span className="px-2.5 py-1 bg-amber-500/90 text-slate-950 font-black text-[11px] rounded-full shadow-lg backdrop-blur-md flex items-center gap-1.5 animate-bounce">
                 <Volume2 className="w-3.5 h-3.5" />
-                <span>Cô giáo đang giảng giải...</span>
+                <span>{currentGender === 'male' ? 'Thầy giáo đang giảng...' : 'Cô giáo đang giảng...'}</span>
               </span>
             ) : isListening ? (
               <span className="px-2.5 py-1 bg-rose-600/90 text-white font-black text-[11px] rounded-full shadow-lg backdrop-blur-md flex items-center gap-1.5 animate-pulse ring-2 ring-rose-400">
@@ -112,7 +113,7 @@ export default function RobotTeacherStage({
           <div className="bg-slate-900/90 border border-amber-400/40 rounded-2xl p-3 shadow-xl backdrop-blur-md text-amber-50 flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between text-[11px] text-amber-300 font-extrabold pb-1 border-b border-amber-500/20">
               <span className="flex items-center gap-1">
-                <span>🎙️ Lời Cô Giáo:</span>
+                <span>🎙️ Lời {currentGender === 'male' ? 'Thầy Giáo' : 'Cô Giáo'}:</span>
                 {activeTopicLabel && <span className="text-amber-100 font-normal truncate max-w-[180px]">({activeTopicLabel})</span>}
               </span>
               <div className="flex items-center gap-1">
@@ -145,7 +146,7 @@ export default function RobotTeacherStage({
           </div>
         ) : (
           <div className="text-center py-2 text-slate-400 text-xs font-semibold">
-            <span>💡 Chạm vào cô giáo hoặc bấm Micro bên dưới để đàm thoại tức thì (độ trễ 0,3s)</span>
+            <span>💡 Chạm vào {currentGender === 'male' ? 'thầy giáo' : 'cô giáo'} hoặc bấm Micro bên dưới để đàm thoại tức thì (độ trễ 0,3s)</span>
           </div>
         )}
       </div>

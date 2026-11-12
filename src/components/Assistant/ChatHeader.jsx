@@ -36,7 +36,7 @@ export default function ChatHeader({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <h3 className="font-black text-xs sm:text-sm text-white tracking-wide truncate flex items-center gap-1">
-                <span>Cô Trợ Giảng AI 3D</span>
+                <span>{currentGender === 'male' ? 'Thầy Trợ Giảng AI 3D' : 'Cô Trợ Giảng AI 3D'}</span>
                 <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300 shrink-0" />
               </h3>
               <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-white/20 text-amber-100 border border-white/30">
