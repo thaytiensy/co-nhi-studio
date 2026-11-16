@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildStandardSlidesForPlan } from '../src/utils/planSlideGenerator.ts';
 
-const rootDir = process.cwd();
+const rootDir = fileURLToPath(new URL('..', import.meta.url));
 
 test('Kiểm định Quy chuẩn Typography Giáo Án PowerPoint (GA PP): Phông Times New Roman & Cỡ Chữ Nhỏ Nhất 14', async (t) => {
   await t.test('1. PlanPPTXImportModal sử dụng Times New Roman và cỡ chữ nhỏ nhất 14', () => {

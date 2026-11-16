@@ -23,10 +23,14 @@ export default function ChatHeader({
       <div className="flex items-center justify-between gap-2">
         {/* Avatar & Persona Info */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-amber-300 shadow-md shrink-0 bg-slate-950">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-amber-300 shadow-md shrink-0 bg-slate-900">
             <img
-              src="/images/tro-giang-ai.jpg"
-              alt="Cô Trợ Giảng AI"
+              src={currentGender === 'female' ? '/teacher_female.jpg' : '/teacher.jpg'}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/images/tro-giang-ai.jpg';
+              }}
+              alt={currentGender === 'female' ? 'Cô Trợ Giảng AI' : 'Thầy Trợ Giảng AI'}
               className="w-full h-full object-cover"
             />
             {/* Live Green Pulse Online Dot */}

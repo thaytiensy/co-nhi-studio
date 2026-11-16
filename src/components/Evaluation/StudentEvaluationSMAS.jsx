@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Calendar,
   Eye,
+  Search,
   Image as ImageIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -27,6 +28,7 @@ import {
   PERIODIC_COMMENTS_BANK,
   writeSmasData 
 } from '../../utils/smasEvaluationBridge';
+import { showToast } from '../../utils/toastService';
 
 // Ngân hàng nhận xét môn Mĩ thuật chuẩn Thông tư 27/2020/TT-BGDĐT
 const TT27_COMMENTS_BANK = {
@@ -244,12 +246,25 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
   }, [students, className, classOptions, teachingClasses]);
 
-  // Danh sách học sinh hiển thị theo bộ lọc lớp (chuẩn hóa tên lớp để khớp chính xác 100%)
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Danh sách học sinh hiển thị theo bộ lọc lớp và từ khóa tìm kiếm (chuẩn hóa tên lớp để khớp chính xác 100%)
   const displayedStudents = useMemo(() => {
-    if (selectedClassFilter === 'all') return students;
-    const target = normalizeClassLabel(selectedClassFilter);
-    return students.filter(s => normalizeClassLabel(s.className || className) === target);
-  }, [students, selectedClassFilter, className]);
+    let list = students;
+    if (selectedClassFilter !== 'all') {
+      const target = normalizeClassLabel(selectedClassFilter);
+      list = list.filter(s => normalizeClassLabel(s.className || className) === target);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter(s => {
+        const name = String(s.name || '').toLowerCase();
+        const id = String(s.id || '').toLowerCase();
+        return name.includes(q) || id.includes(q);
+      });
+    }
+    return list;
+  }, [students, selectedClassFilter, className, searchQuery]);
 
   // Thống kê số liệu KPI linh hoạt theo chế độ xem (35 tuần thường xuyên hoặc tổng hợp định kỳ)
   const currentKpi = useMemo(() => {
@@ -323,7 +338,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     if (!newClassInput.trim()) return;
     const cleanName = newClassInput.trim().replace(/^Lớp\s+/i, '');
     if (editingClassList.some(c => c.name.toLowerCase() === cleanName.toLowerCase())) {
-      alert('Lớp này đã có trong danh sách!');
+      showToast('Lớp này đã có trong danh sách!', 'warning');
       return;
     }
     setEditingClassList(prev => [...prev, { id: Math.random().toString(), name: cleanName }]);
@@ -333,7 +348,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   const handleSaveClassManager = () => {
     const updatedNames = editingClassList.map(c => c.name.trim().replace(/^Lớp\s+/i, '')).filter(Boolean);
     if (updatedNames.length === 0) {
-      alert('Danh sách lớp dạy không được để trống.');
+      showToast('Danh sách lớp dạy không được để trống.', 'warning');
       return;
     }
     saveTeachingClasses(updatedNames);
@@ -605,7 +620,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       const { students: parsedStudents, detectedClasses } = parseSmasWorkbook(workbook, { semester });
 
       if (!parsedStudents || parsedStudents.length === 0) {
-        alert('Không tìm thấy danh sách học sinh hợp lệ trong tệp Excel. Thầy/Cô có thể bấm "Dán Danh Sách" để copy-paste trực tiếp cực nhanh nhé!');
+        showToast('Không tìm thấy danh sách học sinh hợp lệ trong tệp Excel. Thầy/Cô có thể bấm "Dán Danh Sách" để copy-paste trực tiếp cực nhanh nhé!', 'warning');
         return;
       }
 
@@ -649,7 +664,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       setTimeout(() => setExportNotice(''), 4000);
     } catch (err) {
       console.error('Lỗi nạp tệp học sinh:', err);
-      alert('Lỗi đọc tệp danh sách học sinh: ' + err.message + '\nThầy/Cô có thể dùng tính năng Dán Danh Sách (Copy-Paste) để nạp ngay.');
+      showToast('Lỗi đọc tệp danh sách học sinh: ' + err.message + '. Thầy/Cô có thể dùng tính năng Dán Danh Sách (Copy-Paste) để nạp ngay.', 'error');
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -692,7 +707,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       setExportNotice(`✅ Đã thêm ${parsed.length} học sinh từ văn bản dán!`);
       setTimeout(() => setExportNotice(''), 4000);
     } else {
-      alert('Chưa nhận diện được tên học sinh. Vui lòng dán mỗi em trên một dòng.');
+      showToast('Chưa nhận diện được tên học sinh. Vui lòng dán mỗi em trên một dòng.', 'warning');
     }
   };
 
@@ -858,7 +873,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   // Tổng hợp tự động điểm và nhận xét định kỳ (Giữa kỳ hoặc Cuối kỳ)
   const handleSynthesizePeriodic = (targetPeriod = 'GK') => {
     if (students.length === 0) {
-      alert('Chưa có học sinh nào trong sổ điểm để tổng hợp.');
+      showToast('Chưa có học sinh nào trong sổ điểm để tổng hợp.', 'warning');
       return;
     }
     const result = batchSynthesizeClassEvaluations({
@@ -881,11 +896,11 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   // Xuất bảng nhận xét ra tệp Excel chuẩn SMAS (Hỗ trợ Thường xuyên, Giữa kỳ, Cuối kỳ & Toàn diện)
   const handleExportExcel = (multiSheet = false, exportMode = 'standard') => {
     if (students.length === 0) {
-      alert('Chưa có học sinh nào để xuất tệp Excel.');
+      showToast('Chưa có học sinh nào để xuất tệp Excel.', 'warning');
       return;
     }
     if (students.some(student => !(student.className?.trim() || className.trim()))) {
-      alert('Vui lòng nhập lớp mặc định ở phía trên hoặc điền lớp cho từng học sinh trước khi xuất.');
+      showToast('Vui lòng nhập lớp mặc định ở phía trên hoặc điền lớp cho từng học sinh trước khi xuất.', 'warning');
       return;
     }
 
@@ -902,7 +917,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       setExportNotice(`✅ Đã xuất tệp Excel: ${fileName}`);
       setTimeout(() => setExportNotice(''), 5000);
     } catch (err) {
-      alert('Lỗi xuất Excel: ' + err.message);
+      showToast('Lỗi xuất Excel: ' + err.message, 'error');
     }
   };
 
@@ -1575,16 +1590,43 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            {/* Thanh Tìm Kiếm Học Sinh Nhanh (Search Bar) */}
+            <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <div className="relative flex-1 min-w-[240px] max-w-md">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="🔍 Tìm nhanh học sinh theo tên hoặc mã HS..."
+                  className="w-full pl-9 pr-8 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-0.5 cursor-pointer"
+                    title="Xóa tìm kiếm"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <div className="text-xs font-bold text-slate-600 flex items-center gap-2">
+                <span>Hiển thị: <strong className="text-purple-700">{displayedStudents.length}</strong> / {students.length} học sinh</span>
+              </div>
+            </div>
+
             <div className="overflow-x-auto max-w-full">
               <table className="w-full text-left border-collapse min-w-max">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider">
-                    <th className="py-2.5 px-2 w-10 text-center sticky left-0 bg-slate-50 z-10">STT</th>
-                    <th className="py-2.5 px-2 w-24">Mã HS</th>
-                    <th className="py-2.5 px-3 min-w-36 sticky left-10 bg-slate-50 z-10">Họ và Tên</th>
-                    <th className="py-2.5 px-2 w-16 text-center">Lớp</th>
+                    <th className="py-2.5 px-2 w-11 text-center sticky left-0 bg-slate-50 z-20 border-r border-slate-200">STT</th>
+                    <th className="py-2.5 px-3 min-w-44 sticky left-[44px] bg-slate-50 z-20 border-r border-slate-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">Họ và Tên</th>
+                    <th className="py-2.5 px-2 w-16 text-center border-r border-slate-200">Lớp</th>
+                    <th className="py-2.5 px-2 w-20 text-center font-mono border-r border-slate-200">Mã HS</th>
                     {viewMode === 'weekly' && (
-                      <th className="py-2.5 px-2 w-20 text-center">Cam Chấm</th>
+                      <th className="py-2.5 px-2 w-20 text-center border-r border-slate-200">Cam Chấm</th>
                     )}
 
                     {/* 35 Cột Tuần (T1 -> T35) */}
@@ -1671,27 +1713,27 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
 
                       return (
                         <tr key={st.id || idx} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
-                          <td className="py-2 px-2 text-center font-bold text-slate-400 sticky left-0 bg-white">
+                          <td className="py-2 px-2 text-center font-bold text-slate-400 sticky left-0 bg-white z-10 border-r border-slate-100">
                             {idx + 1}
                           </td>
-                          <td className="py-2 px-2 font-mono font-bold text-slate-600 text-[11px]">
-                            {st.id}
-                          </td>
-                          <td className="py-2 px-2 sticky left-10 bg-white">
+                          <td className="py-2 px-2 sticky left-[44px] bg-white z-10 border-r border-slate-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                             <input
                               type="text"
                               value={st.name}
                               onChange={(e) => handleUpdateStudent(st.id, 'name', e.target.value)}
-                              className="w-full px-1.5 py-0.5 font-bold text-slate-800 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400 text-xs"
+                              className="w-full px-1.5 py-0.5 font-bold text-slate-800 bg-transparent hover:bg-slate-50 hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none focus:ring-1 focus:ring-purple-400 text-xs"
                             />
                           </td>
-                          <td className="py-2 px-1 text-center">
+                          <td className="py-2 px-1 text-center border-r border-slate-100">
                             <input
                               type="text"
                               value={st.className || className}
                               onChange={(e) => handleUpdateStudent(st.id, 'className', e.target.value)}
-                              className="w-14 text-center px-1 py-0.5 text-xs text-slate-700 bg-transparent hover:bg-white hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none"
+                              className="w-14 text-center px-1 py-0.5 text-xs text-slate-700 bg-transparent hover:bg-slate-50 hover:border hover:border-slate-200 rounded focus:bg-white focus:outline-none"
                             />
+                          </td>
+                          <td className="py-2 px-2 font-mono font-bold text-slate-600 text-[11px] text-center border-r border-slate-100">
+                            {st.id}
                           </td>
                           {viewMode === 'weekly' && (
                             <td className="py-2 px-1 text-center">

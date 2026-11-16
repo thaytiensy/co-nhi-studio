@@ -28,6 +28,7 @@ import {
   readSmasData, 
   DEFAULT_TEACHING_CLASSES 
 } from '../../utils/smasEvaluationBridge.js';
+import { showToast } from '../../utils/toastService';
 
 export default function ArtCameraRubric({
   onInsertGradedArtworkToSlide,
@@ -136,15 +137,37 @@ export default function ArtCameraRubric({
     if (found) {
       setStudentName(found.name);
       // Nếu học sinh đã có mức trước đó, gợi ý mức tương ứng
-      if (found.level === 'T') {
+      const weekly = found.weeklyLevels || {};
+      const curWeekLvl = weekly[selectedWeek] || weekly[String(selectedWeek)] || found.level;
+      if (curWeekLvl === 'T') {
         setRubricLevels({ requirement: 3, technique: 3, creativity: 3, presentation: 2 });
-      } else if (found.level === 'C') {
+      } else if (curWeekLvl === 'C') {
         setRubricLevels({ requirement: 2, technique: 1, creativity: 1, presentation: 1 });
       } else {
         setRubricLevels({ requirement: 3, technique: 2, creativity: 2, presentation: 2 });
       }
     }
   };
+
+  const currentStudentIndex = studentsInSelectedClass.findIndex(s => s.id === selectedStudentId);
+
+  const handlePrevStudent = () => {
+    if (studentsInSelectedClass.length === 0) return;
+    const prevIdx = currentStudentIndex <= 0 ? studentsInSelectedClass.length - 1 : currentStudentIndex - 1;
+    const target = studentsInSelectedClass[prevIdx];
+    if (target) handleSelectStudentFromList(target.id);
+  };
+
+  const handleNextStudent = () => {
+    if (studentsInSelectedClass.length === 0) return;
+    const nextIdx = currentStudentIndex >= studentsInSelectedClass.length - 1 ? 0 : currentStudentIndex + 1;
+    const target = studentsInSelectedClass[nextIdx];
+    if (target) handleSelectStudentFromList(target.id);
+  };
+
+  const nextStudent = currentStudentIndex >= 0 && currentStudentIndex < studentsInSelectedClass.length - 1
+    ? studentsInSelectedClass[currentStudentIndex + 1]
+    : studentsInSelectedClass[0] || null;
 
   // Tính toán mức đạt chuẩn Thông tư 27 (T, H, C) và tổng điểm từ 4 tiêu chí Rubric
   const overallLevel = calculateRubricLevel(rubricLevels);
@@ -153,7 +176,7 @@ export default function ArtCameraRubric({
   // Lưu kết quả chấm tranh vào Sổ Điểm SMAS theo chuẩn T, H, C
   const handleSaveToSmas = () => {
     if (!studentName.trim()) {
-      alert('Vui lòng nhập hoặc chọn tên học sinh trước khi lưu sổ điểm.');
+      showToast('Vui lòng nhập hoặc chọn tên học sinh trước khi lưu sổ điểm.', 'warning');
       return;
     }
 
@@ -185,7 +208,7 @@ export default function ArtCameraRubric({
   // Phân tích cục bộ độ sáng/tông màu; mức rubric do giáo viên tự chọn.
   const handleAnalyzeArtwork = () => {
     if (!capturedImage) {
-      alert('Vui lòng chụp bài vẽ hoặc chọn ảnh từ máy trước khi phân tích.');
+      showToast('Vui lòng chụp bài vẽ hoặc chọn ảnh từ máy trước khi phân tích.', 'warning');
       return;
     }
 
@@ -203,35 +226,53 @@ export default function ArtCameraRubric({
         ctx.drawImage(img, 0, 0, 120, 120);
 
         const imgData = ctx.getImageData(0, 0, 120, 120).data;
-        let warmPixels = 0, coolPixels = 0, nonWhitePixels = 0;
+        let warmPixels = 0, coolPixels = 0, nonWhitePixels = 0, edgePixels = 0;
+        const width = 120;
+        const height = 120;
 
-        for (let i = 0; i < imgData.length; i += 4) {
-          const r = imgData[i];
-          const g = imgData[i + 1];
-          const b = imgData[i + 2];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            const r = imgData[i];
+            const g = imgData[i + 1];
+            const b = imgData[i + 2];
 
-          // Nhận diện điểm ảnh có nét vẽ hoặc màu sắc (khác nền giấy trắng)
-          if (r < 240 || g < 240 || b < 240) {
-            nonWhitePixels++;
+            // Nhận diện điểm ảnh có nét vẽ hoặc màu sắc (khác nền giấy trắng/kem sáng)
+            if (r < 235 || g < 235 || b < 235) {
+              nonWhitePixels++;
+            }
+
+            if (r > g + 20 && r > b + 20) warmPixels++;
+            else if (b > r + 15 || g > r + 15) coolPixels++;
+
+            // Đo độ tương phản nét vẽ biên giới hình học (Edge detection)
+            if (x < width - 1 && y < height - 1) {
+              const rightIdx = (y * width + (x + 1)) * 4;
+              const downIdx = ((y + 1) * width + x) * 4;
+              const diffRight = Math.abs(r - imgData[rightIdx]) + Math.abs(g - imgData[rightIdx + 1]) + Math.abs(b - imgData[rightIdx + 2]);
+              const diffDown = Math.abs(r - imgData[downIdx]) + Math.abs(g - imgData[downIdx + 1]) + Math.abs(b - imgData[downIdx + 2]);
+              if (diffRight > 55 || diffDown > 55) {
+                edgePixels++;
+              }
+            }
           }
-
-          if (r > g + 20 && r > b + 20) warmPixels++;
-          else if (b > r + 15 || g > r + 15) coolPixels++;
         }
+
+        const totalPixels = width * height;
+        const colorCoverage = (nonWhitePixels / totalPixels) * 100;
+        const edgeRatio = (edgePixels / totalPixels) * 100;
 
         const toneSuggestion = warmPixels > coolPixels
           ? '1. Ảnh có nhiều điểm ảnh thiên ấm; có thể thêm một vài màu lạnh ở chi tiết phụ nếu phù hợp chủ đề.'
           : coolPixels > warmPixels
             ? '1. Ảnh có nhiều điểm ảnh thiên lạnh; có thể điểm thêm màu ấm ở chi tiết chính nếu phù hợp chủ đề.'
-            : '1. Chưa thấy tông ấm hoặc lạnh chiếm ưu thế; hãy chọn màu theo chủ đề và ý tưởng của học sinh.';
-
-        const totalPixels = imgData.length / 4;
-        const colorCoverage = (nonWhitePixels / totalPixels) * 100;
+            : '1. Gam màu hài hòa; hãy tiếp tục phối hợp màu theo chủ đề và ý tưởng của học sinh.';
 
         // Tự động phân tích và chấm điểm chuẩn Thông tư 27 dựa trên mức độ hoàn thiện tranh:
-        if (colorCoverage >= 35 && (warmPixels > 150 || coolPixels > 150)) {
+        // Đánh giá công bằng: tính cả nét vẽ phác họa, tô màu sáp và bố cục
+        if ((colorCoverage >= 10 && (warmPixels > 60 || coolPixels > 60)) || edgeRatio >= 2.0 || colorCoverage >= 22) {
           setRubricLevels({ requirement: 3, technique: 3, creativity: 3, presentation: 2 });
-        } else if (colorCoverage >= 15) {
+        } else if (colorCoverage >= 3.5 || edgeRatio >= 0.8) {
           setRubricLevels({ requirement: 3, technique: 2, creativity: 2, presentation: 2 });
         } else {
           setRubricLevels({ requirement: 2, technique: 1, creativity: 1, presentation: 1 });
@@ -423,7 +464,7 @@ export default function ArtCameraRubric({
   // Helper xử lý tệp ảnh bài vẽ (từ nút chọn hoặc kéo thả)
   const processImageFile = (file) => {
     if (!file || !file.type.startsWith('image/')) {
-      alert('Vui lòng chọn một tệp hình ảnh (.jpg, .png, .jpeg, .webp)');
+      showToast('Vui lòng chọn một tệp hình ảnh (.jpg, .png, .jpeg, .webp)', 'warning');
       return;
     }
     const reader = new FileReader();
@@ -740,21 +781,39 @@ export default function ArtCameraRubric({
       <div className="w-1/2 p-6 overflow-y-auto space-y-5">
         {/* Banner thông báo lưu Sổ SMAS */}
         {savedSmasNotice && (
-          <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 flex-wrap">
             <div className="flex items-center gap-2 text-xs font-bold">
               <Check className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{savedSmasNotice}</span>
             </div>
-            {onNavigateToSmas && (
-              <button
-                type="button"
-                onClick={onNavigateToSmas}
-                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black shrink-0 flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-              >
-                <span>Xem Sổ SMAS</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {nextStudent && nextStudent.id !== selectedStudentId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectStudentFromList(nextStudent.id);
+                    setCapturedImage(null);
+                    setTeacherComment('');
+                    setImprovementSteps([]);
+                  }}
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                  title="Chuyển sang chấm tranh cho học sinh tiếp theo trong danh sách"
+                >
+                  <span>Chấm tiếp: {nextStudent.name}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {onNavigateToSmas && (
+                <button
+                  type="button"
+                  onClick={onNavigateToSmas}
+                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                >
+                  <span>Xem Sổ SMAS</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -804,9 +863,31 @@ export default function ArtCameraRubric({
 
             {/* 2. Chọn Học sinh từ danh sách lớp hoặc nhập tay */}
             <div>
-              <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                Chọn học sinh ({studentsInSelectedClass.length}):
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-bold text-slate-600">
+                  Học sinh ({studentsInSelectedClass.length}):
+                </label>
+                {studentsInSelectedClass.length > 0 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handlePrevStudent}
+                      className="px-1.5 py-0.5 text-[10px] font-black bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 cursor-pointer"
+                      title="Chuyển sang em trước trong danh sách"
+                    >
+                      ◀ Trước
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextStudent}
+                      className="px-1.5 py-0.5 text-[10px] font-black bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 cursor-pointer"
+                      title="Chuyển sang em tiếp theo trong danh sách"
+                    >
+                      Tiếp ▶
+                    </button>
+                  </div>
+                )}
+              </div>
               <select
                 value={selectedStudentId}
                 onChange={(e) => handleSelectStudentFromList(e.target.value)}

@@ -23,6 +23,7 @@ import { ART_CURRICULUM_THEMES, generateGameQuestionsByTheme } from '../../data/
 import { generateNaturalArtGame, parseNaturalGamePrompt } from '../../utils/aiNaturalLanguageService';
 import { buildAnswerFeedback } from '../../utils/gameFeedbackService';
 import { classroomAudio } from '../../utils/classroomAudioService';
+import { showToast } from '../../utils/toastService';
 
 const DEFAULT_GAMES = {
   // Game 1: Color Mixing & Matching
@@ -292,7 +293,7 @@ export default function ArtGames({
       setGenerationToast(`🎉 Đã tạo thành công "${result.gamePackage.gameTitle}"! Thầy/Cô có thể xem trước & chỉnh sửa bên dưới.`);
       setTimeout(() => setGenerationToast(''), 5000);
     } catch (err) {
-      alert('Không thể tạo trò chơi: ' + err.message);
+      showToast('Không thể tạo trò chơi: ' + err.message, 'error');
     } finally {
       setIsAiGeneratingGame(false);
     }
@@ -361,7 +362,7 @@ export default function ArtGames({
   // Xóa một câu hỏi
   const handleDeleteQuestion = (qIdx) => {
     if (questionList.length <= 1) {
-      alert('Bộ trò chơi cần có ít nhất 1 câu hỏi.');
+      showToast('Bộ trò chơi cần có ít nhất 1 câu hỏi.', 'warning');
       return;
     }
     const updated = questionList.filter((_, idx) => idx !== qIdx);

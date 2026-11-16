@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { normalizeClassLabel, parseSmasWorkbook, shuffleClassComments } from '../src/utils/smasExcelService.js';
 
-const rootDir = process.cwd();
+const rootDir = fileURLToPath(new URL('..', import.meta.url));
 
 test('Kiểm định sửa lỗi chọn phần tử Slide (Định dạng chữ) & Chuẩn hóa lớp tải danh sách SMAS', async (t) => {
   await t.test('1. normalizeClassLabel chuẩn hóa chính xác tên lớp', () => {

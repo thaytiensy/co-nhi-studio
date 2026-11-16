@@ -7,10 +7,13 @@ const STORAGE_KEY_ORIENTATION = 'conhi_presentation_toolbar_orientation';
 const STORAGE_KEY_DOCKSIDE = 'conhi_presentation_toolbar_dockside';
 
 export default function PresentationToolbar(props) {
-  // Mặc định 'vertical' (dọc theo cạnh slide) để không bao giờ che chữ bài giảng
+  // Mặc định luôn là 'vertical' (dọc theo cạnh slide) để không bao giờ che chữ bài giảng của giáo viên
   const [orientation, setOrientation] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(STORAGE_KEY_ORIENTATION) || 'vertical';
+      const saved = localStorage.getItem(STORAGE_KEY_ORIENTATION);
+      if (saved === 'vertical') return 'vertical';
+      // Nếu trước đây lỡ lưu 'horizontal' gây che chữ, tự động chuyển về 'vertical'
+      localStorage.setItem(STORAGE_KEY_ORIENTATION, 'vertical');
     }
     return 'vertical';
   });

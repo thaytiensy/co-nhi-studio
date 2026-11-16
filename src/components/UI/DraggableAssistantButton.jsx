@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import TeacherAssistantPillButton from './TeacherAssistantPillButton';
 
 const STORAGE_X = 'conhi_assistant_pos_x';
 const STORAGE_Y = 'conhi_assistant_pos_y';
-const BUTTON_WIDTH = 200;
+const BUTTON_WIDTH = 220;
 const BUTTON_HEIGHT = 56;
 
-export default function DraggableAssistantButton({ onClick }) {
+export default function DraggableAssistantButton({ onClick, onDismiss }) {
   const [pos, setPos] = useState({ x: -1, y: -1 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, moved: false });
@@ -44,8 +44,10 @@ export default function DraggableAssistantButton({ onClick }) {
 
   // Xử lý kéo thả bằng Chuột
   const handleMouseDown = (e) => {
-    // Chỉ kích hoạt chuột trái
     if (e.button !== 0) return;
+    // Ngăn chặn hành vi bôi đen text hoặc kéo ảnh mặc định của trình duyệt
+    e.preventDefault();
+
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -58,7 +60,7 @@ export default function DraggableAssistantButton({ onClick }) {
     const handleMouseMove = (moveEvent) => {
       const dx = moveEvent.clientX - dragStartRef.current.startX;
       const dy = moveEvent.clientY - dragStartRef.current.startY;
-      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
         dragStartRef.current.moved = true;
       }
       const clampX = Math.max(16, Math.min(window.innerWidth - BUTTON_WIDTH - 16, dragStartRef.current.initialPosX + dx));
@@ -101,7 +103,7 @@ export default function DraggableAssistantButton({ onClick }) {
       const t = moveEvent.touches[0];
       const dx = t.clientX - dragStartRef.current.startX;
       const dy = t.clientY - dragStartRef.current.startY;
-      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
         dragStartRef.current.moved = true;
       }
       const clampX = Math.max(16, Math.min(window.innerWidth - BUTTON_WIDTH - 16, dragStartRef.current.initialPosX + dx));
@@ -127,10 +129,10 @@ export default function DraggableAssistantButton({ onClick }) {
   };
 
   const handleClick = (e) => {
-    // Nếu vừa kéo thả di chuyển thì không mở modal
+    // Nếu vừa kéo thả di chuyển thì không kích hoạt click mở modal
     if (dragStartRef.current.moved) {
-      e.preventDefault();
-      e.stopPropagation();
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
       return;
     }
     onClick?.();
@@ -157,6 +159,7 @@ export default function DraggableAssistantButton({ onClick }) {
     >
       <TeacherAssistantPillButton
         onClick={handleClick}
+        onDismiss={onDismiss}
         className={isDragging ? 'pointer-events-none' : ''}
       />
     </div>

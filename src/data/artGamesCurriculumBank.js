@@ -332,14 +332,26 @@ export function detectTopicMatch(themeTitle) {
   return null;
 }
 
-// Helper xáo trộn đáp án ngẫu nhiên để đáp án đúng không phải lúc nào cũng ở vị trí đầu tiên
+// Helper sắp xếp đáp án ổn định theo nội dung câu hỏi (Deterministic Seeded Shuffle)
+// Giữ nguyên vị trí cố định 100% trong suốt phiên trình chiếu để các ô lựa chọn không bao giờ bị nhảy lung tung
 function shuffleOptions(question) {
   const originalOptions = [...question.options];
   const correctOptionText = originalOptions[question.correctAnswer];
 
+  // Tính hash đơn giản từ chuỗi câu hỏi để có seed cố định
+  const str = String(question.question || question.id || '');
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  hash = Math.abs(hash);
+
   const shuffled = [...originalOptions];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    // Thuật toán LCG sinh số giả ngẫu nhiên cố định (deterministic PRNG)
+    hash = (hash * 9301 + 49297) % 233280;
+    const rnd = hash / 233280;
+    const j = Math.floor(rnd * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 

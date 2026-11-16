@@ -407,6 +407,8 @@ export function generateStandaloneHtmlString(slidesOrProject, customTitle) {
 </html>`;
 }
 
+import { showToast } from './toastService.js';
+
 /**
  * Xuất toàn bộ bài giảng thành một tệp HTML duy nhất và tải về máy
  * @param {Array|object} slidesOrProject Mảng slide hoặc đối tượng { title, slides }
@@ -416,9 +418,7 @@ export function generateStandaloneHtmlString(slidesOrProject, customTitle) {
 export function exportSlideToStandaloneHtml(slidesOrProject, customFileName) {
   const htmlContent = generateStandaloneHtmlString(slidesOrProject, customFileName);
   if (!htmlContent) {
-    if (typeof alert === 'function') {
-      alert('Không có dữ liệu bài giảng để xuất HTML.');
-    }
+    showToast('Không có dữ liệu bài giảng để xuất HTML.', 'warning');
     return false;
   }
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, Sparkles } from 'lucide-react';
+import { showToast } from '../../utils/toastService';
 
 const SUGGESTION_CHIPS = [
   { label: '🌟 Trò chơi khởi động 5p', prompt: 'Gợi ý 1 trò chơi khởi động vui nhộn 5 phút cho tiết học mĩ thuật này.' },
@@ -91,7 +92,7 @@ export default function ChatInputBar({
 
   const toggleVoiceInput = () => {
     if (!recognitionRef.current) {
-      alert('Trình duyệt hiện tại chưa hỗ trợ nhận diện giọng nói trực tiếp. Thầy/Cô hãy dùng Chrome hoặc Edge nhé!');
+      showToast('Trình duyệt hiện tại chưa hỗ trợ nhận diện giọng nói trực tiếp. Thầy/Cô hãy dùng Chrome hoặc Edge nhé!', 'warning');
       return;
     }
     if (isListening) {

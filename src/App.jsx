@@ -30,6 +30,8 @@ import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSe
 import { auth } from './utils/firebaseClient';
 import { Sparkles } from 'lucide-react';
 import DraggableAssistantButton from './components/UI/DraggableAssistantButton';
+import ToastContainer from './components/UI/ToastContainer';
+import { showToast } from './utils/toastService';
 import { buildStandardSlidesForPlan } from './utils/planSlideGenerator';
 import { restoreDefaultData } from './lib/storage';
 
@@ -295,6 +297,13 @@ export default function App() {
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isAssistantMaximized, setIsAssistantMaximized] = useState(false);
+  const [isAssistantPillDismissed, setIsAssistantPillDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('conhi_assistant_pill_hidden') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // PPTX Import states
   const [pptxPreviewData, setPptxPreviewData] = useState(null);
@@ -391,7 +400,7 @@ export default function App() {
       setRecoveredDraft(null);
       const saveResult = saveProjectToLocal({ title: 'Bài Giảng Mĩ Thuật', slides: blank }, currentUserSession?.email);
       setIsSaved(saveResult.success);
-      if (!saveResult.success) alert(saveResult.error);
+      if (!saveResult.success) showToast(saveResult.error, 'error');
     }
   };
 
@@ -451,7 +460,7 @@ export default function App() {
       setRecoveredDraft(null);
     } else {
       setIsSaved(false);
-      alert(res.error);
+      showToast(res.error, 'error');
     }
   };
 
@@ -484,10 +493,10 @@ export default function App() {
         setSlideEditorResetKey(key => key + 1);
         if (data.title) setProjectTitle(data.title);
         setIsSaved(false);
-        alert('Đã tải thành công tệp bài giảng: ' + (data.title || file.name));
+        showToast('Đã tải thành công tệp bài giảng: ' + (data.title || file.name), 'success');
       }
     } catch (err) {
-      alert(err.message);
+      showToast(err.message, 'error');
     }
   };
 
@@ -629,12 +638,12 @@ export default function App() {
       const { exportToPPTX } = await import('./utils/pptxExportService');
       const res = await exportToPPTX(projectTitle, slides);
       if (res.success) {
-        alert(`${res.message}\n\n✓ ${res.details.supportedElements}\n\nℹ️ ${res.details.limitations}`);
+        showToast(`Xuất PowerPoint thành công!\n✓ ${res.details.supportedElements}`, 'success', 5000);
       } else {
-        alert('Lỗi xuất PowerPoint: ' + res.error);
+        showToast('Lỗi xuất PowerPoint: ' + res.error, 'error');
       }
     } catch (err) {
-      alert('Không thể tải dịch vụ xuất PowerPoint: ' + err.message);
+      showToast('Không thể tải dịch vụ xuất PowerPoint: ' + err.message, 'error');
     }
   };
 
@@ -858,7 +867,7 @@ export default function App() {
                     const newNotes = existing ? `${existing}\n\n${text}` : text;
                     const updated = slides.map((s, idx) => idx === currentSlideIndex ? { ...s, notes: newNotes } : s);
                     handleSlidesChange(updated);
-                    alert('✓ Đã chèn nội dung vào ghi chú trang slide hiện tại!');
+                    showToast('Đã chèn nội dung vào ghi chú trang slide hiện tại!', 'success');
                   }}
                   onClose={() => setIsAssistantOpen(false)}
                 />
@@ -873,9 +882,17 @@ export default function App() {
         <BottomNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
 
-      {/* 3. Floating Teacher Assistant Button: Có thể kéo thả di chuyển tự do trên màn hình */}
-      {!isPresentationOpen && !isAssistantOpen && (
-        <DraggableAssistantButton onClick={() => setIsAssistantOpen(true)} />
+      {/* 3. Floating Teacher Assistant Button: Có thể kéo thả tự do (tự động ẩn khi đang ở Slide Editor để không che thanh công cụ) */}
+      {!isPresentationOpen && !isAssistantOpen && activeTab !== 'editor' && !isAssistantPillDismissed && (
+        <DraggableAssistantButton 
+          onClick={() => setIsAssistantOpen(true)}
+          onDismiss={() => {
+            setIsAssistantPillDismissed(true);
+            try {
+              localStorage.setItem('conhi_assistant_pill_hidden', 'true');
+            } catch (_) {}
+          }}
+        />
       )}
 
       <React.Suspense fallback={null}>
@@ -919,6 +936,9 @@ export default function App() {
           />
         )}
       </React.Suspense>
+
+      {/* Global Toast Notification System */}
+      <ToastContainer />
     </div>
   );
 }
