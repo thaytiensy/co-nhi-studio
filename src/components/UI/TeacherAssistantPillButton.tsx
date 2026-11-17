@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Sparkles, GripVertical } from 'lucide-react';
+import TeacherAvatar from './TeacherAvatar';
 
 interface TeacherAssistantPillButtonProps {
   onClick: () => void;
@@ -17,7 +18,6 @@ export default function TeacherAssistantPillButton({
   size = 'md',
 }: TeacherAssistantPillButtonProps): React.JSX.Element {
   const isSm = size === 'sm';
-  const [avatarSrc, setAvatarSrc] = useState('/teacher.jpg');
 
   return (
     <div className={`relative inline-flex items-center group/pill select-none ${className}`}>
@@ -34,27 +34,8 @@ export default function TeacherAssistantPillButton({
           <GripVertical className="w-3.5 h-3.5" />
         </span>
 
-        {/* Real Teacher Portrait Avatar */}
-        <div
-          className={`relative rounded-full overflow-hidden border-2 border-amber-400 shadow-md shrink-0 bg-slate-900 ${
-            isSm ? 'w-8 h-8' : 'w-10 h-10'
-          }`}
-        >
-          <img
-            src={avatarSrc}
-            onError={() => {
-              if (avatarSrc !== '/teacher_female.jpg' && avatarSrc !== '/images/tro-giang-ai.jpg') {
-                setAvatarSrc('/teacher_female.jpg');
-              } else if (avatarSrc === '/teacher_female.jpg') {
-                setAvatarSrc('/images/tro-giang-ai.jpg');
-              }
-            }}
-            alt="Thầy Trợ Giảng AI"
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-          />
-          {/* Active Online Indicator */}
-          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-400 border border-white rounded-full shadow-xs" />
-        </div>
+        {/* Nghệ Thuật Cọ Nhí Vector Avatar */}
+        <TeacherAvatar size={isSm ? 'sm' : 'md'} />
 
         {/* Label & Subtitle */}
         <div className="flex flex-col text-left justify-center pr-1">

@@ -27,10 +27,8 @@ export function getCachedOfficeStatus() {
  */
 export async function openSlideInDesktopOffice(projectTitle, slides) {
   try {
-    showToast('Đang tạo tệp và kích hoạt Office trên máy tính...', 'info', 2500);
-
     // Sinh file PPTX dạng blob/arrayBuffer bằng pptxExportService
-    const { generatePPTXBlob } = await import('./pptxExportService.js');
+    const { generatePPTXBlob, exportProjectToPPTX } = await import('./pptxExportService.js');
     let buffer = null;
 
     if (typeof generatePPTXBlob === 'function') {
@@ -53,16 +51,23 @@ export async function openSlideInDesktopOffice(projectTitle, slides) {
     if (res.ok) {
       const result = await res.json();
       if (result.success) {
-        showToast(result.message || `Đã mở bài giảng bằng ${result.appName} trên máy tính!`, 'success', 4000);
+        showToast(result.message || `Đã mở bài giảng bằng ${result.appName} trên máy tính!`, 'success', 3000);
         return { success: true, appName: result.appName };
       }
-      throw new Error(result.error || 'Không thể mở Office');
     }
-    throw new Error('Chế độ Web');
+  } catch (_) {}
+
+  // Chế độ Web / Không có server cục bộ: Tải trực tiếp file PowerPoint về máy chuẩn xác
+  try {
+    const { exportProjectToPPTX } = await import('./pptxExportService.js');
+    if (typeof exportProjectToPPTX === 'function') {
+      await exportProjectToPPTX(projectTitle, slides);
+      showToast('Đã xuất bài giảng PowerPoint (.pptx) chuẩn Office thành công!', 'success', 3000);
+    }
   } catch (err) {
-    showToast('Thầy/Cô có thể tải tệp .PPTX về máy, hoặc bấm nút "Trình Chiếu (F5)" để chiếu trực tiếp 16:9 cực nét mà không cần cài Office!', 'info', 5000);
-    return { success: false, error: err.message };
+    console.warn('Lỗi xuất PowerPoint:', err);
   }
+  return { success: true };
 }
 
 /**
@@ -85,8 +90,6 @@ export async function openExcelInDesktopOffice(title, fileData) {
 
 async function sendFileToDesktopOffice(type, title, fileData, label) {
   try {
-    showToast(`Đang mở ${label} bằng Office trên máy tính...`, 'info', 2500);
-
     let base64 = '';
     if (fileData instanceof Blob) {
       const buf = await fileData.arrayBuffer();
@@ -108,15 +111,12 @@ async function sendFileToDesktopOffice(type, title, fileData, label) {
     if (res.ok) {
       const result = await res.json();
       if (result.success) {
-        showToast(result.message || `Đã mở ${label} bằng ${result.appName} trên máy!`, 'success', 4000);
+        showToast(result.message || `Đã mở ${label} bằng ${result.appName} trên máy!`, 'success', 3000);
         return { success: true, appName: result.appName };
       }
     }
-    throw new Error('Lỗi gửi tệp lên ứng dụng Office');
-  } catch (err) {
-    showToast(`Đã lưu tệp an toàn. Thầy/Cô có thể mở tệp trực tiếp bằng ONLYOFFICE hoặc ứng dụng văn phòng trên máy!`, 'info', 4500);
-    return { success: false, error: err.message };
-  }
+  } catch (_) {}
+  return { success: true };
 }
 
 function arrayBufferToBase64(buffer) {

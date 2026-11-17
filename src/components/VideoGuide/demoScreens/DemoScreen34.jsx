@@ -22,8 +22,8 @@ export function DemoScreenPart3() {
       <div className="flex-1 flex gap-3 min-h-0 items-center justify-center p-2">
         {/* Robot Teacher 3D Avatar Card */}
         <div className="w-36 sm:w-44 bg-slate-950 rounded-xl border border-amber-500/40 p-2.5 flex flex-col items-center text-center shadow-lg relative overflow-hidden">
-          <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-md relative group">
-            <img src="/tro-giang-ai.jpg" alt="Cô Trợ Giảng AI" className="w-full h-full object-cover" />
+          <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-md relative group bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-300 flex items-center justify-center text-4xl select-none">
+            🎨
             <div className="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-slate-900 animate-pulse"></div>
           </div>
           <span className="text-xs font-black text-amber-300 mt-2">Cô Trợ Giảng AI</span>

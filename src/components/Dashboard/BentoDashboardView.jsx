@@ -39,7 +39,6 @@ import {
 } from '../../lib/storage';
 import { exportWordReport, exportExcelReport, exportCsvReport, buildWordReportBlob, buildExcelReportBlob } from '../../lib/export-engine';
 import { downloadAppDescriptionWordDoc, generateAppDescriptionWordBlob } from '../../utils/appDescriptionWordService';
-import { openWordInDesktopOffice, openExcelInDesktopOffice } from '../../utils/desktopOfficeClient';
 import {
   getFirebaseDatabaseStatus,
   syncStorageToFirebase,
@@ -768,17 +767,6 @@ export default function BentoDashboardView({
                       </div>
                     </div>
                   </button>
-                  <button
-                    onClick={async () => {
-                      const { blob, filename } = generateAppDescriptionWordBlob();
-                      await openWordInDesktopOffice(filename.replace(/\.doc$/i, ''), blob);
-                    }}
-                    className="p-3 rounded-2xl bg-indigo-100/90 hover:bg-indigo-200 border border-indigo-300 text-center transition-all cursor-pointer shrink-0 active:scale-95 flex flex-col items-center justify-center min-w-[76px]"
-                    title="Mở tài liệu mô tả trực tiếp bằng ONLYOFFICE trên máy tính này"
-                  >
-                    <span className="text-lg">🖥️</span>
-                    <span className="text-[10px] font-black text-indigo-900 mt-0.5">Office Máy</span>
-                  </button>
                 </div>
 
                 <div className="flex flex-col gap-1.5 p-3 rounded-2xl bg-indigo-50/80 border border-indigo-200 text-left">
@@ -786,16 +774,6 @@ export default function BentoDashboardView({
                     <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-2xs">
                       <FileText className="w-4 h-4" />
                     </div>
-                    <button
-                      onClick={async () => {
-                        const { blob, filename } = buildWordReportBlob();
-                        await openWordInDesktopOffice(filename.replace(/\.doc$/i, ''), blob);
-                      }}
-                      className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-indigo-200 text-indigo-900 hover:bg-indigo-300 transition-colors cursor-pointer"
-                      title="Mở báo cáo bằng ONLYOFFICE trên máy tính"
-                    >
-                      🖥️ Mở Máy
-                    </button>
                   </div>
                   <button
                     onClick={() => {
@@ -815,16 +793,6 @@ export default function BentoDashboardView({
                     <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-2xs">
                       <FileSpreadsheet className="w-4 h-4" />
                     </div>
-                    <button
-                      onClick={async () => {
-                        const { blob, filename } = buildExcelReportBlob();
-                        await openExcelInDesktopOffice(filename.replace(/\.xlsx$/i, ''), blob);
-                      }}
-                      className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-teal-200 text-teal-900 hover:bg-teal-300 transition-colors cursor-pointer"
-                      title="Mở bảng Excel bằng ONLYOFFICE trên máy tính"
-                    >
-                      🖥️ Mở Máy
-                    </button>
                   </div>
                   <button
                     onClick={() => {

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Volume2, Copy, Check, FileText, Sparkles } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
+import TeacherAvatar from '../UI/TeacherAvatar';
 
 export default function ChatMessageItem({
   message,
@@ -40,13 +41,7 @@ export default function ChatMessageItem({
   return (
     <div className="flex items-start gap-2 mb-3.5 animate-in fade-in slide-in-from-bottom-1 duration-150">
       {/* Mini Avatar */}
-      <div className="w-7 h-7 rounded-full overflow-hidden border border-amber-400 shadow-2xs shrink-0 mt-0.5 bg-slate-900">
-        <img
-          src="/images/tro-giang-ai.jpg"
-          alt="Cô Trợ Giảng"
-          className="w-full h-full object-cover"
-        />
-      </div>
+      <TeacherAvatar size="sm" showPulse={false} />
 
       <div className="max-w-[88%] flex flex-col items-start min-w-0">
         <div className="bg-white border border-slate-200/90 rounded-2xl rounded-tl-xs p-3.5 shadow-2xs text-slate-800 text-xs sm:text-[13px] leading-relaxed w-full select-text">

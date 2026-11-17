@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Volume2, VolumeX, Mic, Sparkles, MessageSquare } from 'lucide-react';
+import TeacherAvatar from '../UI/TeacherAvatar';
 
 export default function RobotTeacherStage({
   isSpeaking,
@@ -50,15 +51,35 @@ export default function RobotTeacherStage({
             ? 'border-rose-400 shadow-rose-500/40 scale-[1.01]'
             : 'border-slate-700 shadow-slate-950/80 hover:border-amber-400/80'
         }`}>
-          <img
-            src="/images/tro-giang-ai.jpg"
-            alt="Cô Giáo Robot AI 3D"
-            className={`w-full h-full object-cover transition-transform duration-500 ${
-              isSpeaking
-                ? 'scale-105 filter brightness-105'
-                : 'group-hover:scale-102'
-            }`}
-          />
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-slate-900/90 via-slate-950 to-amber-950/40">
+            <div className="relative group cursor-pointer" onClick={onCharacterClick}>
+              <TeacherAvatar
+                gender={currentGender}
+                size="xl"
+                isSpeaking={isSpeaking}
+                isListening={isListening}
+                showPulse={true}
+              />
+            </div>
+            <div className="mt-4 text-center">
+              <h4 className="text-sm font-black text-amber-200 tracking-wide">
+                {currentGender === 'male' ? 'Thầy Cọ Nhí Sư Phạm' : 'Cô Trợ Giảng Mĩ Thuật'}
+              </h4>
+              <p className="text-[11px] text-amber-300/80 font-medium mt-0.5">
+                {activeTopicLabel || 'Đàm thoại Sư phạm GDPT 2018'}
+              </p>
+            </div>
+            {/* Dynamic Sound Wave Animation when speaking */}
+            {isSpeaking && (
+              <div className="flex items-end gap-1.5 h-6 mt-3">
+                <div className="w-1.5 bg-amber-400 rounded-full h-3 animate-pulse"></div>
+                <div className="w-1.5 bg-amber-400 rounded-full h-6 animate-pulse delay-75"></div>
+                <div className="w-1.5 bg-amber-400 rounded-full h-4 animate-pulse delay-150"></div>
+                <div className="w-1.5 bg-amber-400 rounded-full h-6 animate-pulse delay-100"></div>
+                <div className="w-1.5 bg-amber-400 rounded-full h-3 animate-pulse"></div>
+              </div>
+            )}
+          </div>
 
           {/* Interactive Floating Status Badge */}
           <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5">

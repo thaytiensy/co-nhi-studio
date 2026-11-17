@@ -58,18 +58,8 @@ export default function LoginGateModal({ isOpen, authError = '', onLoginSuccess 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/70 select-none backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col transform animate-in zoom-in-95 duration-200">
         <div className="px-6 pt-7 pb-6 bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white text-center relative overflow-hidden">
-          <div className="w-16 h-16 rounded-2xl bg-white shadow-lg p-1.5 flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 overflow-hidden">
-            <img
-              src="/teacher.jpg"
-              alt="Thầy Cọ Nhí"
-              className="w-full h-full object-cover rounded-xl"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                if (e.currentTarget.parentElement) {
-                  e.currentTarget.parentElement.innerHTML = '<span class="text-3xl" aria-hidden="true">🎨</span>';
-                }
-              }}
-            />
+          <div className="w-16 h-16 rounded-2xl bg-white shadow-lg p-1.5 flex items-center justify-center mx-auto mb-3 border-2 border-amber-200 overflow-hidden text-4xl select-none">
+            🎨
           </div>
           <h2 className="text-xl font-black tracking-tight">Cọ Nhí Studio</h2>
           <p className="text-xs text-amber-100 font-medium mt-0.5">Soạn giảng & Trình chiếu Mĩ thuật Tiểu học GDPT 2018</p>

@@ -110,11 +110,6 @@ export default function PresentationVerticalToolbar(props) {
       <button onClick={onExportHtml} className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700" title="Xuất file HTML USB offline">
         <Download className="w-4 h-4 text-sky-400" />
       </button>
-      {onOpenDesktopOffice && (
-        <button onClick={onOpenDesktopOffice} className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-900/80 hover:bg-indigo-800 text-indigo-300 border border-indigo-500/50 cursor-pointer" title="Mở trực tiếp bài giảng bằng ONLYOFFICE trên máy tính">
-          <span className="text-xs">🖥️</span>
-        </button>
-      )}
       <button onClick={onPrintPdf} className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-emerald-300" title="In / Lưu PDF 16:9">
         <Printer className="w-4 h-4 text-emerald-400" />
       </button>
