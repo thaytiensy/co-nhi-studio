@@ -382,13 +382,15 @@ export default function PresentationModal({
     }
   }, [currentSlide]);
 
-  // Mở bài giảng trực tiếp bằng ứng dụng Office trên máy tính (PowerPoint, ONLYOFFICE, WPS)
+  // Mở bài giảng trực tiếp bằng ONLYOFFICE trên máy tính
   const handleOpenDesktopOffice = useCallback(async () => {
     try {
+      speechService.stop();
+      classroomAudio.stopClassroomMusic();
       const { openSlideInDesktopOffice } = await import('../../utils/desktopOfficeClient');
       await openSlideInDesktopOffice(projectTitle, slides);
     } catch (err) {
-      console.warn('Lỗi mở Desktop Office:', err);
+      console.warn('Lỗi mở ONLYOFFICE Desktop:', err);
     }
   }, [projectTitle, slides]);
 
