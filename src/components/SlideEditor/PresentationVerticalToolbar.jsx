@@ -111,7 +111,7 @@ export default function PresentationVerticalToolbar(props) {
         <Download className="w-4 h-4 text-sky-400" />
       </button>
       {onOpenDesktopOffice && (
-        <button onClick={onOpenDesktopOffice} className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-900/80 hover:bg-indigo-800 text-indigo-300 border border-indigo-500/50 cursor-pointer" title="Mở trực tiếp bằng phần mềm Office (PowerPoint / ONLYOFFICE / WPS) trên máy tính này">
+        <button onClick={onOpenDesktopOffice} className="w-9 h-9 rounded-xl flex items-center justify-center bg-indigo-900/80 hover:bg-indigo-800 text-indigo-300 border border-indigo-500/50 cursor-pointer" title="Mở trực tiếp bài giảng bằng ONLYOFFICE trên máy tính">
           <span className="text-xs">🖥️</span>
         </button>
       )}

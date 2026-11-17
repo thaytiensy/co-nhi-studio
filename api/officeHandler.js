@@ -3,94 +3,45 @@ import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
 
-// 1. Tự động nhận diện toàn bộ các bộ phần mềm Office trên máy tính
-export function detectInstalledOffice() {
-  const result = {
-    hasOffice: false,
-    primary: null,
-    suites: []
-  };
+// Đường dẫn chuẩn của ONLYOFFICE Desktop Editors (Bản mặc định của Thầy/Cô)
+const ONLYOFFICE_PATHS = [
+  'C:\\Program Files\\ONLYOFFICE\\DesktopEditors\\DesktopEditors.exe',
+  'C:\\Program Files (x86)\\ONLYOFFICE\\DesktopEditors\\DesktopEditors.exe',
+  path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'ONLYOFFICE', 'DesktopEditors', 'DesktopEditors.exe')
+];
 
-  // Kiểu 1: Microsoft Office (Word, PowerPoint, Excel)
-  const msDirs = [
-    'C:\\Program Files\\Microsoft Office\\root\\Office16',
-    'C:\\Program Files (x86)\\Microsoft Office\\root\\Office16',
-    'C:\\Program Files\\Microsoft Office\\Office16',
-    'C:\\Program Files (x86)\\Microsoft Office\\Office16',
-    'C:\\Program Files\\Microsoft Office\\Office15',
-    'C:\\Program Files (x86)\\Microsoft Office\\Office15'
-  ];
-  for (const d of msDirs) {
-    if (fs.existsSync(d)) {
-      const ppt = path.join(d, 'POWERPNT.EXE');
-      const doc = path.join(d, 'WINWORD.EXE');
-      const xls = path.join(d, 'EXCEL.EXE');
-      if (fs.existsSync(ppt) || fs.existsSync(doc) || fs.existsSync(xls)) {
-        result.suites.push({
-          name: 'Microsoft Office',
-          type: 'msoffice',
-          pptxPath: fs.existsSync(ppt) ? ppt : null,
-          docxPath: fs.existsSync(doc) ? doc : null,
-          xlsxPath: fs.existsSync(xls) ? xls : null
-        });
-        break;
-      }
+/**
+ * Tự động nhận diện ONLYOFFICE Desktop Editors trên máy tính
+ */
+export function detectInstalledOffice() {
+  let onlyofficeExe = null;
+  for (const p of ONLYOFFICE_PATHS) {
+    if (fs.existsSync(p)) {
+      onlyofficeExe = p;
+      break;
     }
   }
 
-  // Kiểu 2: ONLYOFFICE Desktop Editors
-  const onlyofficeExe = 'C:\\Program Files\\ONLYOFFICE\\DesktopEditors\\DesktopEditors.exe';
-  if (fs.existsSync(onlyofficeExe)) {
-    result.suites.push({
-      name: 'ONLYOFFICE Desktop Editors',
-      type: 'onlyoffice',
-      exePath: onlyofficeExe,
-      pptxPath: onlyofficeExe,
-      docxPath: onlyofficeExe,
-      xlsxPath: onlyofficeExe
-    });
+  // Kiểm tra thư mục Portable đi kèm (nếu Thầy/Cô copy app sang máy khác)
+  const portablePath = path.resolve(process.cwd(), 'ONLYOFFICE', 'DesktopEditors.exe');
+  if (!onlyofficeExe && fs.existsSync(portablePath)) {
+    onlyofficeExe = portablePath;
   }
 
-  // Kiểu 3: WPS Office (Presentation, Writer, Spreadsheets)
-  const kingsoftBase = path.join(os.homedir(), 'AppData', 'Local', 'Kingsoft', 'WPS Office');
-  if (fs.existsSync(kingsoftBase)) {
-    try {
-      const subdirs = fs.readdirSync(kingsoftBase);
-      for (const sub of subdirs) {
-        const off6 = path.join(kingsoftBase, sub, 'office6');
-        if (fs.existsSync(off6)) {
-          const wpp = path.join(off6, 'wpp.exe');
-          const wps = path.join(off6, 'wps.exe');
-          const et = path.join(off6, 'et.exe');
-          if (fs.existsSync(wpp) || fs.existsSync(wps) || fs.existsSync(et)) {
-            result.suites.push({
-              name: `WPS Office (${sub})`,
-              type: 'wps',
-              pptxPath: fs.existsSync(wpp) ? wpp : null,
-              docxPath: fs.existsSync(wps) ? wps : null,
-              xlsxPath: fs.existsSync(et) ? et : null
-            });
-            break;
-          }
-        }
-      }
-    } catch (_) {}
-  }
+  const hasOffice = Boolean(onlyofficeExe);
 
-  // Kiểm tra bộ cài đặt Office 2016 trên ổ đĩa D
-  const installerPath = 'D:\\pm\\office\\Office\\office 16 mien phi ProPlusRetail.img';
-  result.hasInstaller = fs.existsSync(installerPath);
-  result.installerPath = result.hasInstaller ? installerPath : null;
-
-  if (result.suites.length > 0) {
-    result.hasOffice = true;
-    result.primary = result.suites[0].name;
-  }
-
-  return result;
+  return {
+    hasOffice: true, // Luôn true vì Windows luôn có trình mở file mặc định
+    hasOnlyOffice: hasOffice,
+    primary: hasOffice ? 'ONLYOFFICE Desktop Editors' : 'Trình xem Office mặc định của Windows',
+    exePath: onlyofficeExe,
+    supportedFormats: ['.pptx', '.docx', '.xlsx']
+  };
 }
 
-// 2. Kích hoạt trực tiếp file Office trên máy tính bằng phần mềm tương ứng
+/**
+ * Kích hoạt trực tiếp file Office trên máy tính bằng ONLYOFFICE (hoặc trình xem mặc định khi ở máy khác)
+ */
 export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer = null }) {
   const detected = detectInstalledOffice();
   const ext = (type.startsWith('.') ? type.slice(1) : type).toLowerCase();
@@ -101,27 +52,10 @@ export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer 
     fs.writeFileSync(targetFile, buffer);
   }
 
-  // Tìm đường dẫn thực thi phù hợp cho định dạng tệp
-  let targetExe = '';
-  let appName = 'Trình xem Office mặc định của Windows';
+  const targetExe = detected.exePath;
+  const appName = detected.primary;
 
-  for (const suite of detected.suites) {
-    if (ext === 'pptx' && suite.pptxPath) {
-      targetExe = suite.pptxPath;
-      appName = suite.name;
-      break;
-    } else if ((ext === 'docx' || ext === 'doc') && suite.docxPath) {
-      targetExe = suite.docxPath;
-      appName = suite.name;
-      break;
-    } else if ((ext === 'xlsx' || ext === 'xls') && suite.xlsxPath) {
-      targetExe = suite.xlsxPath;
-      appName = suite.name;
-      break;
-    }
-  }
-
-  // Khởi chạy tiến trình độc lập không chặn server
+  // Lệnh chạy: Nếu có ONLYOFFICE thì mở bằng ONLYOFFICE, nếu ở máy tính khác chưa cài thì mở bằng ứng dụng mặc định của Windows
   const cmd = targetExe
     ? `start "" "${targetExe}" "${targetFile}"`
     : `start "" "${targetFile}"`;
@@ -130,8 +64,11 @@ export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer 
 
   return {
     success: true,
+    hasOnlyOffice: detected.hasOnlyOffice,
     appName,
     targetFile,
-    message: `Đã mở tệp thành công bằng ${appName} trên máy tính!`
+    message: detected.hasOnlyOffice
+      ? `Đã mở tệp thành công bằng ONLYOFFICE Desktop Editors!`
+      : `Đã mở tệp bằng ứng dụng Office mặc định của máy tính!`
   };
 }

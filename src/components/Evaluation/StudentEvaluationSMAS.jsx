@@ -922,7 +922,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     }
   };
 
-  // Mở trực tiếp bằng phần mềm Office (Excel, ONLYOFFICE, WPS) trên máy tính
+  // Mở trực tiếp bằng ONLYOFFICE trên máy tính
   const handleOpenInDesktopOffice = async (multiSheet = false, exportMode = 'standard') => {
     if (students.length === 0) {
       showToast('Chưa có học sinh nào để mở tệp Excel.', 'warning');
@@ -1129,28 +1129,28 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                   <button
                     onClick={() => handleOpenInDesktopOffice(false, 'standard')}
                     className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 font-black text-indigo-800 cursor-pointer"
-                    title="Mở trực tiếp bảng điểm lớp này bằng phần mềm Office (Excel / ONLYOFFICE / WPS) trên máy tính"
+                    title="Mở trực tiếp bảng điểm lớp này bằng ONLYOFFICE trên máy tính"
                   >
                     <span>🖥️</span>
-                    <span>Mở Bằng Office Trên Máy Tính</span>
+                    <span>Mở Bằng ONLYOFFICE Trên Máy</span>
                   </button>
                   <button
                     onClick={() => handleOpenInDesktopOffice(false, 'weekly')}
                     className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 font-bold text-indigo-700 cursor-pointer"
-                    title="Mở sổ theo dõi 35 tuần bằng Office máy tính"
+                    title="Mở sổ theo dõi 35 tuần bằng ONLYOFFICE máy tính"
                   >
                     <span>🖥️📅</span>
-                    <span>Mở Sổ 35 Tuần Bằng Office Máy</span>
+                    <span>Mở Sổ 35 Tuần Bằng ONLYOFFICE</span>
                   </button>
                 </div>
               )}
               <button
                 onClick={() => handleOpenInDesktopOffice(false, 'standard')}
                 className="px-2.5 py-1.5 text-xs font-black text-indigo-950 bg-gradient-to-r from-sky-100 via-indigo-100 to-indigo-50 hover:from-sky-200 hover:to-indigo-200 border border-indigo-300 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Mở sổ điểm trực tiếp bằng phần mềm Office (ONLYOFFICE / Excel / WPS) trên máy tính này"
+                title="Mở sổ điểm trực tiếp bằng ONLYOFFICE trên máy tính này"
               >
                 <span>🖥️</span>
-                <span className="hidden lg:inline">Mở Office Máy</span>
+                <span className="hidden lg:inline">Mở ONLYOFFICE</span>
               </button>
             </div>
           )}

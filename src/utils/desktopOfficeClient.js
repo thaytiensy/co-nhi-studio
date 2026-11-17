@@ -56,11 +56,11 @@ export async function openSlideInDesktopOffice(projectTitle, slides) {
         showToast(result.message || `Đã mở bài giảng bằng ${result.appName} trên máy tính!`, 'success', 4000);
         return { success: true, appName: result.appName };
       }
-      throw new Error(result.error || 'Máy chủ không thể mở Office');
+      throw new Error(result.error || 'Không thể mở Office');
     }
-    throw new Error('Lỗi kết nối máy chủ cục bộ');
+    throw new Error('Chế độ Web');
   } catch (err) {
-    showToast(`Không thể mở Office trên máy: ${err.message}. Thầy/Cô có thể tải tệp .PPTX về máy để mở trực tiếp nhé!`, 'warning', 4500);
+    showToast('Thầy/Cô có thể tải tệp .PPTX về máy, hoặc bấm nút "Trình Chiếu (F5)" để chiếu trực tiếp 16:9 cực nét mà không cần cài Office!', 'info', 5000);
     return { success: false, error: err.message };
   }
 }
@@ -114,7 +114,7 @@ async function sendFileToDesktopOffice(type, title, fileData, label) {
     }
     throw new Error('Lỗi gửi tệp lên ứng dụng Office');
   } catch (err) {
-    showToast(`Không thể kích hoạt Office: ${err.message}. Tệp vẫn được lưu an toàn trong máy!`, 'warning', 4000);
+    showToast(`Đã lưu tệp an toàn. Thầy/Cô có thể mở tệp trực tiếp bằng ONLYOFFICE hoặc ứng dụng văn phòng trên máy!`, 'info', 4500);
     return { success: false, error: err.message };
   }
 }

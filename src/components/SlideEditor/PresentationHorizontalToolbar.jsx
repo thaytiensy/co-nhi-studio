@@ -120,8 +120,8 @@ export default function PresentationHorizontalToolbar(props) {
       </button>
 
       {onOpenDesktopOffice && (
-        <button onClick={onOpenDesktopOffice} className="px-2 py-1 text-xs font-bold rounded-full bg-indigo-900/80 hover:bg-indigo-800 text-indigo-300 border border-indigo-500/50 flex items-center gap-1 cursor-pointer" title="Mở trực tiếp bằng phần mềm Office (PowerPoint / ONLYOFFICE / WPS) trên máy tính này">
-          <span>🖥️ Office Máy</span>
+        <button onClick={onOpenDesktopOffice} className="px-2 py-1 text-xs font-bold rounded-full bg-indigo-900/80 hover:bg-indigo-800 text-indigo-300 border border-indigo-500/50 flex items-center gap-1 cursor-pointer" title="Mở trực tiếp bài giảng bằng ONLYOFFICE trên máy tính">
+          <span>🖥️ ONLYOFFICE</span>
         </button>
       )}
 
