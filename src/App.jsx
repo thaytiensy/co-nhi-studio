@@ -732,6 +732,7 @@ export default function App() {
         onLogout={handleLogout}
         onOpenDesktopOffice={handleOpenDesktopOffice}
         desktopOfficeInfo={desktopOfficeInfo}
+        onToggleAssistant={() => setIsAssistantOpen(prev => !prev)}
       />
 
       {/* Crash Recovery Banner: Phát hiện và khôi phục bản nháp chưa lưu sau sự cố */}

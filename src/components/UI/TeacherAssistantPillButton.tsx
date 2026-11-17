@@ -74,11 +74,12 @@ export default function TeacherAssistantPillButton({
       {onDismiss && (
         <button
           type="button"
+          data-dismiss="true"
           onClick={(e) => {
             e.stopPropagation();
             onDismiss();
           }}
-          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-800 hover:bg-rose-600 text-white text-[11px] font-black flex items-center justify-center border border-white shadow-md cursor-pointer transition-colors"
+          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-800 hover:bg-rose-600 text-white text-[11px] font-black flex items-center justify-center border border-white shadow-md cursor-pointer transition-colors z-20"
           title="Ẩn nút trợ giảng khỏi màn hình này"
         >
           ✕

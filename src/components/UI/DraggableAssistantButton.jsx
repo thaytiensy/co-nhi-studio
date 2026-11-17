@@ -9,10 +9,10 @@ const BUTTON_HEIGHT = 56;
 export default function DraggableAssistantButton({ onClick, onDismiss }) {
   const [pos, setPos] = useState({ x: -1, y: -1 });
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, moved: false });
+  const dragStartRef = useRef({ startX: 0, startY: 0, initialPosX: 0, initialPosY: 0, moved: false, pointerId: null });
   const buttonRef = useRef(null);
 
-  // Khởi tạo tọa độ: Lấy từ LocalStorage hoặc mặc định góc dưới bên phải
+  // Khởi tạo tọa độ: Lấy từ LocalStorage hoặc mặc định góc dưới bên phải (cách đáy 96px để không che thanh công cụ)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -27,7 +27,7 @@ export default function DraggableAssistantButton({ onClick, onDismiss }) {
     } else {
       setPos({
         x: clampX(window.innerWidth - BUTTON_WIDTH - 24),
-        y: clampY(window.innerHeight - BUTTON_HEIGHT - 24)
+        y: clampY(window.innerHeight - BUTTON_HEIGHT - 96)
       });
     }
 
@@ -42,100 +42,74 @@ export default function DraggableAssistantButton({ onClick, onDismiss }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Xử lý kéo thả bằng Chuột
-  const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
-    // Ngăn chặn hành vi bôi đen text hoặc kéo ảnh mặc định của trình duyệt
-    e.preventDefault();
+  // Xử lý kéo thả bằng Pointer Events chuẩn W3C (hỗ trợ chuột, cảm ứng, bút mượt mà)
+  const handlePointerDown = (e) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (e.target && e.target.closest && e.target.closest('[data-dismiss="true"]')) return;
+
+    const el = buttonRef.current;
+    if (el) {
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    }
 
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       initialPosX: pos.x,
       initialPosY: pos.y,
-      moved: false
+      moved: false,
+      pointerId: e.pointerId
     };
     setIsDragging(true);
-
-    const handleMouseMove = (moveEvent) => {
-      const dx = moveEvent.clientX - dragStartRef.current.startX;
-      const dy = moveEvent.clientY - dragStartRef.current.startY;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-        dragStartRef.current.moved = true;
-      }
-      const clampX = Math.max(16, Math.min(window.innerWidth - BUTTON_WIDTH - 16, dragStartRef.current.initialPosX + dx));
-      const clampY = Math.max(16, Math.min(window.innerHeight - BUTTON_HEIGHT - 16, dragStartRef.current.initialPosY + dy));
-      setPos({ x: clampX, y: clampY });
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      setPos((current) => {
-        try {
-          localStorage.setItem(STORAGE_X, String(Math.round(current.x)));
-          localStorage.setItem(STORAGE_Y, String(Math.round(current.y)));
-        } catch (_) {}
-        return current;
-      });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
   };
 
-  // Xử lý kéo thả bằng Cảm ứng (Touch)
-  const handleTouchStart = (e) => {
-    if (e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    dragStartRef.current = {
-      startX: touch.clientX,
-      startY: touch.clientY,
-      initialPosX: pos.x,
-      initialPosY: pos.y,
-      moved: false
-    };
-    setIsDragging(true);
-
-    const handleTouchMove = (moveEvent) => {
-      if (moveEvent.touches.length !== 1) return;
-      const t = moveEvent.touches[0];
-      const dx = t.clientX - dragStartRef.current.startX;
-      const dy = t.clientY - dragStartRef.current.startY;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-        dragStartRef.current.moved = true;
-      }
-      const clampX = Math.max(16, Math.min(window.innerWidth - BUTTON_WIDTH - 16, dragStartRef.current.initialPosX + dx));
-      const clampY = Math.max(16, Math.min(window.innerHeight - BUTTON_HEIGHT - 16, dragStartRef.current.initialPosY + dy));
-      setPos({ x: clampX, y: clampY });
-    };
-
-    const handleTouchEnd = () => {
-      setIsDragging(false);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
-      setPos((current) => {
-        try {
-          localStorage.setItem(STORAGE_X, String(Math.round(current.x)));
-          localStorage.setItem(STORAGE_Y, String(Math.round(current.y)));
-        } catch (_) {}
-        return current;
-      });
-    };
-
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd);
-  };
-
-  const handleClick = (e) => {
-    // Nếu vừa kéo thả di chuyển thì không kích hoạt click mở modal
-    if (dragStartRef.current.moved) {
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
-      return;
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartRef.current.startX;
+    const dy = e.clientY - dragStartRef.current.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      dragStartRef.current.moved = true;
     }
-    onClick?.();
+    const clampX = Math.max(16, Math.min(window.innerWidth - BUTTON_WIDTH - 16, dragStartRef.current.initialPosX + dx));
+    const clampY = Math.max(16, Math.min(window.innerHeight - BUTTON_HEIGHT - 16, dragStartRef.current.initialPosY + dy));
+    setPos({ x: clampX, y: clampY });
+  };
+
+  const handlePointerUp = (e) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const el = buttonRef.current;
+    if (el) {
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
+
+    setPos((current) => {
+      try {
+        localStorage.setItem(STORAGE_X, String(Math.round(current.x)));
+        localStorage.setItem(STORAGE_Y, String(Math.round(current.y)));
+      } catch (_) {}
+      return current;
+    });
+
+    // Nếu không kéo di chuyển (chỉ bấm nhẹ) -> Mở trợ giảng AI
+    if (!dragStartRef.current.moved) {
+      onClick?.();
+    }
+  };
+
+  const handlePointerCancel = (e) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const el = buttonRef.current;
+    if (el) {
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
   };
 
   if (pos.x === -1) return null;
@@ -143,8 +117,10 @@ export default function DraggableAssistantButton({ onClick, onDismiss }) {
   return (
     <div
       ref={buttonRef}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
       style={{
         position: 'fixed',
         left: `${pos.x}px`,
@@ -153,14 +129,13 @@ export default function DraggableAssistantButton({ onClick, onDismiss }) {
         touchAction: 'none'
       }}
       className={`transition-shadow select-none ${
-        isDragging ? 'cursor-grabbing opacity-90 scale-105' : 'cursor-grab'
+        isDragging ? 'cursor-grabbing opacity-90 scale-105 shadow-2xl' : 'cursor-grab'
       }`}
       title="Giữ chuột hoặc ngón tay để kéo thả di chuyển vị trí nút này trên màn hình"
     >
       <TeacherAssistantPillButton
-        onClick={handleClick}
+        onClick={() => {}}
         onDismiss={onDismiss}
-        className={isDragging ? 'pointer-events-none' : ''}
       />
     </div>
   );

@@ -40,14 +40,16 @@ export class AudioQueuePlayer {
 
     audio.onplay = onPlaybackStarted;
     audio.onplaying = onPlaybackStarted;
+    audio.oncanplay = onPlaybackStarted;
 
-    // Giới hạn thời gian chờ tối đa 350ms (0.35s). Nếu mạng/server trễ thì chuyển ngay sang WebSpeech cục bộ
+    // Giới hạn thời gian chờ tối đa 3500ms (3.5s) để server Edge/Google TTS kịp tổng hợp giọng tiếng Việt
+    const FAST_FALLBACK_TIMEOUT = 3500;
     this.fastTimer = setTimeout(() => {
       if (pid === this.playbackId && !hasStarted) {
         this.stop();
-        onError?.(new Error('TTS latency > 350ms. Chuyển sang giọng cục bộ siêu tốc 0.3s'));
+        onError?.(new Error('TTS latency > 3500ms. Chuyển sang giọng dự phòng'));
       }
-    }, 350);
+    }, FAST_FALLBACK_TIMEOUT);
 
     audio.onended = () => {
       if (pid !== this.playbackId) return;

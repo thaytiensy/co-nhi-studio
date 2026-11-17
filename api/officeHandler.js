@@ -55,12 +55,14 @@ export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer 
   const targetExe = detected.exePath;
   const appName = detected.primary;
 
-  // Lệnh chạy: Nếu có ONLYOFFICE thì mở bằng ONLYOFFICE, nếu ở máy tính khác chưa cài thì mở bằng ứng dụng mặc định của Windows
-  const cmd = targetExe
-    ? `start "" "${targetExe}" "${targetFile}"`
-    : `start "" "${targetFile}"`;
-
-  spawn('cmd.exe', ['/c', cmd], { windowsHide: true, detached: true });
+  // Lệnh chạy: Nếu có ONLYOFFICE thì mở trực tiếp bằng ONLYOFFICE, nếu ở máy tính khác chưa cài thì mở bằng ứng dụng mặc định của Windows
+  if (targetExe && fs.existsSync(targetExe)) {
+    const child = spawn(targetExe, [targetFile], { detached: true, stdio: 'ignore' });
+    child.unref();
+  } else {
+    const child = spawn('cmd.exe', ['/c', 'start', '""', targetFile], { detached: true, stdio: 'ignore' });
+    child.unref();
+  }
 
   return {
     success: true,
