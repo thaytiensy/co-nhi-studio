@@ -143,14 +143,23 @@ export function generateAppDescriptionDocHtml() {
 }
 
 /**
+ * Tạo Blob file Word (.doc) phục vụ mở trực tiếp hoặc tải về
+ * @returns {{ blob: Blob, filename: string }}
+ */
+export function generateAppDescriptionWordBlob() {
+  const html = generateAppDescriptionDocHtml();
+  const blob = new Blob(['\ufeff' + html], { type: 'application/msword;charset=utf-8' });
+  const filename = `Co_Nhi_Studio_Huong_Dan_Su_Dung_Va_Mo_Ta_Phan_Mem.doc`;
+  return { blob, filename };
+}
+
+/**
  * Tải file Word (.doc) về máy tính người dùng ngay lập tức
  * @returns {void}
  */
 export function downloadAppDescriptionWordDoc() {
   if (typeof window === 'undefined') return;
-  const html = generateAppDescriptionDocHtml();
-  const blob = new Blob(['\ufeff' + html], { type: 'application/msword;charset=utf-8' });
-  const filename = `Co_Nhi_Studio_Huong_Dan_Su_Dung_Va_Mo_Ta_Phan_Mem.doc`;
+  const { blob, filename } = generateAppDescriptionWordBlob();
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

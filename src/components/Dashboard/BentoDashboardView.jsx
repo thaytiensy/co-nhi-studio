@@ -37,8 +37,9 @@ import {
   importRestoreJson,
   DEFAULT_STUDIO_DATA
 } from '../../lib/storage';
-import { exportWordReport, exportExcelReport, exportCsvReport } from '../../lib/export-engine';
-import { downloadAppDescriptionWordDoc } from '../../utils/appDescriptionWordService';
+import { exportWordReport, exportExcelReport, exportCsvReport, buildWordReportBlob, buildExcelReportBlob } from '../../lib/export-engine';
+import { downloadAppDescriptionWordDoc, generateAppDescriptionWordBlob } from '../../utils/appDescriptionWordService';
+import { openWordInDesktopOffice, openExcelInDesktopOffice } from '../../utils/desktopOfficeClient';
 import {
   getFirebaseDatabaseStatus,
   syncStorageToFirebase,
@@ -748,56 +749,95 @@ export default function BentoDashboardView({
               </p>
 
               <div className="grid grid-cols-2 gap-2 pt-1">
-                <button
-                  onClick={() => {
-                    downloadAppDescriptionWordDoc();
-                    showToast('Đã tải tài liệu Mô Tả Phần Mềm Word (.doc) chuẩn Sư phạm!', 'success');
-                  }}
-                  className="p-3 rounded-2xl bg-blue-50/90 hover:bg-blue-100 border border-blue-200 text-left transition-all cursor-pointer group active:scale-95 col-span-2"
-                  title="Tải trọn bộ tài liệu mô tả ứng dụng, cơ sở pháp lý GDPT 2018 và hướng dẫn sử dụng định dạng Word"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform shrink-0">
-                      <FileText className="w-5 h-5" />
+                <div className="col-span-2 flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      downloadAppDescriptionWordDoc();
+                      showToast('Đã tải tài liệu Mô Tả Phần Mềm Word (.doc) chuẩn Sư phạm!', 'success');
+                    }}
+                    className="flex-1 p-3 rounded-2xl bg-blue-50/90 hover:bg-blue-100 border border-blue-200 text-left transition-all cursor-pointer group active:scale-95"
+                    title="Tải trọn bộ tài liệu mô tả ứng dụng, cơ sở pháp lý GDPT 2018 và hướng dẫn sử dụng định dạng Word"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-black text-blue-950 block">Tải File Mô Tả App Word (.doc)</span>
+                        <span className="text-[10px] text-blue-700 block">Chuẩn văn bản GDPT 2018, Công văn 2345, TT27</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xs font-black text-blue-950 block">Tải File Mô Tả App Word (.doc)</span>
-                      <span className="text-[10px] text-blue-700 block">Chuẩn văn bản GDPT 2018, Công văn 2345, TT27</span>
-                    </div>
-                  </div>
-                </button>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const { blob, filename } = generateAppDescriptionWordBlob();
+                      await openWordInDesktopOffice(filename.replace(/\.doc$/i, ''), blob);
+                    }}
+                    className="p-3 rounded-2xl bg-indigo-100/90 hover:bg-indigo-200 border border-indigo-300 text-center transition-all cursor-pointer shrink-0 active:scale-95 flex flex-col items-center justify-center min-w-[76px]"
+                    title="Mở tài liệu mô tả trực tiếp bằng Office (Word / ONLYOFFICE / WPS) trên máy tính này"
+                  >
+                    <span className="text-lg">🖥️</span>
+                    <span className="text-[10px] font-black text-indigo-900 mt-0.5">Office Máy</span>
+                  </button>
+                </div>
 
-                <button
-                  onClick={() => {
-                    exportWordReport();
-                    showToast('Đã tải file Word (.doc) có Quốc hiệu Tiêu ngữ chuẩn!', 'success');
-                  }}
-                  className="p-3 rounded-2xl bg-indigo-50/80 hover:bg-indigo-100 border border-indigo-200 text-left transition-all cursor-pointer group active:scale-95"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
-                    <FileText className="w-4 h-4" />
+                <div className="flex flex-col gap-1.5 p-3 rounded-2xl bg-indigo-50/80 border border-indigo-200 text-left">
+                  <div className="flex items-center justify-between">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-2xs">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const { blob, filename } = buildWordReportBlob();
+                        await openWordInDesktopOffice(filename.replace(/\.doc$/i, ''), blob);
+                      }}
+                      className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-indigo-200 text-indigo-900 hover:bg-indigo-300 transition-colors cursor-pointer"
+                      title="Mở báo cáo bằng Word / ONLYOFFICE / WPS trên máy tính"
+                    >
+                      🖥️ Mở Máy
+                    </button>
                   </div>
-                  <div className="mt-2">
-                    <span className="text-xs font-black text-indigo-950 block">Xuất Báo Cáo Word</span>
+                  <button
+                    onClick={() => {
+                      exportWordReport();
+                      showToast('Đã tải file Word (.doc) có Quốc hiệu Tiêu ngữ chuẩn!', 'success');
+                    }}
+                    className="text-left cursor-pointer group"
+                    title="Tải báo cáo Word về máy"
+                  >
+                    <span className="text-xs font-black text-indigo-950 block group-hover:text-indigo-700">Xuất Báo Cáo Word</span>
                     <span className="text-[10px] text-indigo-700 block">Định dạng .doc chuẩn</span>
-                  </div>
-                </button>
+                  </button>
+                </div>
 
-                <button
-                  onClick={() => {
-                    exportExcelReport();
-                    showToast('Đã tải bảng điểm Excel (.xlsx) chuẩn SMAS!', 'success');
-                  }}
-                  className="p-3 rounded-2xl bg-teal-50/80 hover:bg-teal-100 border border-teal-200 text-left transition-all cursor-pointer group active:scale-95"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform">
-                    <FileSpreadsheet className="w-4 h-4" />
+                <div className="flex flex-col gap-1.5 p-3 rounded-2xl bg-teal-50/80 border border-teal-200 text-left">
+                  <div className="flex items-center justify-between">
+                    <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-2xs">
+                      <FileSpreadsheet className="w-4 h-4" />
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const { blob, filename } = buildExcelReportBlob();
+                        await openExcelInDesktopOffice(filename.replace(/\.xlsx$/i, ''), blob);
+                      }}
+                      className="px-2 py-0.5 text-[10px] font-black rounded-lg bg-teal-200 text-teal-900 hover:bg-teal-300 transition-colors cursor-pointer"
+                      title="Mở bảng Excel bằng ONLYOFFICE / Excel / WPS trên máy tính"
+                    >
+                      🖥️ Mở Máy
+                    </button>
                   </div>
-                  <div className="mt-2">
-                    <span className="text-xs font-black text-teal-950 block">Xuất Bảng Excel</span>
+                  <button
+                    onClick={() => {
+                      exportExcelReport();
+                      showToast('Đã tải bảng điểm Excel (.xlsx) chuẩn SMAS!', 'success');
+                    }}
+                    className="text-left cursor-pointer group"
+                    title="Tải bảng Excel về máy"
+                  >
+                    <span className="text-xs font-black text-teal-950 block group-hover:text-teal-700">Xuất Bảng Excel</span>
                     <span className="text-[10px] text-teal-700 block">Định dạng .xlsx chuẩn SMAS</span>
-                  </div>
-                </button>
+                  </button>
+                </div>
 
                 <button
                   onClick={() => {

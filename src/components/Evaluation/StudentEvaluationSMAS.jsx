@@ -21,7 +21,8 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { parseSmasWorkbook, exportSmasExcel, shuffleClassComments, parseLevel, normalizeClassLabel, isNonStudentName } from '../../utils/smasExcelService';
+import { parseSmasWorkbook, exportSmasExcel, generateSmasExcelBlob, shuffleClassComments, parseLevel, normalizeClassLabel, isNonStudentName } from '../../utils/smasExcelService';
+import { openExcelInDesktopOffice } from '../../utils/desktopOfficeClient';
 import { getScopedStorageKey } from '../../utils/userWorkspaceService';
 import { 
   batchSynthesizeClassEvaluations, 
@@ -921,6 +922,33 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     }
   };
 
+  // Mở trực tiếp bằng phần mềm Office (Excel, ONLYOFFICE, WPS) trên máy tính
+  const handleOpenInDesktopOffice = async (multiSheet = false, exportMode = 'standard') => {
+    if (students.length === 0) {
+      showToast('Chưa có học sinh nào để mở tệp Excel.', 'warning');
+      return;
+    }
+    if (students.some(student => !(student.className?.trim() || className.trim()))) {
+      showToast('Vui lòng nhập lớp mặc định ở phía trên hoặc điền lớp cho từng học sinh trước khi mở.', 'warning');
+      return;
+    }
+
+    try {
+      const targetClass = selectedClassFilter === 'all' ? (className || '1A') : selectedClassFilter;
+      const { blob, fileName } = generateSmasExcelBlob({ 
+        students, 
+        className: targetClass, 
+        semester, 
+        multiSheet,
+        exportMode
+      });
+      setShowExportDropdown(false);
+      await openExcelInDesktopOffice(fileName.replace(/\.xlsx$/i, ''), blob);
+    } catch (err) {
+      showToast('Lỗi mở Excel trên máy tính: ' + err.message, 'error');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-slate-100 select-none overflow-hidden">
       {/* Top Header */}
@@ -1097,8 +1125,33 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
                     <span>📂</span>
                     <span>Xuất Tất Cả Các Lớp (Multi-sheet)</span>
                   </button>
+                  <div className="border-t border-slate-100 my-1"></div>
+                  <button
+                    onClick={() => handleOpenInDesktopOffice(false, 'standard')}
+                    className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 font-black text-indigo-800 cursor-pointer"
+                    title="Mở trực tiếp bảng điểm lớp này bằng phần mềm Office (Excel / ONLYOFFICE / WPS) trên máy tính"
+                  >
+                    <span>🖥️</span>
+                    <span>Mở Bằng Office Trên Máy Tính</span>
+                  </button>
+                  <button
+                    onClick={() => handleOpenInDesktopOffice(false, 'weekly')}
+                    className="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center gap-2 font-bold text-indigo-700 cursor-pointer"
+                    title="Mở sổ theo dõi 35 tuần bằng Office máy tính"
+                  >
+                    <span>🖥️📅</span>
+                    <span>Mở Sổ 35 Tuần Bằng Office Máy</span>
+                  </button>
                 </div>
               )}
+              <button
+                onClick={() => handleOpenInDesktopOffice(false, 'standard')}
+                className="px-2.5 py-1.5 text-xs font-black text-indigo-950 bg-gradient-to-r from-sky-100 via-indigo-100 to-indigo-50 hover:from-sky-200 hover:to-indigo-200 border border-indigo-300 rounded-lg shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Mở sổ điểm trực tiếp bằng phần mềm Office (ONLYOFFICE / Excel / WPS) trên máy tính này"
+              >
+                <span>🖥️</span>
+                <span className="hidden lg:inline">Mở Office Máy</span>
+              </button>
             </div>
           )}
         </div>

@@ -23,80 +23,90 @@ export const sanitizePptxFileName = (projectTitle) => {
   return collapsed || 'Bai_Giang_Mi_Thuat';
 };
 
-export const exportToPPTX = async (projectTitle, slides) => {
-  try {
-    const pptx = new pptxgen();
-    pptx.layout = 'LAYOUT_16x9';
-    pptx.title = projectTitle || 'Bài Giảng Mĩ Thuật - Cọ Nhí Studio';
-    pptx.author = 'Cọ Nhí Studio - Giáo Viên Mĩ Thuật Tiểu Học';
+const buildPptxInstance = async (projectTitle, slides) => {
+  const pptx = new pptxgen();
+  pptx.layout = 'LAYOUT_16x9';
+  pptx.title = projectTitle || 'Bài Giảng Mĩ Thuật - Cọ Nhí Studio';
+  pptx.author = 'Cọ Nhí Studio - Giáo Viên Mĩ Thuật Tiểu Học';
 
-    // Pixel to Inch conversion factor (Standard 96 DPI, Canvas width 960px = 10 inches, height 540px = 5.625 inches)
-    const pxToInchX = (px) => Number((px / 96).toFixed(2));
-    const pxToInchY = (px) => Number((px / 96).toFixed(2));
+  // Pixel to Inch conversion factor (Standard 96 DPI, Canvas width 960px = 10 inches, height 540px = 5.625 inches)
+  const pxToInchX = (px) => Number((px / 96).toFixed(2));
+  const pxToInchY = (px) => Number((px / 96).toFixed(2));
 
-    for (const slideData of slides) {
-      const slide = pptx.addSlide();
+  for (const slideData of slides) {
+    const slide = pptx.addSlide();
 
-      // Slide Background
-      if (slideData.background && slideData.background.startsWith('#')) {
-        slide.background = { color: slideData.background.replace('#', '') };
-      }
+    // Slide Background
+    if (slideData.background && slideData.background.startsWith('#')) {
+      slide.background = { color: slideData.background.replace('#', '') };
+    }
 
-      // Slide Speaker Notes
-      if (slideData.notes) {
-        slide.addNotes(slideData.notes);
-      }
+    // Slide Speaker Notes
+    if (slideData.notes) {
+      slide.addNotes(slideData.notes);
+    }
 
-      // Slide Elements
-      if (slideData.elements && Array.isArray(slideData.elements)) {
-        for (const el of slideData.elements) {
-          const x = pxToInchX(el.x);
-          const y = pxToInchY(el.y);
-          const w = pxToInchX(el.width);
-          const h = pxToInchY(el.height);
+    // Slide Elements
+    if (slideData.elements && Array.isArray(slideData.elements)) {
+      for (const el of slideData.elements) {
+        const x = pxToInchX(el.x);
+        const y = pxToInchY(el.y);
+        const w = pxToInchX(el.width);
+        const h = pxToInchY(el.height);
 
-          if (el.type === 'text') {
-            slide.addText(el.text || '', {
-              x,
-              y,
-              w,
-              h,
-              fontSize: Math.round((el.fontSize || 16) * 0.75), // Convert px to pt
-              bold: el.fontWeight === 'bold',
-              italic: el.fontStyle === 'italic',
-              color: (el.color || '#000000').replace('#', ''),
-              align: el.textAlign || 'left',
-              valign: 'top',
-              wrap: true,
-            });
-          } else if (el.type === 'shape') {
-            let pptxShapeType = pptx.ShapeType.rect;
-            if (el.shapeType === 'circle') pptxShapeType = pptx.ShapeType.oval;
-            else if (el.shapeType === 'triangle') pptxShapeType = pptx.ShapeType.triangle;
-            else if (el.shapeType === 'star') pptxShapeType = pptx.ShapeType.star5;
-            else if (el.shapeType === 'roundedRect') pptxShapeType = pptx.ShapeType.roundRect;
+        if (el.type === 'text') {
+          slide.addText(el.text || '', {
+            x,
+            y,
+            w,
+            h,
+            fontSize: Math.round((el.fontSize || 16) * 0.75), // Convert px to pt
+            bold: el.fontWeight === 'bold',
+            italic: el.fontStyle === 'italic',
+            color: (el.color || '#000000').replace('#', ''),
+            align: el.textAlign || 'left',
+            valign: 'top',
+            wrap: true,
+          });
+        } else if (el.type === 'shape') {
+          let pptxShapeType = pptx.ShapeType.rect;
+          if (el.shapeType === 'circle') pptxShapeType = pptx.ShapeType.oval;
+          else if (el.shapeType === 'triangle') pptxShapeType = pptx.ShapeType.triangle;
+          else if (el.shapeType === 'star') pptxShapeType = pptx.ShapeType.star5;
+          else if (el.shapeType === 'roundedRect') pptxShapeType = pptx.ShapeType.roundRect;
 
-            slide.addShape(pptxShapeType, {
-              x,
-              y,
-              w,
-              h,
-              fill: { color: (el.fill || '#cbd5e1').replace('#', '') },
-              line: el.stroke ? { color: el.stroke.replace('#', ''), width: el.strokeWidth || 1 } : undefined,
-            });
-          } else if (el.type === 'image' && el.src) {
-            slide.addImage({
-              data: await resolveImageData(el.src),
-              x,
-              y,
-              w,
-              h,
-            });
-          }
+          slide.addShape(pptxShapeType, {
+            x,
+            y,
+            w,
+            h,
+            fill: { color: (el.fill || '#cbd5e1').replace('#', '') },
+            line: el.stroke ? { color: el.stroke.replace('#', ''), width: el.strokeWidth || 1 } : undefined,
+          });
+        } else if (el.type === 'image' && el.src) {
+          slide.addImage({
+            data: await resolveImageData(el.src),
+            x,
+            y,
+            w,
+            h,
+          });
         }
       }
     }
+  }
 
+  return pptx;
+};
+
+export const generatePPTXBlob = async (projectTitle, slides) => {
+  const pptx = await buildPptxInstance(projectTitle, slides);
+  return await pptx.write({ outputType: 'blob' });
+};
+
+export const exportToPPTX = async (projectTitle, slides) => {
+  try {
+    const pptx = await buildPptxInstance(projectTitle, slides);
     const safeFileName = sanitizePptxFileName(projectTitle);
     await pptx.writeFile({ fileName: `${safeFileName}.pptx` });
 

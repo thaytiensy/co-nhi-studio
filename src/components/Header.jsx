@@ -21,7 +21,8 @@ import {
   Unlock,
   Mail,
   ShieldCheck,
-  LogOut
+  LogOut,
+  Monitor
 } from 'lucide-react';
 import { exportProjectFile } from '../utils/storageService';
 
@@ -42,7 +43,9 @@ export default function Header({
   onOpenAdminModal,
   onOpenInstallModal,
   userSession,
-  onLogout
+  onLogout,
+  onOpenDesktopOffice,
+  desktopOfficeInfo
 }) {
   const [showFileMenu, setShowFileMenu] = useState(false);
   const [isSeniorMode, setIsSeniorMode] = useState(() => {
@@ -277,9 +280,35 @@ export default function Header({
                   <Presentation className="w-4 h-4 text-emerald-600" />
                   <span>Xuất PowerPoint (.pptx)</span>
                 </button>
+                {onOpenDesktopOffice && (
+                  <>
+                    <div className="border-t border-slate-100 my-1"></div>
+                    <button
+                      onClick={onOpenDesktopOffice}
+                      className="w-full px-4 py-2 text-left text-xs font-bold text-indigo-700 hover:bg-indigo-50 hover:text-indigo-900 flex items-center gap-2 cursor-pointer"
+                      title={desktopOfficeInfo?.primary ? `Mở bài giảng bằng ${desktopOfficeInfo.primary}` : 'Mở bài giảng bằng Office máy tính'}
+                    >
+                      <Monitor className="w-4 h-4 text-indigo-600" />
+                      <span>Mở bằng Office trên máy tính</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
+
+          {/* Mở Trực Tiếp Bằng Office Trên Máy Tính */}
+          {onOpenDesktopOffice && (
+            <button
+              onClick={onOpenDesktopOffice}
+              className="px-3 py-1.5 text-xs font-extrabold text-indigo-950 bg-gradient-to-r from-sky-100 via-indigo-100 to-indigo-50 hover:from-sky-200 hover:to-indigo-200 border border-indigo-300 rounded-lg shadow-2xs hover:shadow-xs flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
+              title={desktopOfficeInfo?.primary ? `Mở bài giảng trực tiếp bằng ${desktopOfficeInfo.primary} trên máy tính` : 'Mở bài giảng bằng Office trên máy tính'}
+            >
+              <Monitor className="w-4 h-4 text-indigo-700" />
+              <span className="hidden xl:inline">Mở Office Máy</span>
+              <span className="xl:hidden">Office Máy</span>
+            </button>
+          )}
 
           {/* Quick Save */}
           <button

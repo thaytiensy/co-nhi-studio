@@ -13,7 +13,7 @@ export default function PresentationHorizontalToolbar(props) {
     onOpenAiTips, isWhiteboardOpen, onToggleWhiteboard, onBlackScreen,
     onOpenGame, onOpenSlidePicker, onExportHtml, onPrintPdf,
     showNotesOverlay, onToggleNotes, showShortcutsHelp, onToggleShortcutsHelp,
-    onToggleOrientation, onCollapse, onClose
+    onToggleOrientation, onCollapse, onClose, onOpenDesktopOffice
   } = props;
 
   const toggleFullscreen = () => {
@@ -118,6 +118,12 @@ export default function PresentationHorizontalToolbar(props) {
         <Download className="w-3.5 h-3.5 text-sky-400" />
         <span>HTML USB</span>
       </button>
+
+      {onOpenDesktopOffice && (
+        <button onClick={onOpenDesktopOffice} className="px-2 py-1 text-xs font-bold rounded-full bg-indigo-900/80 hover:bg-indigo-800 text-indigo-300 border border-indigo-500/50 flex items-center gap-1 cursor-pointer" title="Mở trực tiếp bằng phần mềm Office (PowerPoint / ONLYOFFICE / WPS) trên máy tính này">
+          <span>🖥️ Office Máy</span>
+        </button>
+      )}
 
       <button onClick={onPrintPdf} className="p-1.5 rounded-full hover:bg-slate-700 text-emerald-400" title="In / Lưu PDF 16:9">
         <Printer className="w-4 h-4" />

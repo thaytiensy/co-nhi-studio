@@ -382,6 +382,16 @@ export default function PresentationModal({
     }
   }, [currentSlide]);
 
+  // Mở bài giảng trực tiếp bằng ứng dụng Office trên máy tính (PowerPoint, ONLYOFFICE, WPS)
+  const handleOpenDesktopOffice = useCallback(async () => {
+    try {
+      const { openSlideInDesktopOffice } = await import('../../utils/desktopOfficeClient');
+      await openSlideInDesktopOffice(projectTitle, slides);
+    } catch (err) {
+      console.warn('Lỗi mở Desktop Office:', err);
+    }
+  }, [projectTitle, slides]);
+
   // === XỬ LÝ PHÍM TẮT ĐỨNG LỚP TOÀN DIỆN & CÔNG THÁI HỌC BÚT TRÌNH CHIẾU ===
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -1346,6 +1356,7 @@ export default function PresentationModal({
             console.error('Lỗi xuất HTML:', err);
           }
         }}
+        onOpenDesktopOffice={handleOpenDesktopOffice}
         onPrintPdf={() => {
           try {
             printSlideDeckToPdf();

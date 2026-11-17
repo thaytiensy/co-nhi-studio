@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts'
 import https from 'https'
 import chatHandler from './api/chat.js'
+import { detectInstalledOffice, openOfficeDocument } from './api/officeHandler.js'
 
 const ttsCache = new Map();
 let ttsQueue = Promise.resolve();
@@ -213,9 +214,66 @@ const groqChatPlugin = () => ({
   },
 });
 
+const officePlugin = () => ({
+  name: 'co-nhi-office-middleware',
+  configureServer(server) {
+    server.middlewares.use(async (req, res, next) => {
+      const parsedUrl = new URL(req.url, 'http://localhost');
+      const pathname = parsedUrl.pathname;
+
+      if (pathname === '/api/office-status') {
+        const info = detectInstalledOffice();
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify(info));
+        return;
+      }
+
+      if (pathname === '/api/open-office' || pathname === '/api/open-powerpoint') {
+        if (req.method === 'POST') {
+          const chunks = [];
+          req.on('data', c => chunks.push(c));
+          req.on('end', async () => {
+            try {
+              let buffer = null;
+              let type = pathname === '/api/open-powerpoint' ? 'pptx' : 'pptx';
+              let fileName = 'BaiGiang_MiThuat_GDPT2018';
+
+              const contentType = req.headers['content-type'] || '';
+              if (contentType.includes('application/json')) {
+                const bodyStr = Buffer.concat(chunks).toString('utf8');
+                const body = JSON.parse(bodyStr || '{}');
+                type = body.type || type;
+                fileName = body.fileName || fileName;
+                if (body.base64) {
+                  buffer = Buffer.from(body.base64, 'base64');
+                }
+              } else if (chunks.length > 0) {
+                buffer = Buffer.concat(chunks);
+                type = req.headers['x-file-type'] || type;
+                fileName = req.headers['x-file-name'] || fileName;
+              }
+
+              const result = await openOfficeDocument({ type, fileName, buffer });
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify(result));
+            } catch (err) {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+      }
+
+      next();
+    });
+  }
+});
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), ttsPlugin(), groqChatPlugin()],
+  plugins: [react(), ttsPlugin(), groqChatPlugin(), officePlugin()],
   server: {
     port: 3100,
     host: '127.0.0.1'

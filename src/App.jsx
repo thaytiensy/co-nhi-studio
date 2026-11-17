@@ -647,6 +647,26 @@ export default function App() {
     }
   };
 
+  // Mở trực tiếp bài giảng bằng Office máy tính (PowerPoint / ONLYOFFICE / WPS)
+  const [desktopOfficeInfo, setDesktopOfficeInfo] = useState(null);
+
+  useEffect(() => {
+    import('./utils/desktopOfficeClient').then(({ checkDesktopOfficeStatus }) => {
+      checkDesktopOfficeStatus().then(info => {
+        if (info && info.hasOffice) setDesktopOfficeInfo(info);
+      }).catch(() => {});
+    }).catch(() => {});
+  }, []);
+
+  const handleOpenDesktopOffice = async () => {
+    try {
+      const { openSlideInDesktopOffice } = await import('./utils/desktopOfficeClient');
+      await openSlideInDesktopOffice(projectTitle, slides);
+    } catch (err) {
+      showToast('Không thể kích hoạt Office trên máy: ' + err.message, 'warning');
+    }
+  };
+
   const activeSlide = slides[currentSlideIndex] || slides[0] || null;
   const activeSlideText = [activeSlide?.title, ...(activeSlide?.elements || []).filter(element => element.type === 'text').map(element => element.text)]
     .filter(Boolean)
@@ -710,6 +730,8 @@ export default function App() {
         isAppInstalled={isAppInstalled}
         userSession={currentUserSession}
         onLogout={handleLogout}
+        onOpenDesktopOffice={handleOpenDesktopOffice}
+        desktopOfficeInfo={desktopOfficeInfo}
       />
 
       {/* Crash Recovery Banner: Phát hiện và khôi phục bản nháp chưa lưu sau sự cố */}
