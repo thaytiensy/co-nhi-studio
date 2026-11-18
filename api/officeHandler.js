@@ -45,7 +45,7 @@ export function detectInstalledOffice() {
 export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer = null }) {
   const detected = detectInstalledOffice();
   const ext = (type.startsWith('.') ? type.slice(1) : type).toLowerCase();
-  const safeName = (fileName ? fileName.replace(/[^a-zA-Z0-9_\-\u00C0-\u1EF9]/g, '_') : `BaiGiang_MiThuat_GDPT2018`) + `.${ext}`;
+  const safeName = (fileName ? fileName.replace(/[^a-zA-Z0-9_\-\u00C0-\u1EF9]/g, '_') : `BaiGiang_MiThuat_GDPT2018`) + `_${Date.now()}.${ext}`;
   const targetFile = path.join(os.tmpdir(), safeName);
 
   if (buffer) {
