@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Upload, ChevronLeft, ChevronRight, FileText, Table, FileSpreadsheet, Presentation } from 'lucide-react';
 import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
 import SpeakerNotes from './SpeakerNotes';
 import PresentationModal from './PresentationModal';
+import InAppWordView from '../Office/InAppWordView';
+import InAppExcelView from '../Office/InAppExcelView';
+import InAppPdfView from '../Office/InAppPdfView';
 const OfflinePedagogyAssistant = React.lazy(() => import('../Assistant/OfflinePedagogyAssistant'));
 const MediaYouTubeModal = React.lazy(() => import('../Media/MediaYouTubeModal'));
 import { SLIDE_TEMPLATES } from '../../data/slideTemplates';
-import { openSlideInDesktopOffice } from '../../utils/desktopOfficeClient';
 
 export default function SlideEditorView({
   slides,
@@ -21,7 +23,17 @@ export default function SlideEditorView({
   showAssistant,
   setShowAssistant,
   onUploadDocument,
+  officeSubTab = 'pptx',
+  onChangeOfficeSubTab,
+  officeDocData,
 }) {
+  const [internalOfficeTab, setInternalOfficeTab] = useState('pptx');
+  const activeOfficeTab = officeSubTab || internalOfficeTab;
+  const setOfficeTab = (tab) => {
+    setInternalOfficeTab(tab);
+    onChangeOfficeSubTab?.(tab);
+  };
+
   const [selectedElementId, setSelectedElementId] = useState(null);
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
@@ -504,15 +516,10 @@ export default function SlideEditorView({
     updateSlidesWithHistory(updatedSlides);
   };
 
-  const handleOpenOnlyOffice = async () => {
-    const title = slides?.[0]?.title || 'BaiGiang_MiThuat_GDPT2018';
-    await openSlideInDesktopOffice(title, slides, { silent: false });
-  };
-
   return (
     <div className="flex-1 flex overflow-hidden">
-      {/* 1. Left Thumbnail List */}
-      {!isFocusMode && (
+      {/* 1. Left Thumbnail List (only visible in PowerPoint mode) */}
+      {!isFocusMode && activeOfficeTab === 'pptx' && (
         <SlideThumbnailList
           slides={slides}
           currentSlideIndex={currentSlideIndex}
@@ -530,103 +537,182 @@ export default function SlideEditorView({
 
       {/* 2. Middle Editor Workspace */}
       <div className="flex-1 flex flex-col min-w-0 bg-slate-100 overflow-hidden">
-        {/* Top Control Bar: Compact & Neat */}
+        {/* Top Control Bar: Compact & Neat Office Suite Switcher */}
         <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex flex-wrap items-center justify-between gap-2.5 text-white shadow-xs select-none shrink-0">
-          {/* Slide Navigator & Title */}
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700">
-              <button
-                type="button"
-                disabled={currentSlideIndex <= 0}
-                onClick={() => {
-                  setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1));
-                  setSelectedElementId(null);
-                }}
-                className="p-1.5 rounded-lg hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent text-slate-300 hover:text-white transition-colors cursor-pointer"
-                title="Trang trước"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="px-2.5 py-0.5 text-xs font-black text-amber-300 tracking-wide select-none">
-                Trang {currentSlideIndex + 1} / {slides.length}
-              </span>
-              <button
-                type="button"
-                disabled={currentSlideIndex >= slides.length - 1}
-                onClick={() => {
-                  setCurrentSlideIndex(Math.min(slides.length - 1, currentSlideIndex + 1));
-                  setSelectedElementId(null);
-                }}
-                className="p-1.5 rounded-lg hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent text-slate-300 hover:text-white transition-colors cursor-pointer"
-                title="Trang tiếp"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <span className="text-xs font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs" title={currentSlide?.title}>
-              {currentSlide?.title || `Trang ${currentSlideIndex + 1}`}
-            </span>
-
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-400/30">
-              16:9 GDPT 2018
-            </span>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Office Suite Tabs Switcher */}
+          <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl border border-slate-700">
             <button
               type="button"
-              onClick={handleOpenOnlyOffice}
-              className="px-3 py-1.5 text-xs font-bold text-indigo-950 bg-gradient-to-r from-amber-300 to-yellow-300 hover:from-amber-200 hover:to-yellow-200 rounded-xl shadow-xs flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-1 ring-amber-400"
-              title="Mở trên phần mềm ONLYOFFICE máy tính"
+              onClick={() => setOfficeTab('pptx')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeOfficeTab === 'pptx'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+              }`}
+              title="Trình Soạn Giảng & Chiếu PowerPoint 16:9"
             >
-              <Monitor className="w-3.5 h-3.5 text-indigo-900" />
-              <span>ONLYOFFICE Máy</span>
+              <Presentation className="w-3.5 h-3.5" />
+              <span>PowerPoint</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOfficeTab('docx')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeOfficeTab === 'docx'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+              }`}
+              title="Kế Hoạch Bài Dạy Word (Chuẩn CV 2345)"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Giáo Án Word</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOfficeTab('xlsx')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeOfficeTab === 'xlsx'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+              }`}
+              title="Bảng Tính Excel & Sổ Điểm SMAS (Chuẩn TT27)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Sổ Điểm Excel</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setOfficeTab('pdf')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeOfficeTab === 'pdf'
+                  ? 'bg-amber-500 text-slate-950 shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-700/60'
+              }`}
+              title="Trình Đọc Tài Liệu & Sách Giáo Khoa PDF"
+            >
+              <Table className="w-3.5 h-3.5" />
+              <span>Tài Liệu PDF</span>
             </button>
           </div>
+
+          {/* Context Controls */}
+          {activeOfficeTab === 'pptx' ? (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700">
+                <button
+                  type="button"
+                  disabled={currentSlideIndex <= 0}
+                  onClick={() => {
+                    setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1));
+                    setSelectedElementId(null);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  title="Trang trước"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="px-2.5 py-0.5 text-xs font-black text-amber-300 tracking-wide select-none">
+                  Trang {currentSlideIndex + 1} / {slides.length}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentSlideIndex >= slides.length - 1}
+                  onClick={() => {
+                    setCurrentSlideIndex(Math.min(slides.length - 1, currentSlideIndex + 1));
+                    setSelectedElementId(null);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  title="Trang tiếp"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              <span className="text-xs font-bold text-slate-200 truncate max-w-[200px] sm:max-w-xs" title={currentSlide?.title}>
+                {currentSlide?.title || `Trang ${currentSlideIndex + 1}`}
+              </span>
+
+              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                16:9 GDPT 2018
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-300">
+                {activeOfficeTab === 'docx' && 'Soạn & Xem Giáo Án Word (CV 2345)'}
+                {activeOfficeTab === 'xlsx' && 'Bảng Tính Excel & Nhập Điểm SMAS (TT 27)'}
+                {activeOfficeTab === 'pdf' && 'Tài Liệu Mĩ Thuật GDPT 2018 (PDF)'}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Ribbon Toolbar */}
-        <Toolbar
-          selectedElement={selectedElement}
-          onUpdateElement={handleUpdateElement}
-          onAddText={handleAddText}
-          onAddShape={handleAddShape}
-          onAddImage={handleAddImage}
-          onDeleteElement={handleDeleteElement}
-          onDuplicateElement={handleDuplicateElement}
-          onReorderElement={handleReorderElement}
-          slideBackground={currentSlide?.background}
-          onChangeBackground={handleChangeBackground}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onOpenMediaModal={() => setShowMediaModal(true)}
-          onEnlargeSlideText={handleEnlargeSlideText}
-          isFocusMode={isFocusMode}
-          onToggleFocusMode={() => setIsFocusMode(prev => !prev)}
-        />
+        {/* Workspace Display Based on Active Office Tab */}
+        {activeOfficeTab === 'pptx' && (
+          <>
+            {/* Ribbon Toolbar */}
+            <Toolbar
+              selectedElement={selectedElement}
+              onUpdateElement={handleUpdateElement}
+              onAddText={handleAddText}
+              onAddShape={handleAddShape}
+              onAddImage={handleAddImage}
+              onDeleteElement={handleDeleteElement}
+              onDuplicateElement={handleDuplicateElement}
+              onReorderElement={handleReorderElement}
+              slideBackground={currentSlide?.background}
+              onChangeBackground={handleChangeBackground}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onOpenMediaModal={() => setShowMediaModal(true)}
+              onEnlargeSlideText={handleEnlargeSlideText}
+              isFocusMode={isFocusMode}
+              onToggleFocusMode={() => setIsFocusMode(prev => !prev)}
+            />
 
-        {/* 16:9 Canvas Area */}
-        <SlideCanvas
-          slide={currentSlide}
-          selectedElementId={selectedElementId}
-          onSelectElement={setSelectedElementId}
-          onUpdateElement={handleUpdateElement}
-          onDeleteElement={handleDeleteElement}
-          onReorderElement={handleReorderElement}
-          onDeselect={() => setSelectedElementId(null)}
-        />
+            {/* 16:9 Canvas Area */}
+            <SlideCanvas
+              slide={currentSlide}
+              selectedElementId={selectedElementId}
+              onSelectElement={setSelectedElementId}
+              onUpdateElement={handleUpdateElement}
+              onDeleteElement={handleDeleteElement}
+              onReorderElement={handleReorderElement}
+              onDeselect={() => setSelectedElementId(null)}
+            />
 
-        {/* Speaker Notes Bar */}
-        <SpeakerNotes
-          slide={currentSlide}
-          notes={currentSlide?.notes}
-          onChangeNotes={handleChangeNotes}
-          onOpenAssistant={() => setShowAssistant(prev => !prev)}
-        />
+            {/* Speaker Notes Bar */}
+            <SpeakerNotes
+              slide={currentSlide}
+              notes={currentSlide?.notes}
+              onChangeNotes={handleChangeNotes}
+              onOpenAssistant={() => setShowAssistant(prev => !prev)}
+            />
+          </>
+        )}
+
+        {activeOfficeTab === 'docx' && (
+          <InAppWordView
+            docData={officeDocData}
+            onUploadDocx={onUploadDocument}
+          />
+        )}
+
+        {activeOfficeTab === 'xlsx' && (
+          <InAppExcelView
+            docData={officeDocData}
+            onUploadExcel={onUploadDocument}
+          />
+        )}
+
+        {activeOfficeTab === 'pdf' && (
+          <InAppPdfView
+            docData={officeDocData}
+            onUploadPdf={onUploadDocument}
+          />
+        )}
       </div>
 
       {/* 4. Fullscreen Presentation Modal */}

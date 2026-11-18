@@ -310,6 +310,8 @@ export default function App() {
   const [pptxPreviewData, setPptxPreviewData] = useState(null);
   const [universalDocData, setUniversalDocData] = useState(null);
   const [isImportingPPTX, setIsImportingPPTX] = useState(false);
+  const [officeSubTab, setOfficeSubTab] = useState('pptx');
+  const [officeDocData, setOfficeDocData] = useState(null);
   const pptxFileInputRef = useRef(null);
 
   // Listener bắt sự kiện cài đặt PWA và phím tắt quản trị
@@ -521,12 +523,30 @@ export default function App() {
       if (ext === 'pptx' || ext === 'ppt') {
         const { parsePPTXFile } = await import('./utils/pptxImportService');
         const result = await parsePPTXFile(file);
-        setPptxPreviewData(result);
+        if (result && result.slides && result.slides.length > 0) {
+          handleConfirmOpenPPTX(result.slides, file.name);
+          setOfficeSubTab('pptx');
+          setActiveTab('editor');
+          showToast(`Đã mở thành công bài giảng PowerPoint "${file.name}" (${result.slides.length} trang)!`, 'success');
+        } else {
+          showToast('Tệp PowerPoint không có slide hoặc không đọc được.', 'error');
+        }
       } else {
         const { parseUniversalDocument } = await import('./utils/universalDocumentService');
         const result = await parseUniversalDocument(file);
         if (result.success) {
-          setUniversalDocData(result);
+          setOfficeDocData(result);
+          setActiveTab('editor');
+          if (ext === 'docx' || ext === 'doc' || ext === 'txt') {
+            setOfficeSubTab('docx');
+            showToast(`Đã mở thành công tệp Giáo Án Word "${file.name}"!`, 'success');
+          } else if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+            setOfficeSubTab('xlsx');
+            showToast(`Đã mở thành công tệp Bảng Tính Excel "${file.name}"!`, 'success');
+          } else if (ext === 'pdf') {
+            setOfficeSubTab('pdf');
+            showToast(`Đã mở thành công tệp Tài Liệu PDF "${file.name}"!`, 'success');
+          }
         } else {
           showToast(result.error || 'Lỗi đọc tệp tài liệu', 'error');
         }
@@ -813,6 +833,9 @@ export default function App() {
                   showAssistant={isAssistantOpen}
                   setShowAssistant={setIsAssistantOpen}
                   onUploadDocument={handleTriggerPPTXUpload}
+                  officeSubTab={officeSubTab}
+                  onChangeOfficeSubTab={setOfficeSubTab}
+                  officeDocData={officeDocData}
                 />
               )}
 
