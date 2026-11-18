@@ -20,6 +20,7 @@ const ArtCameraRubric = React.lazy(() => import('./components/ArtCamera/ArtCamer
 const StudentEvaluationSMAS = React.lazy(() => import('./components/Evaluation/StudentEvaluationSMAS'));
 const OfflinePedagogyAssistant = React.lazy(() => import('./components/Assistant/OfflinePedagogyAssistant'));
 const PPTXPreviewModal = React.lazy(() => import('./components/SlideEditor/PPTXPreviewModal'));
+const UniversalOfficeViewerModal = React.lazy(() => import('./components/Office/UniversalOfficeViewerModal'));
 const VideoGuideModal = React.lazy(() => import('./components/VideoGuide/VideoGuideModal'));
 const AdminModal = React.lazy(() => import('./components/Admin/AdminModal'));
 const InstallAppModal = React.lazy(() => import('./components/Install/InstallAppModal'));
@@ -305,8 +306,9 @@ export default function App() {
     }
   });
 
-  // PPTX Import states
+  // PPTX & Universal Document Import states
   const [pptxPreviewData, setPptxPreviewData] = useState(null);
+  const [universalDocData, setUniversalDocData] = useState(null);
   const [isImportingPPTX, setIsImportingPPTX] = useState(false);
   const pptxFileInputRef = useRef(null);
 
@@ -508,21 +510,29 @@ export default function App() {
     }
   };
 
-  // Handle PPTX file chosen
+  // Handle Office & Document file chosen (.pptx, .docx, .xlsx, .pdf, .txt)
   const handlePPTXFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsImportingPPTX(true);
     try {
-      const { parsePPTXFile } = await import('./utils/pptxImportService');
-      const result = await parsePPTXFile(file);
-      setPptxPreviewData(result);
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'pptx' || ext === 'ppt') {
+        const { parsePPTXFile } = await import('./utils/pptxImportService');
+        const result = await parsePPTXFile(file);
+        setPptxPreviewData(result);
+      } else {
+        const { parseUniversalDocument } = await import('./utils/universalDocumentService');
+        const result = await parseUniversalDocument(file);
+        if (result.success) {
+          setUniversalDocData(result);
+        } else {
+          showToast(result.error || 'Lỗi đọc tệp tài liệu', 'error');
+        }
+      }
     } catch (err) {
-      setPptxPreviewData({
-        success: false,
-        error: err.message || 'Lỗi đọc tệp PowerPoint'
-      });
+      showToast(err.message || 'Lỗi đọc tệp tài liệu', 'error');
     } finally {
       setIsImportingPPTX(false);
     }
@@ -678,7 +688,7 @@ export default function App() {
       <input
         type="file"
         ref={pptxFileInputRef}
-        accept=".pptx"
+        accept=".pptx,.ppt,.docx,.doc,.xlsx,.xls,.csv,.pdf,.txt,.conhi"
         className="hidden"
         onChange={handlePPTXFileChange}
       />
@@ -802,6 +812,7 @@ export default function App() {
                   setIsPresentationOpen={setIsPresentationOpen}
                   showAssistant={isAssistantOpen}
                   setShowAssistant={setIsAssistantOpen}
+                  onUploadDocument={handleTriggerPPTXUpload}
                 />
               )}
 
@@ -903,6 +914,15 @@ export default function App() {
             importResult={pptxPreviewData}
             onConfirmOpen={handleConfirmOpenPPTX}
             onClose={() => setPptxPreviewData(null)}
+          />
+        )}
+
+        {/* 4b. Universal Office & Document Viewer Modal */}
+        {universalDocData && (
+          <UniversalOfficeViewerModal
+            docData={universalDocData}
+            onClose={() => setUniversalDocData(null)}
+            onOpenInEditor={handleConfirmOpenPPTX}
           />
         )}
 

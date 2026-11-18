@@ -53,11 +53,11 @@ export default function SmartSidebar({
     },
     {
       id: 'editor',
-      name: 'PowerPoint (Office)',
+      name: 'Văn Phòng Office (PowerPoint)',
       icon: Presentation,
       color: 'text-amber-600',
       activeBg: 'bg-amber-50 text-amber-900 border-amber-300 font-black',
-      badge: 'OFFICE'
+      badge: 'OFFICE PRO'
     },
     {
       id: 'drawing',

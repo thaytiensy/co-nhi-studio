@@ -218,15 +218,15 @@ export default function Header({
             <span className="lg:hidden">Chữ To</span>
           </button>
 
-          {/* Tải giáo án PowerPoint lên Button */}
+          {/* Mở Mọi File Office & Tài Liệu Button */}
           <button
             onClick={onUploadPPTX}
-            className="px-3 py-1.5 text-[14px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs font-times-new-roman"
-            title="Tải giáo án PowerPoint (.pptx) từ máy tính để xem trước và tiếp tục chỉnh sửa"
+            className="px-3 py-1.5 text-[14px] font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs font-times-new-roman cursor-pointer"
+            title="Đọc mọi tệp tài liệu Office (.pptx, .docx, .xlsx, .pdf) trực tiếp trong app mà không cần cài phần mềm"
           >
             <Upload className="w-3.5 h-3.5 text-amber-700" />
-            <span className="hidden sm:inline">Tải giáo án PowerPoint lên</span>
-            <span className="sm:hidden">Tải PPTX</span>
+            <span className="hidden sm:inline">Mở File Office (.pptx, .docx, .xlsx)</span>
+            <span className="sm:hidden">File Office</span>
           </button>
 
           {/* File Menu Dropdown */}

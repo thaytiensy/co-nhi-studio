@@ -185,11 +185,16 @@ async function sendFileToDesktopOffice(type, title, fileData, label) {
 }
 
 function arrayBufferToBase64(buffer) {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  if (!buffer || buffer.byteLength === 0) return '';
+  try {
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000; // 32KB chunks an toàn, cực nhanh và không chặn luồng UI
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return typeof btoa !== 'undefined' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
+  } catch (_) {
+    return '';
   }
-  return typeof btoa !== 'undefined' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
 }

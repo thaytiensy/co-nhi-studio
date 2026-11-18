@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Sparkles, Monitor, Download, ChevronLeft, ChevronRight, LayoutTemplate, RotateCcw } from 'lucide-react';
+import { Play, Sparkles, Monitor, Download, ChevronLeft, ChevronRight, LayoutTemplate, RotateCcw, FileText, Upload } from 'lucide-react';
 import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
@@ -20,6 +20,7 @@ export default function SlideEditorView({
   setIsPresentationOpen,
   showAssistant,
   setShowAssistant,
+  onUploadDocument,
 }) {
   const [selectedElementId, setSelectedElementId] = useState(null);
   const [showMediaModal, setShowMediaModal] = useState(false);
@@ -504,19 +505,6 @@ export default function SlideEditorView({
     updateSlidesWithHistory(updatedSlides);
   };
 
-  // Tự động kích hoạt & đồng bộ với ONLYOFFICE trên máy tính khi mở hoặc thay đổi bài giảng mà không cần bấm nút thủ công
-  useEffect(() => {
-    let isCancelled = false;
-    const title = slides?.[0]?.title || 'BaiGiang_MiThuat_GDPT2018';
-    
-    // Đồng bộ trực tiếp ngầm định với ONLYOFFICE Desktop trên máy tính
-    openSlideInDesktopOffice(title, slides, { silent: true }).catch(() => {});
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [slides?.[0]?.title]);
-
   const handleOpenOnlyOffice = async () => {
     const title = slides?.[0]?.title || 'BaiGiang_MiThuat_GDPT2018';
     await openSlideInDesktopOffice(title, slides, { silent: false });
@@ -567,6 +555,18 @@ export default function SlideEditorView({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {onUploadDocument && (
+                <button
+                  type="button"
+                  onClick={onUploadDocument}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl border border-emerald-400/50 shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
+                  title="Đọc mọi tệp tài liệu Office (.pptx, .docx, .xlsx, .pdf) trực tiếp trong app mà không cần cài phần mềm"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Mở File Office (.pptx, .docx, .xlsx)</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleOpenOnlyOffice}
@@ -574,7 +574,8 @@ export default function SlideEditorView({
                 title="Mở ứng dụng ONLYOFFICE Desktop trên máy tính để soạn bài giảng này với đầy đủ tính năng PowerPoint"
               >
                 <Monitor className="w-4 h-4 text-indigo-900" />
-                <span>Mở Soạn Trên ONLYOFFICE</span>
+                <span className="hidden sm:inline">Mở ONLYOFFICE Trên Máy</span>
+                <span className="sm:hidden">ONLYOFFICE</span>
               </button>
 
               <button
@@ -610,26 +611,37 @@ export default function SlideEditorView({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm md:text-base font-black text-white">
-                      Trình Soạn Thảo PowerPoint: ONLYOFFICE Desktop
+                      Văn Phòng Office & PowerPoint Trực Tiếp Trong App
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-emerald-500/30 text-emerald-300 border border-emerald-400/40">
-                      Bản Chuẩn Mặc Định
+                      100% Web • Đọc Mọi File
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-300 mt-0.5 max-w-xl">
-                    Đã thay thế hẳn công cụ soạn thảo trên app bằng phần mềm ONLYOFFICE trên máy tính. Đầy đủ hiệu ứng hoạt hình, phông chữ Times New Roman và định dạng PowerPoint chuyên nghiệp.
+                    Đã tích hợp sẵn bộ đọc & soạn bài trực tiếp trong app: Tương thích 100% khi chia sẻ link dùng trên điện thoại, máy tính bảng hoặc máy tính khác. Đọc mọi file PowerPoint (.pptx), Word (.docx), Excel (.xlsx), PDF.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
+                {onUploadDocument && (
+                  <button
+                    type="button"
+                    onClick={onUploadDocument}
+                    className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Mở File Mới</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleOpenOnlyOffice}
                   className="px-3.5 py-1.5 text-xs font-black text-indigo-950 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-200 hover:from-amber-200 hover:to-yellow-200 rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-amber-400"
                 >
                   <Monitor className="w-4 h-4 text-indigo-900" />
-                  <span>Mở Soạn Trên ONLYOFFICE</span>
+                  <span>Mở Trên ONLYOFFICE</span>
                 </button>
               </div>
             </div>

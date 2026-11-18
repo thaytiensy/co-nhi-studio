@@ -1,0 +1,226 @@
+import JSZip from 'jszip';
+import * as XLSX from 'xlsx';
+import { parsePPTXFile } from './pptxImportService.js';
+
+/**
+ * Phân tích tệp Word (.docx) trực tiếp trên trình duyệt
+ * Trích xuất: Tiêu đề, các đoạn văn, bảng biểu, danh sách mục
+ */
+export async function parseWordDocx(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    const docXmlFile = zip.file('word/document.xml');
+    
+    if (!docXmlFile) {
+      // Trường hợp tệp .doc cũ hoặc không chuẩn OpenXML
+      return {
+        success: false,
+        error: 'Tệp Word không theo chuẩn OpenXML (.docx). Vui lòng lưu tệp ở định dạng .docx để đọc đầy đủ cấu trúc.'
+      };
+    }
+
+    const xmlText = await docXmlFile.async('text');
+    let doc;
+    if (typeof window !== 'undefined' && window.DOMParser) {
+      const parser = new window.DOMParser();
+      doc = parser.parseFromString(xmlText, 'text/xml');
+    } else {
+      const { DOMParser } = await import('@xmldom/xmldom');
+      const parser = new DOMParser();
+      doc = parser.parseFromString(xmlText, 'text/xml');
+    }
+
+    const body = doc.getElementsByTagName('w:body')[0] || doc.getElementsByTagName('body')[0];
+    if (!body) {
+      return { success: false, error: 'Không tìm thấy nội dung trong tệp Word.' };
+    }
+
+    const items = [];
+    let fullText = '';
+    const children = body.childNodes;
+
+    for (let i = 0; i < children.length; i++) {
+      const node = children[i];
+      const nodeName = node.nodeName || '';
+
+      // 1. Đoạn văn (Paragraph)
+      if (nodeName.endsWith(':p') || nodeName === 'p') {
+        const textNodes = node.getElementsByTagName('w:t');
+        let pText = '';
+        for (let j = 0; j < textNodes.length; j++) {
+          pText += textNodes[j].textContent || '';
+        }
+
+        const trimmed = pText.trim();
+        if (trimmed) {
+          // Kiểm tra xem có phải tiêu đề hay in đậm không
+          const bNode = node.getElementsByTagName('w:b')[0];
+          const isBold = Boolean(bNode);
+          const isHeading = isBold && trimmed.length < 120 && (
+            trimmed.toUpperCase() === trimmed || 
+            trimmed.startsWith('HOẠT ĐỘNG') || 
+            trimmed.startsWith('BÀI') ||
+            trimmed.startsWith('CHỦ ĐỀ') ||
+            trimmed.startsWith('I.') ||
+            trimmed.startsWith('II.') ||
+            trimmed.startsWith('III.') ||
+            trimmed.startsWith('IV.')
+          );
+
+          items.push({
+            type: isHeading ? 'heading' : 'paragraph',
+            text: trimmed,
+            isBold
+          });
+          fullText += trimmed + '\n\n';
+        }
+      } 
+      // 2. Bảng biểu (Table)
+      else if (nodeName.endsWith(':tbl') || nodeName === 'tbl') {
+        const rows = [];
+        const trNodes = node.getElementsByTagName('w:tr');
+        for (let r = 0; r < trNodes.length; r++) {
+          const row = [];
+          const tcNodes = trNodes[r].getElementsByTagName('w:tc');
+          for (let c = 0; c < tcNodes.length; c++) {
+            const cellTextNodes = tcNodes[c].getElementsByTagName('w:t');
+            let cellText = '';
+            for (let t = 0; t < cellTextNodes.length; t++) {
+              cellText += cellTextNodes[t].textContent || '';
+            }
+            row.push(cellText.trim());
+          }
+          if (row.length > 0) rows.push(row);
+        }
+
+        if (rows.length > 0) {
+          items.push({
+            type: 'table',
+            rows
+          });
+          fullText += '[Bảng biểu: ' + rows.length + ' hàng]\n\n';
+        }
+      }
+    }
+
+    const title = items.find(it => it.type === 'heading')?.text || file.name.replace(/\.[^/.]+$/, '');
+
+    return {
+      success: true,
+      type: 'docx',
+      fileName: file.name,
+      fileSize: file.size,
+      title,
+      items,
+      fullText
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: `Lỗi đọc tệp Word: ${err.message || err}`
+    };
+  }
+}
+
+/**
+ * Phân tích tệp Excel (.xlsx, .xls, .csv) trực tiếp trên trình duyệt
+ */
+export async function parseExcelSpreadsheet(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetNames = workbook.SheetNames || [];
+    
+    if (sheetNames.length === 0) {
+      return { success: false, error: 'Tệp Excel không chứa sheet dữ liệu nào.' };
+    }
+
+    const sheets = {};
+    for (const name of sheetNames) {
+      const worksheet = workbook.Sheets[name];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+      sheets[name] = rows;
+    }
+
+    return {
+      success: true,
+      type: 'xlsx',
+      fileName: file.name,
+      fileSize: file.size,
+      sheetNames,
+      sheets
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: `Lỗi đọc tệp Excel: ${err.message || err}`
+    };
+  }
+}
+
+/**
+ * Bộ nạp & phân tích tài liệu đa năng tự động nhận diện định dạng
+ * Hỗ trợ: .pptx, .docx, .xlsx, .xls, .csv, .pdf, .txt
+ */
+export async function parseUniversalDocument(file) {
+  if (!file) return { success: false, error: 'Chưa chọn tệp' };
+
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  // 1. Tệp PowerPoint
+  if (ext === 'pptx' || ext === 'ppt') {
+    const res = await parsePPTXFile(file);
+    return {
+      success: res.success,
+      type: 'pptx',
+      fileName: file.name,
+      fileSize: file.size,
+      data: res,
+      error: res.error
+    };
+  }
+
+  // 2. Tệp Word
+  if (ext === 'docx' || ext === 'doc') {
+    return await parseWordDocx(file);
+  }
+
+  // 3. Tệp Excel
+  if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+    return await parseExcelSpreadsheet(file);
+  }
+
+  // 4. Tệp PDF
+  if (ext === 'pdf') {
+    const url = URL.createObjectURL(file);
+    return {
+      success: true,
+      type: 'pdf',
+      fileName: file.name,
+      fileSize: file.size,
+      url
+    };
+  }
+
+  // 5. Tệp Văn bản thuần
+  if (ext === 'txt' || ext === 'md' || ext === 'json') {
+    try {
+      const text = await file.text();
+      return {
+        success: true,
+        type: 'txt',
+        fileName: file.name,
+        fileSize: file.size,
+        text
+      };
+    } catch (e) {
+      return { success: false, error: 'Không thể đọc tệp văn bản' };
+    }
+  }
+
+  return {
+    success: false,
+    error: `Định dạng .${ext} chưa được hỗ trợ. Vui lòng chọn tệp .pptx, .docx, .xlsx, .pdf hoặc .txt.`
+  };
+}
