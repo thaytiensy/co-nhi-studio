@@ -188,7 +188,13 @@ export default function UniversalOfficeViewerModal({
                       }
                       if (el.type === 'image' && el.src) {
                         return (
-                          <img key={el.id} src={el.src} alt="Slide media" className="max-h-48 object-contain my-2 rounded-lg mx-auto shadow-sm" />
+                          <img 
+                            key={el.id} 
+                            src={el.src} 
+                            alt="" 
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            className="max-h-48 object-contain my-2 rounded-lg mx-auto shadow-sm" 
+                          />
                         );
                       }
                       return null;

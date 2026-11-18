@@ -448,7 +448,8 @@ export const parsePPTXFile = async (file) => {
           const embedId = blip.getAttribute('r:embed');
           const relObj = slideRels[embedId];
           const target = typeof relObj === 'string' ? relObj : relObj?.target;
-          if (target) {
+          const bgExt = (target || '').split('.').pop().toLowerCase();
+          if (target && bgExt !== 'wmf' && bgExt !== 'emf') {
             const imgPath = 'ppt/' + target.replace(/^\.\.\//, '');
             const bgUrl = await getMediaBlobUrl(imgPath);
             if (bgUrl) {
@@ -653,6 +654,11 @@ export const parsePPTXFile = async (file) => {
         const imgRelTarget = typeof relObj === 'string' ? relObj : relObj?.target;
 
         if (imgRelTarget) {
+          const imgExt = (imgRelTarget || '').split('.').pop().toLowerCase();
+          // Bỏ qua định dạng WMF/EMF vì trình duyệt không thể render trực tiếp trong <img>
+          if (imgExt === 'wmf' || imgExt === 'emf') {
+            continue;
+          }
           const imgZipPath = 'ppt/' + imgRelTarget.replace(/^\.\.\//, '');
           const dataUrl = await getMediaDataUrl(imgZipPath);
 
@@ -1024,7 +1030,46 @@ export const parsePPTXFile = async (file) => {
       }
 
       // Gộp: các ảnh nền (backgroundElements) đặt lên trước (nằm phía dưới), sau đó đến các hình vẽ, video và chữ
-      const combinedElements = [...backgroundElements, ...elements];
+      let combinedElements = [...backgroundElements, ...elements];
+
+      // Lớp chống đè chữ thông minh (Anti-Collision Text Layout):
+      // 1. Khử trùng lặp bóng đổ thủ công (2 text box cùng nội dung lệch 1-4px)
+      const deduplicatedElements = [];
+      for (const el of combinedElements) {
+        if (el.type === 'text') {
+          const isShadowDuplicate = deduplicatedElements.some(existing => 
+            existing.type === 'text' &&
+            existing.text.trim() === el.text.trim() &&
+            Math.abs(existing.x - el.x) <= 4 &&
+            Math.abs(existing.y - el.y) <= 4
+          );
+          if (isShadowDuplicate) continue;
+        }
+        deduplicatedElements.push(el);
+      }
+      combinedElements = deduplicatedElements;
+
+      // 2. Chống đè chữ khi nhiều hộp văn bản có tọa độ y trùng hoặc quá sát nhau
+      const textEls = combinedElements.filter(el => el.type === 'text' && el.text.trim());
+      for (let a = 0; a < textEls.length; a++) {
+        for (let b = a + 1; b < textEls.length; b++) {
+          const elA = textEls[a];
+          const elB = textEls[b];
+
+          // Kiểm tra xem 2 hộp chữ có trùng x (trong phạm vi chiều ngang)
+          const xOverlap = Math.abs(elA.x - elB.x) < Math.max(80, Math.min(elA.width || 200, elB.width || 200) * 0.75);
+          const yDiff = Math.abs(elA.y - elB.y);
+          const minSafeY = Math.max(24, Math.round((elA.fontSize || 18) * 1.35));
+
+          if (xOverlap && yDiff < minSafeY) {
+            // Dịch chuyển hộp chữ phía sau xuống dưới để không bị chồng lấn
+            const newY = elA.y + Math.max(elA.height || 26, minSafeY) + 6;
+            if (newY + (elB.height || 24) <= CANVAS_HEIGHT) {
+              elB.y = newY;
+            }
+          }
+        }
+      }
 
       parsedSlides.push({
         id: `slide-pptx-${sIdx}-${Date.now()}`,

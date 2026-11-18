@@ -1009,7 +1009,8 @@ export default function PresentationModal({
                 <img
                   key={el.id}
                   src={el.src}
-                  alt="Hình minh họa"
+                  alt=""
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   className="absolute object-contain pointer-events-none animate-in fade-in zoom-in-95 duration-200"
                   style={{
                     left: `${el.x}px`,

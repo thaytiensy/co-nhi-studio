@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Monitor, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Monitor, ChevronLeft, ChevronRight } from 'lucide-react';
 import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
@@ -575,18 +575,6 @@ export default function SlideEditorView({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 shrink-0">
-            {onUploadDocument && (
-              <button
-                type="button"
-                onClick={onUploadDocument}
-                className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl border border-emerald-400/40 shadow-xs flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
-                title="Mở file PowerPoint (.pptx), Word (.docx), Excel (.xlsx), PDF"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Mở File Office</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={handleOpenOnlyOffice}
@@ -595,16 +583,6 @@ export default function SlideEditorView({
             >
               <Monitor className="w-3.5 h-3.5 text-indigo-900" />
               <span>ONLYOFFICE Máy</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsPresentationOpen(true)}
-              className="px-3.5 py-1.5 text-xs font-black text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl border border-indigo-400/50 shadow-xs flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
-              title="Trình chiếu toàn màn hình F5"
-            >
-              <Play className="w-3.5 h-3.5 fill-white" />
-              <span>Trình Chiếu F5</span>
             </button>
           </div>
         </div>

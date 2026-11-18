@@ -63,7 +63,7 @@ export default function Toolbar({
       {/* Hàng 1: Thanh công cụ Chèn & Tiện ích chung (Cố định, không làm co giật chiều cao) */}
       <div className="px-4 py-1.5 flex items-center justify-between gap-3 overflow-x-auto min-h-[44px]">
         {/* Left section: Insert Items */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-[13px] font-black text-slate-500 uppercase tracking-wider mr-1 shrink-0">Chèn:</span>
 
           {/* Text Buttons */}
@@ -194,10 +194,10 @@ export default function Toolbar({
             <button
               type="button"
               onClick={onEnlargeSlideText}
-              className="px-2.5 py-1 text-[13px] font-black text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95"
+              className="px-2.5 py-1 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 shrink-0"
               title="Tăng cỡ chữ toàn bộ bài giảng trên trang này thêm 4pt cho dễ đọc"
             >
-              <span className="text-amber-700">🗚</span>
+              <span className="text-amber-700 font-bold">🗚</span>
               <span className="hidden sm:inline">Cỡ Chữ Slide (+4pt)</span>
             </button>
           )}
@@ -206,7 +206,7 @@ export default function Toolbar({
             <button
               type="button"
               onClick={onToggleFocusMode}
-              className={`px-2.5 py-1 text-[13px] font-black rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 border ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 border shrink-0 ${
                 isFocusMode
                   ? 'bg-amber-500 text-white border-amber-600'
                   : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-300'
@@ -500,9 +500,6 @@ export default function Toolbar({
                 />
               </div>
             </div>
-            <span className="text-xs text-slate-400 font-medium hidden md:inline">
-              💡 Bấm vào bất kỳ chữ hoặc hình trên slide để sửa nội dung và kích thước
-            </span>
           </div>
         )}
       </div>

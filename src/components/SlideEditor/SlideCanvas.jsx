@@ -490,7 +490,8 @@ export default function SlideCanvas({
                 <div className="relative w-full h-full group">
                   <img
                     src={el.src}
-                    alt="Ảnh mĩ thuật"
+                    alt=""
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     className={`w-full h-full ${el.isBackground ? 'object-cover' : 'object-fill'} pointer-events-none select-none rounded`}
                   />
                   {/* Nút Xóa Nhanh Hiện Khi Rê Chuột Qua Ảnh Dù Chưa Chọn */}
