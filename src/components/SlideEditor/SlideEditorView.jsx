@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Play, Sparkles } from 'lucide-react';
 import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
@@ -7,6 +8,7 @@ import PresentationModal from './PresentationModal';
 const OfflinePedagogyAssistant = React.lazy(() => import('../Assistant/OfflinePedagogyAssistant'));
 const MediaYouTubeModal = React.lazy(() => import('../Media/MediaYouTubeModal'));
 import { SLIDE_TEMPLATES } from '../../data/slideTemplates';
+import { openSlideInDesktopOffice } from '../../utils/desktopOfficeClient';
 
 export default function SlideEditorView({
   slides,
@@ -501,6 +503,19 @@ export default function SlideEditorView({
     updateSlidesWithHistory(updatedSlides);
   };
 
+  // Tự động kích hoạt & đồng bộ với ONLYOFFICE trên máy tính khi mở hoặc thay đổi bài giảng mà không cần bấm nút thủ công
+  useEffect(() => {
+    let isCancelled = false;
+    const title = slides?.[0]?.title || 'BaiGiang_MiThuat_GDPT2018';
+    
+    // Đồng bộ trực tiếp ngầm định với ONLYOFFICE Desktop trên máy tính
+    openSlideInDesktopOffice(title, slides, { silent: true }).catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [slides?.[0]?.title]);
+
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* 1. Left Thumbnail List */}
@@ -522,6 +537,41 @@ export default function SlideEditorView({
 
       {/* 2. Middle Editor Workspace */}
       <div className="flex-1 flex flex-col min-w-0 bg-slate-100">
+        {/* KHU VỰC POWERPOINT TÍCH HỢP TRỰC TIẾP ONLYOFFICE TRÊN MÁY TÍNH - KHÔNG CẦN BẤM NÚT */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-800/60 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-white shadow-md select-none">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-base shadow-sm border border-indigo-400/40 shrink-0">
+              🖥️
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-black text-xs sm:text-sm text-white tracking-wide">
+                  Soạn Thảo PowerPoint (ONLYOFFICE Desktop)
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Đã Tích Hợp Office Thẳng Vào App • Bản Mặc Định Trên Máy
+                </span>
+              </div>
+              <p className="text-[10.5px] text-slate-300 truncate">
+                Tự động kết nối ONLYOFFICE trên máy • Chuẩn PowerPoint 16:9 GDPT 2018 • Đầy đủ hiệu ứng & phông chữ
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsPresentationOpen(true)}
+              className="px-3.5 py-1.5 text-xs font-black text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 rounded-xl border border-indigo-400/50 shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
+              title="Trình chiếu toàn màn hình F5 với giọng đọc Thầy giáo Cọ Nhí"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>Trình Chiếu F5</span>
+            </button>
+          </div>
+        </div>
+
         {/* Ribbon Toolbar */}
         <Toolbar
           selectedElement={selectedElement}

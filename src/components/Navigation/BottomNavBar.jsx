@@ -11,7 +11,7 @@ import {
 export default function BottomNavBar({ activeTab, setActiveTab }) {
   const navTabs = [
     { id: 'dashboard', name: 'Tổng Quan', icon: LayoutDashboard },
-    { id: 'editor', name: 'Soạn Slide', icon: Presentation },
+    { id: 'editor', name: 'PowerPoint', icon: Presentation },
     { id: 'drawing', name: 'Bảng Vẽ', icon: Brush },
     { id: 'games', name: 'Trò Chơi', icon: Gamepad2 },
     { id: 'camera', name: 'Chấm Tranh', icon: Camera },

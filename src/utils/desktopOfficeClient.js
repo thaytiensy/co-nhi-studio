@@ -5,6 +5,7 @@ import { showToast } from './toastService.js';
 let cachedOfficeStatus = null;
 
 export async function checkDesktopOfficeStatus() {
+  // 1. Thử endpoint tương đối (hoạt động khi chạy trên máy chủ nội bộ localhost:3000 hoặc localhost:3100)
   try {
     const res = await fetch('/api/office-status');
     if (res.ok) {
@@ -13,6 +14,20 @@ export async function checkDesktopOfficeStatus() {
       return data;
     }
   } catch (_) {}
+
+  // 2. Thử cầu nối máy chủ cục bộ (khi người dùng đang mở trang web Vercel trên máy tính cá nhân)
+  const candidateUrls = ['http://localhost:3000/api/office-status', 'http://127.0.0.1:3000/api/office-status', 'http://localhost:3100/api/office-status'];
+  for (const url of candidateUrls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        cachedOfficeStatus = data;
+        return data;
+      }
+    } catch (_) {}
+  }
+
   return { hasOffice: false, suites: [] };
 }
 
@@ -21,14 +36,16 @@ export function getCachedOfficeStatus() {
 }
 
 /**
- * Mở tệp PowerPoint (.pptx) trực tiếp bằng ứng dụng Office trên máy tính
+ * Tự động đồng bộ và mở tệp PowerPoint (.pptx) trực tiếp bằng ONLYOFFICE trên máy tính
  * @param {string} projectTitle - Tiêu đề bài giảng
  * @param {Array} slides - Danh sách slide
+ * @param {Object} options - { silent: boolean }
  */
-export async function openSlideInDesktopOffice(projectTitle, slides) {
+export async function openSlideInDesktopOffice(projectTitle, slides, options = {}) {
+  const { silent = false } = options;
   try {
     // Sinh file PPTX dạng blob/arrayBuffer bằng pptxExportService
-    const { generatePPTXBlob, exportProjectToPPTX } = await import('./pptxExportService.js');
+    const { generatePPTXBlob } = await import('./pptxExportService.js');
     let buffer = null;
 
     if (typeof generatePPTXBlob === 'function') {
@@ -42,30 +59,56 @@ export async function openSlideInDesktopOffice(projectTitle, slides) {
       base64: buffer ? arrayBufferToBase64(buffer) : ''
     };
 
-    const res = await fetch('/api/open-office', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    // 1. Thử endpoint cùng origin
+    let res = null;
+    try {
+      res = await fetch('/api/open-office', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (_) {}
 
-    if (res.ok) {
+    // 2. Thử cầu nối máy chủ nội bộ nếu đang duyệt trên web Vercel
+    if (!res || !res.ok) {
+      const candidateUrls = ['http://localhost:3000/api/open-office', 'http://127.0.0.1:3000/api/open-office', 'http://localhost:3100/api/open-office'];
+      for (const url of candidateUrls) {
+        try {
+          const bridgeRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (bridgeRes.ok) {
+            res = bridgeRes;
+            break;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (res && res.ok) {
       const result = await res.json();
       if (result.success) {
-        showToast(result.message || `Đã mở bài giảng bằng ${result.appName} trên máy tính!`, 'success', 3000);
+        if (!silent) {
+          showToast(result.message || `Đã mở bài giảng bằng ${result.appName} trên máy tính!`, 'success', 3000);
+        }
         return { success: true, appName: result.appName };
       }
     }
   } catch (_) {}
 
-  // Chế độ Web / Không có server cục bộ: Tải trực tiếp file PowerPoint về máy chuẩn xác
-  try {
-    const { exportProjectToPPTX } = await import('./pptxExportService.js');
-    if (typeof exportProjectToPPTX === 'function') {
-      await exportProjectToPPTX(projectTitle, slides);
-      showToast('Đã xuất bài giảng PowerPoint (.pptx) chuẩn Office thành công!', 'success', 3000);
+  // Chế độ Web / Không có server cục bộ (chỉ tải tệp khi người dùng thực hiện thao tác rõ ràng, không tải khi đồng bộ ngầm)
+  if (!silent) {
+    try {
+      const { exportProjectToPPTX } = await import('./pptxExportService.js');
+      if (typeof exportProjectToPPTX === 'function') {
+        await exportProjectToPPTX(projectTitle, slides);
+        showToast('Đã xuất bài giảng PowerPoint (.pptx) chuẩn Office thành công!', 'success', 3000);
+      }
+    } catch (err) {
+      console.warn('Lỗi xuất PowerPoint:', err);
     }
-  } catch (err) {
-    console.warn('Lỗi xuất PowerPoint:', err);
   }
   return { success: true };
 }
@@ -98,17 +141,39 @@ async function sendFileToDesktopOffice(type, title, fileData, label) {
       base64 = arrayBufferToBase64(fileData);
     }
 
-    const res = await fetch('/api/open-office', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type,
-        fileName: title || `Du_Lieu_Mi_Thuat_${Date.now()}`,
-        base64
-      })
-    });
+    const payloadObj = {
+      type,
+      fileName: title || `Du_Lieu_Mi_Thuat_${Date.now()}`,
+      base64
+    };
 
-    if (res.ok) {
+    let res = null;
+    try {
+      res = await fetch('/api/open-office', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadObj)
+      });
+    } catch (_) {}
+
+    if (!res || !res.ok) {
+      const candidateUrls = ['http://localhost:3000/api/open-office', 'http://127.0.0.1:3000/api/open-office', 'http://localhost:3100/api/open-office'];
+      for (const url of candidateUrls) {
+        try {
+          const bridgeRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payloadObj)
+          });
+          if (bridgeRes.ok) {
+            res = bridgeRes;
+            break;
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (res && res.ok) {
       const result = await res.json();
       if (result.success) {
         showToast(result.message || `Đã mở ${label} bằng ${result.appName} trên máy!`, 'success', 3000);

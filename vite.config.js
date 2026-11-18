@@ -221,6 +221,18 @@ const officePlugin = () => ({
       const parsedUrl = new URL(req.url, 'http://localhost');
       const pathname = parsedUrl.pathname;
 
+      if (pathname.startsWith('/api/office-status') || pathname.startsWith('/api/open-office') || pathname.startsWith('/api/open-powerpoint')) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
+        res.setHeader('Access-Control-Allow-Private-Network', 'true');
+        if (req.method === 'OPTIONS') {
+          res.statusCode = 204;
+          res.end();
+          return;
+        }
+      }
+
       if (pathname === '/api/office-status') {
         const info = detectInstalledOffice();
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
