@@ -80,9 +80,6 @@ export default function UniversalOfficeViewerModal({
                   ({formatSize(fileSize)})
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 truncate mt-0.5">
-                Đọc trực tiếp 100% trên trình duyệt • Không cần cài đặt phần mềm • Chia sẻ dùng được mọi nơi
-              </p>
             </div>
           </div>
 

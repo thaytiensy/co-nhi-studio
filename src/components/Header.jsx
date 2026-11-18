@@ -225,8 +225,8 @@ export default function Header({
             title="Đọc mọi tệp tài liệu Office (.pptx, .docx, .xlsx, .pdf) trực tiếp trong app mà không cần cài phần mềm"
           >
             <Upload className="w-3.5 h-3.5 text-amber-700" />
-            <span className="hidden sm:inline">Mở File Office (.pptx, .docx, .xlsx)</span>
-            <span className="sm:hidden">File Office</span>
+            <span className="hidden sm:inline">Mở File Office</span>
+            <span className="sm:hidden">Mở File</span>
           </button>
 
           {/* File Menu Dropdown */}
