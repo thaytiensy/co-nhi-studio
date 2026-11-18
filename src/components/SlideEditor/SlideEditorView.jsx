@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Sparkles } from 'lucide-react';
+import { Play, Sparkles, Monitor, Download, ChevronLeft, ChevronRight, LayoutTemplate, RotateCcw } from 'lucide-react';
 import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
@@ -24,6 +24,7 @@ export default function SlideEditorView({
   const [selectedElementId, setSelectedElementId] = useState(null);
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [editorMode, setEditorMode] = useState('onlyoffice');
 
   // History stack for Undo/Redo
   const [history, setHistory] = useState([JSON.stringify(slides)]);
@@ -516,6 +517,11 @@ export default function SlideEditorView({
     };
   }, [slides?.[0]?.title]);
 
+  const handleOpenOnlyOffice = async () => {
+    const title = slides?.[0]?.title || 'BaiGiang_MiThuat_GDPT2018';
+    await openSlideInDesktopOffice(title, slides, { silent: false });
+  };
+
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* 1. Left Thumbnail List */}
@@ -536,83 +542,241 @@ export default function SlideEditorView({
       )}
 
       {/* 2. Middle Editor Workspace */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-100">
-        {/* KHU VỰC POWERPOINT TÍCH HỢP TRỰC TIẾP ONLYOFFICE TRÊN MÁY TÍNH - KHÔNG CẦN BẤM NÚT */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-800/60 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-white shadow-md select-none">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-base shadow-sm border border-indigo-400/40 shrink-0">
-              🖥️
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-black text-xs sm:text-sm text-white tracking-wide">
-                  Soạn Thảo PowerPoint (ONLYOFFICE Desktop)
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Đã Tích Hợp Office Thẳng Vào App • Bản Mặc Định Trên Máy
-                </span>
+      {editorMode === 'onlyoffice' ? (
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-900/5 overflow-y-auto">
+          {/* Top Bar Header */}
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-800/60 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-white shadow-md select-none shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-base shadow-sm border border-indigo-400/40 shrink-0">
+                🖥️
               </div>
-              <p className="text-[10.5px] text-slate-300 truncate">
-                Tự động kết nối ONLYOFFICE trên máy • Chuẩn PowerPoint 16:9 GDPT 2018 • Đầy đủ hiệu ứng & phông chữ
-              </p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-xs sm:text-sm text-white tracking-wide">
+                    Soạn Thảo PowerPoint (ONLYOFFICE Desktop)
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Đã Thay Thế Hẳn Bằng ONLYOFFICE Trên Máy
+                  </span>
+                </div>
+                <p className="text-[10.5px] text-slate-300 truncate">
+                  Đã thay thế hoàn toàn bộ công cụ cũ • Dùng ONLYOFFICE làm trình soạn thảo PowerPoint chính
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleOpenOnlyOffice}
+                className="px-3.5 py-1.5 text-xs font-black text-indigo-950 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-200 hover:from-amber-200 hover:to-yellow-200 rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-amber-400/60"
+                title="Mở ứng dụng ONLYOFFICE Desktop trên máy tính để soạn bài giảng này với đầy đủ tính năng PowerPoint"
+              >
+                <Monitor className="w-4 h-4 text-indigo-900" />
+                <span>Mở Soạn Trên ONLYOFFICE</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsPresentationOpen(true)}
+                className="px-3 py-1.5 text-xs font-black text-white bg-indigo-700 hover:bg-indigo-600 rounded-xl border border-indigo-500/60 shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
+                title="Trình chiếu toàn màn hình F5 với giọng đọc Thầy giáo"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span className="hidden sm:inline">Trình Chiếu F5</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setEditorMode('canvas')}
+                className="px-2.5 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 flex items-center gap-1 transition-all cursor-pointer"
+                title="Chuyển sang bảng vẽ Canvas phụ khi sử dụng trên máy chưa cài ONLYOFFICE"
+              >
+                <LayoutTemplate className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Bảng Vẽ Phụ</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsPresentationOpen(true)}
-              className="px-3.5 py-1.5 text-xs font-black text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 rounded-xl border border-indigo-400/50 shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
-              title="Trình chiếu toàn màn hình F5 với giọng đọc Thầy giáo Cọ Nhí"
-            >
-              <Play className="w-3.5 h-3.5 fill-white" />
-              <span>Trình Chiếu F5</span>
-            </button>
+          {/* Main ONLYOFFICE Hub */}
+          <div className="flex-1 p-3 md:p-5 flex flex-col items-center justify-between gap-3 max-w-5xl mx-auto w-full">
+            {/* ONLYOFFICE Status Banner Card */}
+            <div className="w-full bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-4 text-white border border-indigo-500/30 shadow-lg flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-xl shadow-md border-2 border-white/40 shrink-0">
+                  🖥️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm md:text-base font-black text-white">
+                      Trình Soạn Thảo PowerPoint: ONLYOFFICE Desktop
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-emerald-500/30 text-emerald-300 border border-emerald-400/40">
+                      Bản Chuẩn Mặc Định
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 mt-0.5 max-w-xl">
+                    Đã thay thế hẳn công cụ soạn thảo trên app bằng phần mềm ONLYOFFICE trên máy tính. Đầy đủ hiệu ứng hoạt hình, phông chữ Times New Roman và định dạng PowerPoint chuyên nghiệp.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={handleOpenOnlyOffice}
+                  className="px-3.5 py-1.5 text-xs font-black text-indigo-950 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-200 hover:from-amber-200 hover:to-yellow-200 rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-amber-400"
+                >
+                  <Monitor className="w-4 h-4 text-indigo-900" />
+                  <span>Mở Soạn Trên ONLYOFFICE</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Slide Stage 16:9 Clean Viewer */}
+            <div className="w-full flex-1 flex flex-col items-center justify-center min-h-[300px]">
+              <div className="w-full max-w-3xl aspect-video rounded-2xl shadow-xl overflow-hidden border-2 border-slate-700/40 relative flex flex-col"
+                   style={{ backgroundColor: currentSlide?.background || '#ffffff' }}>
+                {/* Slide Header Tag */}
+                <div className="bg-slate-900/80 backdrop-blur-xs text-white px-3 py-1.5 flex items-center justify-between text-xs font-bold border-b border-white/10 select-none">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                    <span>Slide {currentSlideIndex + 1} / {slides.length}: {currentSlide?.title || 'Hoạt Động Bài Giảng'}</span>
+                  </span>
+                  <span className="text-[10px] text-amber-300">Chuẩn 16:9 GDPT 2018</span>
+                </div>
+
+                {/* Slide Elements Preview */}
+                <div className="flex-1 p-5 relative overflow-hidden flex flex-col justify-center">
+                  {currentSlide?.elements && currentSlide.elements.length > 0 ? (
+                    currentSlide.elements.map(el => {
+                      if (el.type === 'text') {
+                        return (
+                          <div
+                            key={el.id}
+                            style={{
+                              fontFamily: el.fontFamily || 'Times New Roman',
+                              fontSize: `${Math.max(14, el.fontSize ? Math.round(el.fontSize * 0.75) : 18)}px`,
+                              fontWeight: el.fontWeight || 'bold',
+                              color: el.color || '#0f172a',
+                              textAlign: el.textAlign || 'left'
+                            }}
+                            className="my-1.5 drop-shadow-xs whitespace-pre-wrap"
+                          >
+                            {el.text}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })
+                  ) : (
+                    <div className="text-center text-slate-400 font-bold text-sm">
+                      Slide trống • Mở ONLYOFFICE để thêm nội dung bài giảng
+                    </div>
+                  )}
+                </div>
+
+                {/* Slide Navigation Controls */}
+                <div className="bg-slate-900/80 backdrop-blur-xs text-white px-3 py-1.5 flex items-center justify-between text-xs select-none border-t border-white/10">
+                  <button
+                    type="button"
+                    disabled={currentSlideIndex <= 0}
+                    onClick={() => setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:hover:bg-white/10 flex items-center gap-1 text-[11px] font-bold cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Trang Trước</span>
+                  </button>
+
+                  <span className="font-extrabold text-amber-300 text-xs">
+                    Trang {currentSlideIndex + 1} / {slides.length}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={currentSlideIndex >= slides.length - 1}
+                    onClick={() => setCurrentSlideIndex(Math.min(slides.length - 1, currentSlideIndex + 1))}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-40 disabled:hover:bg-white/10 flex items-center gap-1 text-[11px] font-bold cursor-pointer"
+                  >
+                    <span>Trang Tiếp</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Speaker Notes */}
+            <div className="w-full">
+              <SpeakerNotes
+                slide={currentSlide}
+                notes={currentSlide?.notes}
+                onChangeNotes={handleChangeNotes}
+                onOpenAssistant={() => setShowAssistant(prev => !prev)}
+              />
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-100">
+          {/* Header Bảng Vẽ Phụ */}
+          <div className="bg-slate-800 text-white px-4 py-2 flex items-center justify-between text-xs font-bold select-none border-b border-slate-700">
+            <span className="flex items-center gap-2">
+              <LayoutTemplate className="w-4 h-4 text-amber-400" />
+              <span>Chế Độ Bảng Vẽ Canvas Phụ (Dự phòng cho máy chưa cài ONLYOFFICE)</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditorMode('onlyoffice')}
+              className="px-3 py-1 rounded-lg bg-amber-400 text-slate-900 font-extrabold hover:bg-amber-300 flex items-center gap-1 transition-all cursor-pointer"
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span>Quay Về ONLYOFFICE Desktop (Mặc Định)</span>
+            </button>
+          </div>
 
-        {/* Ribbon Toolbar */}
-        <Toolbar
-          selectedElement={selectedElement}
-          onUpdateElement={handleUpdateElement}
-          onAddText={handleAddText}
-          onAddShape={handleAddShape}
-          onAddImage={handleAddImage}
-          onDeleteElement={handleDeleteElement}
-          onDuplicateElement={handleDuplicateElement}
-          onReorderElement={handleReorderElement}
-          slideBackground={currentSlide?.background}
-          onChangeBackground={handleChangeBackground}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onOpenMediaModal={() => setShowMediaModal(true)}
-          onEnlargeSlideText={handleEnlargeSlideText}
-          isFocusMode={isFocusMode}
-          onToggleFocusMode={() => setIsFocusMode(prev => !prev)}
-        />
+          {/* Ribbon Toolbar */}
+          <Toolbar
+            selectedElement={selectedElement}
+            onUpdateElement={handleUpdateElement}
+            onAddText={handleAddText}
+            onAddShape={handleAddShape}
+            onAddImage={handleAddImage}
+            onDeleteElement={handleDeleteElement}
+            onDuplicateElement={handleDuplicateElement}
+            onReorderElement={handleReorderElement}
+            slideBackground={currentSlide?.background}
+            onChangeBackground={handleChangeBackground}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onOpenMediaModal={() => setShowMediaModal(true)}
+            onEnlargeSlideText={handleEnlargeSlideText}
+            isFocusMode={isFocusMode}
+            onToggleFocusMode={() => setIsFocusMode(prev => !prev)}
+          />
 
-        {/* 16:9 Canvas Area */}
-        <SlideCanvas
-          slide={currentSlide}
-          selectedElementId={selectedElementId}
-          onSelectElement={setSelectedElementId}
-          onUpdateElement={handleUpdateElement}
-          onDeleteElement={handleDeleteElement}
-          onReorderElement={handleReorderElement}
-          onDeselect={() => setSelectedElementId(null)}
-        />
+          {/* 16:9 Canvas Area */}
+          <SlideCanvas
+            slide={currentSlide}
+            selectedElementId={selectedElementId}
+            onSelectElement={setSelectedElementId}
+            onUpdateElement={handleUpdateElement}
+            onDeleteElement={handleDeleteElement}
+            onReorderElement={handleReorderElement}
+            onDeselect={() => setSelectedElementId(null)}
+          />
 
-        {/* Speaker Notes Bar */}
-        <SpeakerNotes
-          slide={currentSlide}
-          notes={currentSlide?.notes}
-          onChangeNotes={handleChangeNotes}
-          onOpenAssistant={() => setShowAssistant(prev => !prev)}
-        />
-      </div>
+          {/* Speaker Notes Bar */}
+          <SpeakerNotes
+            slide={currentSlide}
+            notes={currentSlide?.notes}
+            onChangeNotes={handleChangeNotes}
+            onOpenAssistant={() => setShowAssistant(prev => !prev)}
+          />
+        </div>
+      )}
 
       {/* 4. Fullscreen Presentation Modal */}
       {isPresentationOpen && (
