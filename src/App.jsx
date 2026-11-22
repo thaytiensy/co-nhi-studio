@@ -6,6 +6,10 @@ import LoginGateModal from './components/Admin/LoginGateModal';
 import {
   saveProjectToLocal,
   loadProjectFromLocal,
+  loadProjectFromStorage,
+  saveOfficeDocToStorage,
+  loadOfficeDocFromStorage,
+  clearOfficeDocFromStorage,
   importProjectFile,
   saveProjectDraftToLocal,
   getProjectDraftFromLocal,
@@ -233,6 +237,24 @@ export default function App() {
     setCurrentSlideIndex(0);
     setSlideEditorResetKey(key => key + 1);
 
+    // Nạp tệp bài giảng từ IndexedDB (dung lượng lớn, bảo vệ an toàn cho tệp người dùng tải lên)
+    loadProjectFromStorage(email).then((idbSaved) => {
+      if (idbSaved && idbSaved.slides && idbSaved.slides.length > 0) {
+        setSlides(idbSaved.slides);
+        if (idbSaved.title) setProjectTitle(idbSaved.title);
+      }
+    }).catch(() => {});
+
+    // Nạp tệp tài liệu văn phòng Office (Word, Excel, PDF) đã tải lên gần nhất
+    loadOfficeDocFromStorage(email).then((savedOffice) => {
+      if (savedOffice && savedOffice.docData) {
+        setOfficeDocData(savedOffice.docData);
+        if (savedOffice.subTab) {
+          setOfficeSubTab(savedOffice.subTab);
+        }
+      }
+    }).catch(() => {});
+
     // Kiểm tra bản nháp chưa lưu riêng của người dùng này
     try {
       const draft = getProjectDraftFromLocal(email);
@@ -313,6 +335,13 @@ export default function App() {
   const [officeSubTab, setOfficeSubTab] = useState('pptx');
   const [officeDocData, setOfficeDocData] = useState(null);
   const pptxFileInputRef = useRef(null);
+
+  const handleOfficeSubTabChange = (newSubTab) => {
+    setOfficeSubTab(newSubTab);
+    if (officeDocData) {
+      saveOfficeDocToStorage(officeDocData, newSubTab, currentUserSession?.email);
+    }
+  };
 
   // Listener bắt sự kiện cài đặt PWA và phím tắt quản trị
   useEffect(() => {
@@ -496,8 +525,10 @@ export default function App() {
         setCurrentSlideIndex(0);
         setSlideEditorResetKey(key => key + 1);
         if (data.title) setProjectTitle(data.title);
-        setIsSaved(false);
-        showToast('Đã tải thành công tệp bài giảng: ' + (data.title || file.name), 'success');
+        saveProjectToLocal(data, currentUserSession?.email);
+        clearProjectDraft(currentUserSession?.email);
+        setIsSaved(true);
+        showToast('Đã tải và lưu thành công tệp bài giảng: ' + (data.title || file.name), 'success');
       }
     } catch (err) {
       showToast(err.message, 'error');
@@ -527,7 +558,11 @@ export default function App() {
           handleConfirmOpenPPTX(result.slides, file.name);
           setOfficeSubTab('pptx');
           setActiveTab('editor');
-          showToast(`Đã mở thành công bài giảng PowerPoint "${file.name}" (${result.slides.length} trang)!`, 'success');
+          const cleanTitle = file.name.replace(/\.pptx$/i, '').replace(/_/g, ' ');
+          saveProjectToLocal({ title: cleanTitle, slides: result.slides }, currentUserSession?.email);
+          clearProjectDraft(currentUserSession?.email);
+          setIsSaved(true);
+          showToast(`Đã mở và lưu thành công bài giảng PowerPoint "${file.name}" (${result.slides.length} trang)!`, 'success');
         } else {
           showToast('Tệp PowerPoint không có slide hoặc không đọc được.', 'error');
         }
@@ -537,16 +572,21 @@ export default function App() {
         if (result.success) {
           setOfficeDocData(result);
           setActiveTab('editor');
+          let subTab = 'docx';
           if (ext === 'docx' || ext === 'doc' || ext === 'txt') {
+            subTab = 'docx';
             setOfficeSubTab('docx');
-            showToast(`Đã mở thành công tệp Giáo Án Word "${file.name}"!`, 'success');
+            showToast(`Đã mở và lưu thành công tệp Giáo Án Word "${file.name}"!`, 'success');
           } else if (ext === 'xlsx' || ext === 'xls' || ext === 'csv') {
+            subTab = 'xlsx';
             setOfficeSubTab('xlsx');
-            showToast(`Đã mở thành công tệp Bảng Tính Excel "${file.name}"!`, 'success');
+            showToast(`Đã mở và lưu thành công tệp Bảng Tính Excel "${file.name}"!`, 'success');
           } else if (ext === 'pdf') {
+            subTab = 'pdf';
             setOfficeSubTab('pdf');
-            showToast(`Đã mở thành công tệp Tài Liệu PDF "${file.name}"!`, 'success');
+            showToast(`Đã mở và lưu thành công tệp Tài Liệu PDF "${file.name}"!`, 'success');
           }
+          saveOfficeDocToStorage(result, subTab, currentUserSession?.email);
         } else {
           showToast(result.error || 'Lỗi đọc tệp tài liệu', 'error');
         }
@@ -812,8 +852,12 @@ export default function App() {
                     setProjectTitle(title);
                     setCurrentSlideIndex(0);
                     setSlideEditorResetKey(k => k + 1);
-                    setIsSaved(false);
+                    setOfficeSubTab('pptx');
+                    saveProjectToLocal({ title, slides: importedSlides }, currentUserSession?.email);
+                    clearProjectDraft(currentUserSession?.email);
+                    setIsSaved(true);
                     setActiveTab('editor');
+                    showToast('Đã nạp và lưu thành công bài giảng vào Studio!', 'success');
                   }}
                   onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
                   slides={slides}
@@ -834,7 +878,7 @@ export default function App() {
                   setShowAssistant={setIsAssistantOpen}
                   onUploadDocument={handleTriggerPPTXUpload}
                   officeSubTab={officeSubTab}
-                  onChangeOfficeSubTab={setOfficeSubTab}
+                  onChangeOfficeSubTab={handleOfficeSubTabChange}
                   officeDocData={officeDocData}
                 />
               )}

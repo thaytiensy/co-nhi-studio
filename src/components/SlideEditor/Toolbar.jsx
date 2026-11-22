@@ -194,7 +194,7 @@ export default function Toolbar({
             <button
               type="button"
               onClick={onEnlargeSlideText}
-              className="px-2.5 py-1 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 shrink-0"
+              className="px-2.5 py-1 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 shrink-0"
               title="Tăng cỡ chữ toàn bộ bài giảng trên trang này thêm 4pt cho dễ đọc"
             >
               <span className="text-amber-700 font-bold">🗚</span>
@@ -206,7 +206,7 @@ export default function Toolbar({
             <button
               type="button"
               onClick={onToggleFocusMode}
-              className={`px-2.5 py-1 text-xs font-bold rounded-xl flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 border shrink-0 ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 border shrink-0 ${
                 isFocusMode
                   ? 'bg-amber-500 text-white border-amber-600'
                   : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-300'

@@ -61,6 +61,7 @@ export default function PPTXPreviewSlideCanvas({ slide, selectedPreviewIndex }) 
                   key={el.id}
                   src={el.src}
                   alt=""
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   style={{
                     position: 'absolute',
                     left: `${el.x}px`,

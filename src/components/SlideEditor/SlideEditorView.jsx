@@ -44,16 +44,20 @@ export default function SlideEditorView({
 
   const currentSlide = slides[currentSlideIndex] || slides[0];
 
-  // Helper to push history
+  // Helper to push history safely without freezing on large slide decks
   const updateSlidesWithHistory = (newSlides) => {
     setSlides(newSlides);
-    const serialized = JSON.stringify(newSlides);
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(serialized);
-    const maxSteps = newSlides.length > 10 ? 8 : 20;
-    if (newHistory.length > maxSteps) newHistory.shift();
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    const maxSteps = newSlides.length > 20 ? 3 : newSlides.length > 10 ? 5 : 15;
+    try {
+      const serialized = JSON.stringify(newSlides);
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(serialized);
+      if (newHistory.length > maxSteps) newHistory.shift();
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    } catch (_) {
+      // Bỏ qua nếu bộ nhớ hạn hẹp khi tệp bài giảng có hàng chục trang
+    }
   };
 
   const canUndo = historyIndex > 0;

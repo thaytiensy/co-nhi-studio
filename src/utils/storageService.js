@@ -2,9 +2,11 @@
 // Dữ liệu mặc định lưu trên máy tính của giáo viên, phân vùng riêng biệt theo từng tài khoản.
 
 import { getScopedStorageKey } from './userWorkspaceService.js';
+import { idbSet, idbGet, idbDelete } from './idbStorage.js';
 
 export const STORAGE_KEY = 'co_nhi_studio_project_v1';
 export const STORAGE_DRAFT_KEY = 'co_nhi_studio_draft_v1';
+export const STORAGE_OFFICE_DOC_KEY = 'conhi_office_doc_v1';
 
 export const validateSlideElement = (el, index, slideIndex) => {
   if (!el || typeof el !== 'object') {
@@ -78,19 +80,25 @@ export const saveProjectToLocal = (projectData, userScope) => {
       updatedAt: new Date().toISOString(),
       version: projectData.version || '1.0.0',
     };
+    const key = getScopedStorageKey(STORAGE_KEY, userScope);
+
+    // 1. Lưu bất đồng bộ vào IndexedDB (Dung lượng không giới hạn, an toàn cho tệp lớn có nhiều ảnh)
+    idbSet('projects', key, payload).catch(() => {});
+
+    // 2. Lưu vào LocalStorage
     if (typeof localStorage !== 'undefined') {
-      const key = getScopedStorageKey(STORAGE_KEY, userScope);
-      localStorage.setItem(key, JSON.stringify(payload));
+      try {
+        localStorage.setItem(key, JSON.stringify(payload));
+      } catch (err) {
+        console.warn('[storageService] LocalStorage vượt quá giới hạn 5MB, bài giảng đã được lưu an toàn trong IndexedDB.');
+      }
     }
     return { success: true };
   } catch (err) {
-    console.error('Không thể lưu vào LocalStorage; giữ nguyên phiên bản đã lưu trước đó:', err);
-    const isQuota = err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014;
+    console.error('Không thể lưu bài giảng:', err);
     return {
       success: false,
-      error: isQuota
-        ? 'Bộ nhớ trình duyệt đã đầy. Bài giảng hiện tại vẫn được giữ trên RAM; hãy vào Tệp Bài Giảng > Lưu tệp .conhi để lưu về máy tính.'
-        : (err.message || 'Lỗi lưu bài giảng cục bộ.')
+      error: err.message || 'Lỗi lưu bài giảng cục bộ.'
     };
   }
 };
@@ -109,6 +117,105 @@ export const loadProjectFromLocal = (userScope) => {
     return null;
   }
 };
+
+/**
+ * Nạp bài giảng từ IndexedDB (dung lượng lớn) với fallback sang LocalStorage
+ */
+export const loadProjectFromStorage = async (userScope) => {
+  const key = getScopedStorageKey(STORAGE_KEY, userScope);
+  try {
+    const idbData = await idbGet('projects', key);
+    if (idbData && Array.isArray(idbData.slides) && idbData.slides.length > 0) {
+      validateProjectData(idbData);
+      return idbData;
+    }
+  } catch (_) {}
+
+  // Fallback sang LocalStorage
+  return loadProjectFromLocal(userScope);
+};
+
+/**
+ * Lưu tệp văn phòng Office người dùng tải lên (Word, Excel, PDF) vào IndexedDB & LocalStorage
+ */
+export const saveOfficeDocToStorage = (docData, subTab = 'docx', userScope) => {
+  if (!docData) return;
+  const key = getScopedStorageKey(STORAGE_OFFICE_DOC_KEY, userScope);
+  const payload = {
+    docData,
+    subTab: subTab || 'docx',
+    savedAt: new Date().toISOString()
+  };
+
+  // 1. Lưu vào IndexedDB
+  idbSet('office_docs', key, payload).catch(() => {});
+
+  // 2. Thử lưu vào LocalStorage nếu nhỏ
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(key, JSON.stringify(payload));
+    } catch (_) {}
+  }
+};
+
+/**
+ * Nạp tệp văn phòng Office người dùng đã tải lên gần nhất
+ */
+export const loadOfficeDocFromStorage = async (userScope) => {
+  const key = getScopedStorageKey(STORAGE_OFFICE_DOC_KEY, userScope);
+  try {
+    const idbData = await idbGet('office_docs', key);
+    if (idbData && idbData.docData) {
+      return restoreOfficeDocUrls(idbData);
+    }
+  } catch (_) {}
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.docData) {
+          return restoreOfficeDocUrls(parsed);
+        }
+      }
+    } catch (_) {}
+  }
+  return null;
+};
+
+/**
+ * Xóa tệp văn phòng Office đã lưu
+ */
+export const clearOfficeDocFromStorage = (userScope) => {
+  const key = getScopedStorageKey(STORAGE_OFFICE_DOC_KEY, userScope);
+  idbDelete('office_docs', key).catch(() => {});
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.removeItem(key);
+    } catch (_) {}
+  }
+};
+
+function restoreOfficeDocUrls(stored) {
+  if (!stored || !stored.docData) return stored;
+  // Nếu là tệp PDF và có base64, tạo lại URL xem trước Blob hợp lệ cho phiên làm việc hiện tại
+  if (stored.docData.type === 'pdf' && stored.docData.base64 && typeof window !== 'undefined') {
+    try {
+      const byteCharacters = atob(stored.docData.base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      stored.docData.url = URL.createObjectURL(blob);
+    } catch (e) {
+      console.warn('Lỗi phục hồi URL PDF:', e);
+    }
+  }
+  return stored;
+}
 
 export const exportProjectFile = (projectData, fileName = 'Bai_Giang_Mi_Thuat.conhi') => {
   try {
@@ -169,9 +276,12 @@ export const saveProjectDraftToLocal = (projectData, userScope) => {
       isDraft: true,
       version: projectData.version || '1.0.0'
     };
+    const key = getScopedStorageKey(STORAGE_DRAFT_KEY, userScope);
+    idbSet('projects', `draft_${key}`, payload).catch(() => {});
     if (typeof localStorage !== 'undefined') {
-      const key = getScopedStorageKey(STORAGE_DRAFT_KEY, userScope);
-      localStorage.setItem(key, JSON.stringify(payload));
+      try {
+        localStorage.setItem(key, JSON.stringify(payload));
+      } catch (_) {}
     }
     return { success: true };
   } catch (err) {

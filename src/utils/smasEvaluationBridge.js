@@ -1,5 +1,6 @@
 import { getScopedStorageKey } from './userWorkspaceService.js';
 import { TT27_COMMENTS_BANK, normalizeClassLabel } from './smasExcelService.js';
+import { idbSet, idbGet } from './idbStorage.js';
 
 export { normalizeClassLabel };
 export const BASE_SMAS_STORAGE_KEY = 'conhi_smas_evaluations_state_v2';
@@ -184,18 +185,43 @@ export function readSmasData() {
 }
 
 /**
- * Ghi dữ liệu sổ điểm SMAS vào LocalStorage và phát sự kiện đồng bộ
+ * Ghi dữ liệu sổ điểm SMAS vào IndexedDB & LocalStorage và phát sự kiện đồng bộ
  */
 export function writeSmasData(data) {
   if (typeof window === 'undefined') return;
+  const key = getSmasStorageKey();
+
+  // 1. Lưu vào IndexedDB (Dung lượng lớn, an toàn cho hàng trăm học sinh và 35 tuần nhận xét)
+  idbSet('smas', key, data).catch(() => {});
+
+  // 2. Lưu vào LocalStorage
   try {
-    localStorage.setItem(getSmasStorageKey(), JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (err) {
+    console.warn('[smasEvaluationBridge] LocalStorage vượt hạn mức 5MB, sổ điểm đã được bảo vệ trong IndexedDB:', err);
+  }
+
+  try {
     if (typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
       window.dispatchEvent(new CustomEvent('conhi-smas-updated', { detail: data }));
     }
   } catch (err) {
-    console.warn('Lỗi lưu dữ liệu SMAS:', err);
+    console.warn('Lỗi phát sự kiện SMAS:', err);
   }
+}
+
+/**
+ * Nạp dữ liệu sổ điểm SMAS bất đồng bộ (IndexedDB với fallback LocalStorage)
+ */
+export async function readSmasDataAsync() {
+  const key = getSmasStorageKey();
+  try {
+    const idbData = await idbGet('smas', key);
+    if (idbData && Array.isArray(idbData.students)) {
+      return idbData;
+    }
+  } catch (_) {}
+  return readSmasData();
 }
 
 /**

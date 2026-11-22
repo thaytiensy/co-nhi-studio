@@ -84,6 +84,7 @@ export default function SlideThumbnailList({
                   ? 'bg-amber-100/90 ring-2 ring-amber-500 shadow-sm' 
                   : 'bg-white hover:bg-slate-50 border border-slate-200 hover:border-amber-300'
               }`}
+              style={{ contentVisibility: 'auto', containIntrinsicSize: '200px 140px' }}
             >
               {/* Header inside thumbnail: Slide number & Title & Actions */}
               <div className="flex items-center justify-between mb-1.5 px-0.5 gap-1.5">

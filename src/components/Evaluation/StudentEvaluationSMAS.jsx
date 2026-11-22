@@ -26,7 +26,8 @@ import { getScopedStorageKey } from '../../utils/userWorkspaceService';
 import { 
   batchSynthesizeClassEvaluations, 
   PERIODIC_COMMENTS_BANK,
-  writeSmasData 
+  writeSmasData,
+  readSmasDataAsync
 } from '../../utils/smasEvaluationBridge';
 import { showToast } from '../../utils/toastService';
 
@@ -69,7 +70,7 @@ const INITIAL_STUDENTS = [
 const BASE_SMAS_STORAGE_KEY = 'conhi_smas_evaluations_state_v2';
 const getSmasStorageKey = () => getScopedStorageKey(BASE_SMAS_STORAGE_KEY);
 const getTeachingClassesKey = () => getScopedStorageKey('conhi_teaching_classes');
-const DEFAULT_TEACHING_CLASSES = ['1A', '1B', '1C', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B'];
+const DEFAULT_TEACHING_CLASSES = ['1A', '1B'];
 
 export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   // Trạng thái: Chỉ hiện lớp và học kỳ khi giáo viên đã tải danh sách hoặc đã chọn lớp dạy
@@ -235,9 +236,22 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   }, [hasUploadedOrSelected, className, classOptions, selectedClassFilter, semester, students]);
 
   // Danh sách các lớp được trích xuất và chuẩn hóa (1A, 1B, 1C...) không bao giờ bị trùng lặp
+  // CHỈ lấy các lớp có học sinh mà người dùng thực tế quản lý; loại bỏ hoàn toàn các lớp giáo viên không dạy
   const allClasses = useMemo(() => {
+    // 1. Khi đã có danh sách học sinh: CHỈ lấy các lớp có học sinh thực tế do người dùng quản lý
+    if (students && students.length > 0) {
+      const studentClassNames = students
+        .map(s => normalizeClassLabel(s.className || className))
+        .filter(Boolean);
+      const managedClasses = Array.from(new Set(studentClassNames))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+      if (managedClasses.length > 0) {
+        return managedClasses;
+      }
+    }
+
+    // 2. Khi chưa có học sinh: chỉ hiển thị các lớp trong teachingClasses
     const rawList = [
-      ...students.map(s => s.className),
       ...(className ? [className] : []),
       ...classOptions,
       ...teachingClasses
@@ -245,6 +259,28 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     return Array.from(new Set(rawList.map(c => normalizeClassLabel(c)).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
   }, [students, className, classOptions, teachingClasses]);
+
+  // Tự động kiểm tra và đồng bộ lại nếu bộ lọc đang chọn rơi vào lớp bị loại bỏ (không còn học sinh/không dạy)
+  useEffect(() => {
+    if (selectedClassFilter !== 'all' && allClasses.length > 0) {
+      const normalizedCurrent = normalizeClassLabel(selectedClassFilter);
+      if (!allClasses.includes(normalizedCurrent)) {
+        setSelectedClassFilter('all');
+      }
+    }
+  }, [allClasses, selectedClassFilter]);
+
+  // Đồng bộ kiểm tra IndexedDB khi mở component để đảm bảo không mất dữ liệu học sinh người dùng đã tải lên
+  useEffect(() => {
+    readSmasDataAsync().then(data => {
+      if (data && Array.isArray(data.students) && data.students.length > 0) {
+        setStudents(prev => (prev && prev.length > 0) ? prev : data.students);
+        if (data.className) setClassName(prev => prev || data.className);
+        if (data.classOptions && data.classOptions.length > 0) setClassOptions(prev => (prev && prev.length > 0) ? prev : data.classOptions);
+        setHasUploadedOrSelected(true);
+      }
+    }).catch(() => {});
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -355,16 +391,36 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     const formatted = updatedNames.map(c => `Lớp ${c}`);
     setClassOptions(formatted);
 
-    // Nếu lớp đang chọn bị xóa, đổi sang lớp đầu tiên
-    if (className && !formatted.includes(className)) {
-      setClassName(formatted[0] || '');
-      if (selectedClassFilter !== 'all') {
-        setSelectedClassFilter(formatted[0] || 'all');
+    // Loại bỏ học sinh thuộc những lớp mà giáo viên đã xóa (không còn dạy)
+    const normalizedUpdated = updatedNames.map(normalizeClassLabel);
+    let remainingStudents = students;
+    if (students && students.length > 0) {
+      remainingStudents = students.filter(s => {
+        const cls = normalizeClassLabel(s.className || className);
+        return !cls || normalizedUpdated.includes(cls);
+      });
+      if (remainingStudents.length !== students.length) {
+        setStudents(remainingStudents);
       }
     }
 
+    // Nếu lớp đang chọn bị xóa, đổi sang 'all' hoặc lớp đầu tiên
+    if (className && !formatted.includes(className)) {
+      setClassName(formatted[0] || '');
+      setSelectedClassFilter('all');
+    }
+
+    writeSmasData({
+      hasUploadedOrSelected,
+      className: formatted[0] || '',
+      classOptions: formatted,
+      selectedClassFilter: 'all',
+      semester,
+      students: remainingStudents
+    });
+
     setShowClassManagerModal(false);
-    setExportNotice('✅ Đã cập nhật danh sách lớp dạy theo ý muốn!');
+    setExportNotice('✅ Đã cập nhật danh sách lớp dạy và loại bỏ các lớp không dạy!');
     setTimeout(() => setExportNotice(''), 3000);
   };
 
@@ -1193,6 +1249,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
               </button>
               {allClasses.map((cls) => {
                 const count = students.filter(s => normalizeClassLabel(s.className || className) === cls).length;
+                if (students.length > 0 && count === 0) return null; // Tuyệt đối loại bỏ lớp không có học sinh mà giáo viên không dạy
                 const isSelected = selectedClassFilter !== 'all' && normalizeClassLabel(selectedClassFilter) === cls;
                 return (
                   <button

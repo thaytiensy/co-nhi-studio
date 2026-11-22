@@ -194,12 +194,25 @@ export async function parseUniversalDocument(file) {
   // 4. Tệp PDF
   if (ext === 'pdf') {
     const url = URL.createObjectURL(file);
+    let base64 = '';
+    try {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+      }
+      base64 = typeof btoa !== 'undefined' ? btoa(binary) : '';
+    } catch (_) {}
+
     return {
       success: true,
       type: 'pdf',
       fileName: file.name,
       fileSize: file.size,
-      url
+      url,
+      base64
     };
   }
 

@@ -451,7 +451,7 @@ export const parsePPTXFile = async (file) => {
           const bgExt = (target || '').split('.').pop().toLowerCase();
           if (target && bgExt !== 'wmf' && bgExt !== 'emf') {
             const imgPath = 'ppt/' + target.replace(/^\.\.\//, '');
-            const bgUrl = await getMediaBlobUrl(imgPath);
+            const bgUrl = await getMediaDataUrl(imgPath);
             if (bgUrl) {
               backgroundElements.push({
                 id: `bg-img-${sIdx}-${Date.now()}`,
@@ -523,7 +523,10 @@ export const parsePPTXFile = async (file) => {
                   const rId = blip.getAttribute('r:embed');
                   const target = masterRels[rId];
                   if (target) {
-                    masterBgUrl = await getMediaBlobUrl(target);
+                    const mExt = (target || '').split('.').pop().toLowerCase();
+                    if (mExt !== 'wmf' && mExt !== 'emf') {
+                      masterBgUrl = await getMediaDataUrl(target);
+                    }
                   }
                 }
 
@@ -1049,23 +1052,38 @@ export const parsePPTXFile = async (file) => {
       }
       combinedElements = deduplicatedElements;
 
-      // 2. Chống đè chữ khi nhiều hộp văn bản có tọa độ y trùng hoặc quá sát nhau
+      // 2. Chống đè chữ thông minh khi nhiều hộp văn bản có tọa độ y trùng hoặc quá sát nhau
       const textEls = combinedElements.filter(el => el.type === 'text' && el.text.trim());
+      // Sắp xếp theo thứ tự tọa độ y từ trên xuống dưới
+      textEls.sort((a, b) => a.y - b.y);
+
       for (let a = 0; a < textEls.length; a++) {
+        const elA = textEls[a];
+        const linesA = Math.max(1, (elA.text || '').split('\n').length);
+        const fontA = elA.fontSize || 18;
+        const heightA = Math.max(elA.height || 28, linesA * fontA * 1.35 + 8);
+        const leftA = elA.x;
+        const rightA = elA.x + Math.max(elA.width || 180, 80);
+
         for (let b = a + 1; b < textEls.length; b++) {
-          const elA = textEls[a];
           const elB = textEls[b];
+          const linesB = Math.max(1, (elB.text || '').split('\n').length);
+          const fontB = elB.fontSize || 18;
+          const heightB = Math.max(elB.height || 28, linesB * fontB * 1.35 + 8);
+          const leftB = elB.x;
+          const rightB = elB.x + Math.max(elB.width || 180, 80);
 
-          // Kiểm tra xem 2 hộp chữ có trùng x (trong phạm vi chiều ngang)
-          const xOverlap = Math.abs(elA.x - elB.x) < Math.max(80, Math.min(elA.width || 200, elB.width || 200) * 0.75);
-          const yDiff = Math.abs(elA.y - elB.y);
-          const minSafeY = Math.max(24, Math.round((elA.fontSize || 18) * 1.35));
+          // Hai hộp văn bản có phần giao nhau theo trục ngang X
+          const hasXOverlap = (leftA < rightB - 10) && (rightA > leftB + 10);
 
-          if (xOverlap && yDiff < minSafeY) {
-            // Dịch chuyển hộp chữ phía sau xuống dưới để không bị chồng lấn
-            const newY = elA.y + Math.max(elA.height || 26, minSafeY) + 6;
-            if (newY + (elB.height || 24) <= CANVAS_HEIGHT) {
+          // Nếu hộp B bị đè lên hộp A hoặc khoảng cách y quá sát nhau
+          if (hasXOverlap && elB.y < elA.y + heightA + 4) {
+            const newY = elA.y + heightA + 8;
+            if (newY + heightB <= CANVAS_HEIGHT) {
               elB.y = newY;
+            } else if (elB.y <= elA.y + 4) {
+              // Nếu gần đáy slide nhưng bị đè thẳng lên nhau, giữ khoảng cách tách biệt tối thiểu
+              elB.y = Math.min(CANVAS_HEIGHT - heightB, elA.y + Math.round(fontA * 1.4));
             }
           }
         }
