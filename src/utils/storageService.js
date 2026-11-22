@@ -241,6 +241,65 @@ export const clearOfficeDocFromStorage = (userScope) => {
   }
 };
 
+/**
+ * Tạo khóa định danh riêng biệt cho bộ slide của từng bài dạy (Chủ đề GDPT 2018)
+ */
+export const getPlanSlidesKey = (planId, userScope) => {
+  return getScopedStorageKey(`conhi_plan_slides_${planId}`, userScope);
+};
+
+/**
+ * Lưu bộ slide PowerPoint vĩnh viễn cho từng bài dạy cụ thể vào IndexedDB
+ */
+export const savePlanSlidesToStorage = async (planId, slidesPayload, userScope) => {
+  if (!planId || !slidesPayload) return false;
+  const key = getPlanSlidesKey(planId, userScope);
+  const payload = {
+    planId,
+    title: slidesPayload.title || '',
+    slides: slidesPayload.slides || [],
+    fileName: slidesPayload.fileName || '',
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    await idbSet('projects', key, payload);
+    return true;
+  } catch (err) {
+    console.error('[storageService] Lỗi lưu slide bài dạy vào IndexedDB:', err);
+    return false;
+  }
+};
+
+/**
+ * Nạp bộ slide PowerPoint đã lưu riêng cho từng bài dạy từ IndexedDB
+ */
+export const loadPlanSlidesFromStorage = async (planId, userScope) => {
+  if (!planId) return null;
+  const key = getPlanSlidesKey(planId, userScope);
+  try {
+    const data = await idbGet('projects', key);
+    if (data && Array.isArray(data.slides) && data.slides.length > 0) {
+      sanitizeProjectData(data);
+      validateProjectData(data);
+      return data;
+    }
+  } catch (err) {
+    console.error('[storageService] Lỗi nạp slide bài dạy từ IndexedDB:', err);
+  }
+  return null;
+};
+
+/**
+ * Xóa bộ slide đã lưu của một bài dạy khi bài dạy bị xóa
+ */
+export const deletePlanSlidesFromStorage = async (planId, userScope) => {
+  if (!planId) return;
+  const key = getPlanSlidesKey(planId, userScope);
+  try {
+    await idbDelete('projects', key);
+  } catch (_) {}
+};
+
 function restoreOfficeDocUrls(stored) {
   if (!stored || !stored.docData) return stored;
   // Nếu là tệp PDF và có base64, tạo lại URL xem trước Blob hợp lệ cho phiên làm việc hiện tại

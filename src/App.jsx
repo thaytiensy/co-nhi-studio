@@ -13,7 +13,8 @@ import {
   importProjectFile,
   saveProjectDraftToLocal,
   getProjectDraftFromLocal,
-  clearProjectDraft
+  clearProjectDraft,
+  loadPlanSlidesFromStorage
 } from './utils/storageService';
 import { setActiveUserScope, clearActiveUserScope, getActiveUserScope } from './utils/userWorkspaceService';
 
@@ -872,17 +873,36 @@ export default function App() {
               {activeTab === 'dashboard' && (
                 <BentoDashboardView
                   onNavigateTab={(tab) => setActiveTab(tab)}
-                  onOpenSlideWithTitle={(title, plan) => {
+                  onOpenSlideWithTitle={async (title, plan, options) => {
                     setProjectTitle(title);
-                    if (plan) {
-                      const generated = buildStandardSlidesForPlan(plan);
-                      setSlides(generated);
+                    let targetSlides = null;
+                    if (plan?.id) {
+                      // Ưu tiên nạp bài giảng PowerPoint đã lưu riêng cho bài dạy này từ IndexedDB
+                      try {
+                        const savedPlanData = await loadPlanSlidesFromStorage(plan.id, currentUserSession?.email);
+                        if (savedPlanData && Array.isArray(savedPlanData.slides) && savedPlanData.slides.length > 0) {
+                          targetSlides = savedPlanData.slides;
+                        }
+                      } catch (_) {}
+                    }
+                    if (!targetSlides && plan) {
+                      targetSlides = buildStandardSlidesForPlan(plan);
+                    }
+                    if (targetSlides && targetSlides.length > 0) {
+                      setSlides(targetSlides);
                       setCurrentSlideIndex(0);
                       setSlideEditorResetKey(k => k + 1);
+                      setOfficeSubTab('pptx');
+                      saveProjectToLocal({ title, slides: targetSlides }, currentUserSession?.email);
+                      clearProjectDraft(currentUserSession?.email);
+                      setIsSaved(true);
                     }
                     setActiveTab('editor');
+                    if (options?.startPresentation) {
+                      setIsPresentationOpen(true);
+                    }
                   }}
-                  onImportPlanSlides={(importedSlides, title) => {
+                  onImportPlanSlides={(importedSlides, title, plan, options) => {
                     setSlides(importedSlides);
                     setProjectTitle(title);
                     setCurrentSlideIndex(0);
@@ -892,7 +912,15 @@ export default function App() {
                     clearProjectDraft(currentUserSession?.email);
                     setIsSaved(true);
                     setActiveTab('editor');
-                    showToast('Đã nạp và lưu thành công bài giảng vào Studio!', 'success');
+                    if (options?.startPresentation) {
+                      setIsPresentationOpen(true);
+                    }
+                    showToast(
+                      options?.startPresentation
+                        ? `Đã nạp và bắt đầu trình chiếu bài giảng "${title}"!`
+                        : 'Đã nạp và lưu thành công bài giảng vào Studio!',
+                      'success'
+                    );
                   }}
                   onOpenVideoGuide={() => setIsVideoGuideOpen(true)}
                   slides={slides}

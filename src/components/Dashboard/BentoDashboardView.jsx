@@ -45,6 +45,7 @@ import {
   fetchStorageFromFirebase,
   subscribeToFirebaseStatus
 } from '../../utils/firebaseDatabaseService';
+import { savePlanSlidesToStorage, deletePlanSlidesFromStorage } from '../../utils/storageService';
 import PlanPPTXImportModal from './PlanPPTXImportModal';
 
 export default function BentoDashboardView({
@@ -170,8 +171,9 @@ export default function BentoDashboardView({
   };
 
   // Xóa một bài dạy
-  const handleDeletePlan = (planId, planTitle) => {
+  const handleDeletePlan = async (planId, planTitle) => {
     if (window.confirm(`Thầy/Cô có chắc chắn muốn xóa bài dạy "${planTitle}" không?`)) {
+      await deletePlanSlidesFromStorage(planId);
       const updatedPlans = (data.plans || []).filter((p) => p.id !== planId);
       const nextData = { ...data, plans: updatedPlans };
       saveStoredData(nextData);
@@ -677,6 +679,13 @@ export default function BentoDashboardView({
                         >
                           {plan.status}
                         </span>
+                        {/* Huy hiệu hiển thị bài giảng PowerPoint đã lưu riêng cho bài này */}
+                        {plan.hasCustomSlides && (
+                          <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1 shadow-2xs">
+                            <span>📊</span>
+                            <span>Đã lưu {plan.slideCount || 0} slide PPTX</span>
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-base font-bold text-slate-800 font-times-new-roman">
                         {plan.title}
@@ -695,7 +704,7 @@ export default function BentoDashboardView({
                         title={`Nhập dữ liệu giáo án PowerPoint (.pptx) cho "${plan.title}" và chuyển sang tab Soạn Slide`}
                       >
                         <Upload className="w-3.5 h-3.5 shrink-0 text-amber-100" />
-                        <span className="whitespace-nowrap">Nhập Giáo Án PP</span>
+                        <span className="whitespace-nowrap">{plan.hasCustomSlides ? 'Đổi Giáo Án PP' : 'Nhập Giáo Án PP'}</span>
                       </button>
 
                       <button
@@ -710,15 +719,25 @@ export default function BentoDashboardView({
                         <Check className="w-4 h-4" />
                       </button>
 
+                      {/* Nút Trình Chiếu F5 bài học này */}
                       <button
-                        onClick={() => {
-                          if (onOpenSlideWithTitle) onOpenSlideWithTitle(plan.title, plan);
-                          else if (onNavigateTab) onNavigateTab('editor');
+                        type="button"
+                        onClick={async () => {
+                          if (onOpenSlideWithTitle) {
+                            await onOpenSlideWithTitle(plan.title, plan, { startPresentation: true });
+                          } else if (onNavigateTab) {
+                            onNavigateTab('editor');
+                          }
                         }}
-                        className="p-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-colors cursor-pointer"
-                        title="Chuyển sang tab Soạn Slide bài học này"
+                        className={`px-2.5 py-1.5 rounded-xl border text-[13px] font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          plan.hasCustomSlides
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-500 shadow-2xs hover:from-emerald-700 hover:to-teal-700'
+                            : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
+                        }`}
+                        title={`Trình Chiếu F5 bài học: "${plan.title}"${plan.hasCustomSlides ? ` (${plan.slideCount || 0} slide đã lưu)` : ''}`}
                       >
-                        <Presentation className="w-4 h-4" />
+                        <Presentation className="w-4 h-4 shrink-0" />
+                        <span className="hidden sm:inline whitespace-nowrap">Trình Chiếu</span>
                       </button>
 
                       <button
@@ -945,15 +964,49 @@ export default function BentoDashboardView({
       {selectedPlanForImport && (
         <PlanPPTXImportModal
           plan={selectedPlanForImport}
-          onConfirmImport={(slides, title) => {
+          onConfirmImport={async (slides, title, planToUpdate, options) => {
+            const targetPlan = planToUpdate || selectedPlanForImport;
+            if (targetPlan?.id) {
+              // 1. Lưu vĩnh viễn bộ slide PowerPoint vào IndexedDB theo mã bài dạy planId
+              await savePlanSlidesToStorage(targetPlan.id, {
+                title,
+                slides,
+                fileName: options?.fileName || `${title}.pptx`
+              });
+
+              // 2. Cập nhật cờ và số lượng slide của bài dạy trong danh sách kế hoạch
+              const updatedPlans = (data.plans || []).map((p) => {
+                if (p.id === targetPlan.id) {
+                  return {
+                    ...p,
+                    hasCustomSlides: true,
+                    slideCount: slides.length,
+                    fileName: options?.fileName || `${title}.pptx`,
+                    customSlidesUpdatedAt: new Date().toISOString()
+                  };
+                }
+                return p;
+              });
+              const nextData = { ...data, plans: updatedPlans };
+              saveStoredData(nextData);
+              setData(nextData);
+            }
+
+            // 3. Nạp vào Studio để trình chiếu hoặc soạn bài
             if (onImportPlanSlides) {
-              onImportPlanSlides(slides, title);
+              onImportPlanSlides(slides, title, targetPlan, options);
             } else if (onOpenSlideWithTitle) {
-              onOpenSlideWithTitle(title);
+              onOpenSlideWithTitle(title, targetPlan, options);
             } else if (onNavigateTab) {
               onNavigateTab('editor');
             }
-            showToast(`✓ Đã nạp thành công giáo án cho bài ${title}! Đang chuyển sang tab Soạn Slide.`, 'success');
+
+            showToast(
+              options?.startPresentation
+                ? `✓ Đã lưu bài giảng và bắt đầu trình chiếu: ${title}!`
+                : `✓ Đã lưu thành công giáo án cho bài ${title}! Đang chuyển sang tab Soạn Slide.`,
+              'success'
+            );
           }}
           onClose={() => setSelectedPlanForImport(null)}
         />

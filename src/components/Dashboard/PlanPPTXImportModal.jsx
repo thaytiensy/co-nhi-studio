@@ -20,6 +20,7 @@ export default function PlanPPTXImportModal({
 }) {
   const [isParsing, setIsParsing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [parsedResult, setParsedResult] = useState(null);
   const fileInputRef = useRef(null);
 
   if (!plan) return null;
@@ -47,8 +48,11 @@ export default function PlanPPTXImportModal({
     try {
       const result = await parsePPTXFile(file);
       if (result.success && Array.isArray(result.slides) && result.slides.length > 0) {
-        onConfirmImport(result.slides, plan.title);
-        onClose();
+        setParsedResult({
+          slides: result.slides,
+          count: result.slides.length,
+          fileName: file.name
+        });
       } else {
         setErrorMessage(result.error || 'Không trích xuất được slide từ tệp PowerPoint.');
       }
@@ -62,8 +66,11 @@ export default function PlanPPTXImportModal({
   const handleGenerateStandardSlides = () => {
     try {
       const standardSlides = buildStandardSlidesForPlan(plan);
-      onConfirmImport(standardSlides, plan.title);
-      onClose();
+      setParsedResult({
+        slides: standardSlides,
+        count: standardSlides.length,
+        fileName: `Slide_Chuan_${plan.grade}_Tuan_${plan.week}.pptx`
+      });
     } catch (err) {
       setErrorMessage(err?.message || 'Không thể tạo slide mẫu.');
     }
@@ -122,50 +129,110 @@ export default function PlanPPTXImportModal({
 
         {/* Options Body */}
         <div className="p-5 space-y-3.5">
-          <p className="text-[14px] font-bold text-slate-700 uppercase tracking-wider">
-            Chọn phương thức nạp dữ liệu để chuyển sang tab Soạn Slide:
-          </p>
-
-          {/* Option 1: Upload PowerPoint File */}
-          <div
-            onClick={isParsing ? undefined : handleSelectFile}
-            className="p-4 rounded-2xl border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50 cursor-pointer transition-all group flex items-start gap-3.5 shadow-2xs"
-          >
-            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-              {isParsing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h5 className="text-base font-black text-amber-950">
-                  {isParsing ? 'Đang phân tích tệp PowerPoint...' : '1. Tải Lên Tệp PowerPoint (.pptx)'}
-                </h5>
-                <span className="px-2 py-0.5 rounded-full text-[14px] font-black bg-amber-200 text-amber-900 uppercase">
-                  Khuyên dùng
-                </span>
+          {parsedResult ? (
+            <div className="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-2xl space-y-3.5 shadow-sm">
+              <div className="flex items-center gap-3 text-emerald-950">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <h5 className="text-base font-black truncate">
+                    Đã đọc thành công {parsedResult.count} slide!
+                  </h5>
+                  <p className="text-[14px] text-emerald-800 truncate font-semibold">
+                    Tệp: {parsedResult.fileName}
+                  </p>
+                </div>
               </div>
-              <p className="text-[14px] text-slate-700 mt-1 leading-relaxed">
-                Chọn tệp giáo án điện tử có sẵn trên máy tính. Hệ thống tự động trích xuất slide, văn bản, ảnh nhúng và mở ngay trong tab Soạn Slide.
-              </p>
-            </div>
-          </div>
 
-          {/* Option 2: Auto-generate Standard Slides */}
-          <div
-            onClick={isParsing ? undefined : handleGenerateStandardSlides}
-            className="p-4 rounded-2xl border border-slate-200 hover:border-purple-300 bg-white hover:bg-purple-50/50 cursor-pointer transition-all group flex items-start gap-3.5 shadow-2xs"
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-              <Sparkles className="w-5 h-5" />
+              <div className="p-3 bg-white/95 rounded-xl border border-emerald-200 text-[14px] text-slate-700 leading-relaxed shadow-2xs">
+                Bài giảng đã được trích xuất hoàn tất và sẽ được <strong>lưu vĩnh viễn</strong> vào bài học <strong>"{plan.title}"</strong>. Thầy/Cô chọn cách bắt đầu:
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onConfirmImport(parsedResult.slides, plan.title, plan, { startPresentation: true, fileName: parsedResult.fileName });
+                    onClose();
+                  }}
+                  className="py-3 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-[14px] flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer"
+                  title="Lưu bài giảng và mở thẳng chế độ Trình Chiếu toàn màn hình để dạy học ngay"
+                >
+                  <Presentation className="w-4 h-4 shrink-0" />
+                  <span>▶ Trình Chiếu Ngay (F5)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onConfirmImport(parsedResult.slides, plan.title, plan, { startPresentation: false, fileName: parsedResult.fileName });
+                    onClose();
+                  }}
+                  className="py-3 px-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-[14px] flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all active:scale-95 cursor-pointer"
+                  title="Lưu bài giảng và chuyển sang màn hình Soạn Thảo để xem/chỉnh sửa"
+                >
+                  <FileText className="w-4 h-4 shrink-0" />
+                  <span>✏️ Vào Soạn Slide</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setParsedResult(null)}
+                className="w-full text-center text-[14px] text-slate-500 hover:text-slate-800 underline cursor-pointer pt-1"
+              >
+                Chọn tệp PowerPoint khác hoặc tạo lại
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <h5 className="text-base font-black text-slate-900 group-hover:text-purple-950">
-                2. Tự Động Tạo Bộ Slide Chuẩn (Kết Nối Tri Thức)
-              </h5>
-              <p className="text-[14px] text-slate-600 mt-1 leading-relaxed">
-                Chưa có file PowerPoint? Tự động tạo 4 slide chuẩn Công văn 2345 (Khởi động, Khám phá, Thực hành 4 bước, Trưng bày TT27) cho bài này.
+          ) : (
+            <>
+              <p className="text-[14px] font-bold text-slate-700 uppercase tracking-wider">
+                Chọn phương thức nạp dữ liệu để chuyển sang tab Soạn Slide:
               </p>
-            </div>
-          </div>
+
+              {/* Option 1: Upload PowerPoint File */}
+              <div
+                onClick={isParsing ? undefined : handleSelectFile}
+                className="p-4 rounded-2xl border-2 border-dashed border-amber-300 hover:border-amber-500 bg-amber-50/50 hover:bg-amber-50 cursor-pointer transition-all group flex items-start gap-3.5 shadow-2xs"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                  {isParsing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h5 className="text-base font-black text-amber-950">
+                      {isParsing ? 'Đang phân tích tệp PowerPoint...' : '1. Tải Lên Tệp PowerPoint (.pptx)'}
+                    </h5>
+                    <span className="px-2 py-0.5 rounded-full text-[14px] font-black bg-amber-200 text-amber-900 uppercase">
+                      Khuyên dùng
+                    </span>
+                  </div>
+                  <p className="text-[14px] text-slate-700 mt-1 leading-relaxed">
+                    Chọn tệp giáo án điện tử có sẵn trên máy tính. Hệ thống tự động trích xuất slide, văn bản, ảnh nhúng và mở ngay trong tab Soạn Slide.
+                  </p>
+                </div>
+              </div>
+
+              {/* Option 2: Auto-generate Standard Slides */}
+              <div
+                onClick={isParsing ? undefined : handleGenerateStandardSlides}
+                className="p-4 rounded-2xl border border-slate-200 hover:border-purple-300 bg-white hover:bg-purple-50/50 cursor-pointer transition-all group flex items-start gap-3.5 shadow-2xs"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h5 className="text-base font-black text-slate-900 group-hover:text-purple-950">
+                    2. Tự Động Tạo Bộ Slide Chuẩn (Kết Nối Tri Thức)
+                  </h5>
+                  <p className="text-[14px] text-slate-600 mt-1 leading-relaxed">
+                    Chưa có file PowerPoint? Tự động tạo 4 slide chuẩn Công văn 2345 (Khởi động, Khám phá, Thực hành 4 bước, Trưng bày TT27) cho bài này.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Hidden File Input */}
