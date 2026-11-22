@@ -20,9 +20,15 @@ const getMediaMimeType = (filePath) => {
     png: 'image/png',
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
+    jfif: 'image/jpeg',
+    pjpeg: 'image/jpeg',
     gif: 'image/gif',
     webp: 'image/webp',
     svg: 'image/svg+xml',
+    bmp: 'image/bmp',
+    ico: 'image/x-icon',
+    tif: 'image/tiff',
+    tiff: 'image/tiff',
     // Videos
     mp4: 'video/mp4',
     m4v: 'video/mp4',
@@ -172,15 +178,15 @@ function extractCustomPath(spPr) {
 }
 
 // Trích xuất chính xác tọa độ & kích thước từ <a:xfrm> trong OpenXML
-// Tránh nhầm lẫn với thẻ <a:extLst><a:ext uri="...">
+// Hỗ trợ tính toán phân cấp nhóm hình khối <p:grpSp> tránh dồn cục tọa độ
 function extractTransform(element) {
-  const xfrms = element.getElementsByTagName('a:xfrm');
-  const xfrm = xfrms.length > 0 ? xfrms[0] : (element.getElementsByTagName('xfrm')[0] || null);
-
   let offX = null;
   let offY = null;
   let extCx = null;
   let extCy = null;
+
+  const xfrms = element.getElementsByTagName('a:xfrm');
+  const xfrm = xfrms.length > 0 ? xfrms[0] : (element.getElementsByTagName('xfrm')[0] || null);
 
   if (xfrm) {
     const offs = xfrm.getElementsByTagName('a:off');
@@ -223,6 +229,43 @@ function extractTransform(element) {
         break;
       }
     }
+  }
+
+  // Phân giải tọa độ tương đối nếu nằm trong nhóm hình khối <p:grpSp>
+  let parent = element.parentElement;
+  while (parent && parent.nodeName) {
+    const pName = (parent.nodeName || '').toLowerCase();
+    if (pName.endsWith('grpsp') || pName === 'grpsp') {
+      const grpSpPr = parent.getElementsByTagName('p:grpSpPr')[0] || parent.getElementsByTagName('grpSpPr')[0];
+      if (grpSpPr) {
+        const grpXfrm = grpSpPr.getElementsByTagName('a:xfrm')[0] || grpSpPr.getElementsByTagName('xfrm')[0];
+        if (grpXfrm) {
+          const gOff = grpXfrm.getElementsByTagName('a:off')[0] || grpXfrm.getElementsByTagName('off')[0];
+          const gExt = grpXfrm.getElementsByTagName('a:ext')[0] || grpXfrm.getElementsByTagName('ext')[0];
+          const chOff = grpXfrm.getElementsByTagName('a:chOff')[0] || grpXfrm.getElementsByTagName('chOff')[0];
+          const chExt = grpXfrm.getElementsByTagName('a:chExt')[0] || grpXfrm.getElementsByTagName('chExt')[0];
+
+          if (gOff && chOff && gExt && chExt) {
+            const gx = parseInt(gOff.getAttribute('x') || '0', 10);
+            const gy = parseInt(gOff.getAttribute('y') || '0', 10);
+            const gw = parseInt(gExt.getAttribute('cx') || '1', 10);
+            const gh = parseInt(gExt.getAttribute('cy') || '1', 10);
+            const cx = parseInt(chOff.getAttribute('x') || '0', 10);
+            const cy = parseInt(chOff.getAttribute('y') || '0', 10);
+            const cw = Math.max(1, parseInt(chExt.getAttribute('cx') || '1', 10));
+            const ch = Math.max(1, parseInt(chExt.getAttribute('cy') || '1', 10));
+
+            const curX = offX !== null ? offX : 0;
+            const curY = offY !== null ? offY : 0;
+            offX = Math.round(gx + ((curX - cx) * gw) / cw);
+            offY = Math.round(gy + ((curY - cy) * gh) / ch);
+            if (extCx !== null) extCx = Math.round((extCx * gw) / cw);
+            if (extCy !== null) extCy = Math.round((extCy * gh) / ch);
+          }
+        }
+      }
+    }
+    parent = parent.parentElement;
   }
 
   return { offX, offY, extCx, extCy };
@@ -1033,6 +1076,17 @@ export const parsePPTXFile = async (file) => {
       }
 
       // Gộp: các ảnh nền (backgroundElements) đặt lên trước (nằm phía dưới), sau đó đến các hình vẽ, video và chữ
+      // Bảo vệ hiển thị ảnh bìa Slide 1: Hình khối nền trắng tuyệt đối KHÔNG đè lên ảnh nền nguyên bản
+      backgroundElements.sort((a, b) => {
+        if (a.type === 'shape' && b.type === 'image') return -1;
+        if (a.type === 'image' && b.type === 'shape') return 1;
+        return 0;
+      });
+      const hasFullBgImage = backgroundElements.some(b => b.type === 'image' && b.isBackground);
+      if (hasFullBgImage) {
+        backgroundElements = backgroundElements.filter(b => b.type === 'image' || (b.type === 'shape' && !b.isBackground));
+      }
+
       let combinedElements = [...backgroundElements, ...elements];
 
       // Lớp chống đè chữ thông minh (Anti-Collision Text Layout):
@@ -1054,8 +1108,8 @@ export const parsePPTXFile = async (file) => {
 
       // 2. Chống đè chữ thông minh khi nhiều hộp văn bản có tọa độ y trùng hoặc quá sát nhau
       const textEls = combinedElements.filter(el => el.type === 'text' && el.text.trim());
-      // Sắp xếp theo thứ tự tọa độ y từ trên xuống dưới
-      textEls.sort((a, b) => a.y - b.y);
+      // Sắp xếp theo thứ tự tọa độ y từ trên xuống dưới (nếu y bằng nhau thì theo x)
+      textEls.sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
 
       for (let a = 0; a < textEls.length; a++) {
         const elA = textEls[a];
@@ -1077,17 +1131,35 @@ export const parsePPTXFile = async (file) => {
           const hasXOverlap = (leftA < rightB - 10) && (rightA > leftB + 10);
 
           // Nếu hộp B bị đè lên hộp A hoặc khoảng cách y quá sát nhau
-          if (hasXOverlap && elB.y < elA.y + heightA + 4) {
-            const newY = elA.y + heightA + 8;
-            if (newY + heightB <= CANVAS_HEIGHT) {
-              elB.y = newY;
-            } else if (elB.y <= elA.y + 4) {
-              // Nếu gần đáy slide nhưng bị đè thẳng lên nhau, giữ khoảng cách tách biệt tối thiểu
-              elB.y = Math.min(CANVAS_HEIGHT - heightB, elA.y + Math.round(fontA * 1.4));
+          if (hasXOverlap && elB.y < elA.y + heightA + 6) {
+            let targetY = elA.y + heightA + 8;
+            if (targetY + heightB > CANVAS_HEIGHT) {
+              // Nếu vượt quá đáy canvas, đẩy lùi cả elA lên phía trên để đủ chỗ cho cả 2 hộp chữ
+              const overflow = (targetY + heightB) - CANVAS_HEIGHT;
+              const shiftUp = Math.min(overflow + 4, Math.max(0, elA.y - 20));
+              if (shiftUp > 0) {
+                elA.y -= shiftUp;
+                targetY -= shiftUp;
+              }
             }
+            // Đảm bảo elB luôn ở dưới elA với khoảng cách tối thiểu ít nhất là chiều cao dòng chữ
+            elB.y = Math.min(CANVAS_HEIGHT - Math.min(heightB, 24), Math.max(elA.y + Math.round(fontA * 1.35), targetY));
           }
         }
       }
+
+      // Chuẩn hóa toàn bộ phần tử tránh lỗi tọa độ âm hoặc kích thước không hợp lệ
+      combinedElements.forEach((el, elIdx) => {
+        if (!el.id) el.id = `el-pptx-${sIdx}-${elIdx}-${Date.now()}`;
+        if (typeof el.x !== 'number' || !Number.isFinite(el.x) || el.x < 0) el.x = 0;
+        if (typeof el.y !== 'number' || !Number.isFinite(el.y) || el.y < 0) el.y = 0;
+        if (typeof el.width !== 'number' || !Number.isFinite(el.width) || el.width <= 0) el.width = 100;
+        if (typeof el.height !== 'number' || !Number.isFinite(el.height) || el.height <= 0) el.height = 40;
+        if (el.type === 'text') {
+          el.fontSize = Math.max(14, Math.min(el.fontSize || 18, 42));
+          el.fontFamily = el.fontFamily || 'Times New Roman';
+        }
+      });
 
       parsedSlides.push({
         id: `slide-pptx-${sIdx}-${Date.now()}`,

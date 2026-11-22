@@ -51,7 +51,7 @@ export function cleanSmartVietnameseSpeechText(raw) {
   return text;
 }
 
-export function splitTextIntoChunks(text, maxLength = 140) {
+export function splitTextIntoChunks(text, maxLength = 280) {
   const rawSentences = String(text).match(/[^.!?;\n]+[.!?;]*|\n+/g) || [];
   const chunks = [];
   let current = '';

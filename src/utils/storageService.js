@@ -8,6 +8,28 @@ export const STORAGE_KEY = 'co_nhi_studio_project_v1';
 export const STORAGE_DRAFT_KEY = 'co_nhi_studio_draft_v1';
 export const STORAGE_OFFICE_DOC_KEY = 'conhi_office_doc_v1';
 
+export const sanitizeProjectData = (projectData) => {
+  if (!projectData || typeof projectData !== 'object') return projectData;
+  if (!Array.isArray(projectData.slides)) projectData.slides = [];
+  projectData.slides.forEach((slide, sIdx) => {
+    if (!slide || typeof slide !== 'object') return;
+    if (!slide.id) slide.id = `slide-${Date.now()}-${sIdx}`;
+    if (!Array.isArray(slide.elements)) slide.elements = [];
+    slide.elements.forEach((el, eIdx) => {
+      if (!el || typeof el !== 'object') return;
+      if (!el.id) el.id = `el-${sIdx}-${eIdx}-${Date.now()}`;
+      if (!el.type || typeof el.type !== 'string') el.type = 'shape';
+      const validTypes = ['text', 'shape', 'image', 'game', 'audio', 'video', 'youtube'];
+      if (!validTypes.includes(el.type)) el.type = 'shape';
+      if (typeof el.x !== 'number' || !Number.isFinite(el.x) || el.x < 0) el.x = 0;
+      if (typeof el.y !== 'number' || !Number.isFinite(el.y) || el.y < 0) el.y = 0;
+      if (typeof el.width !== 'number' || !Number.isFinite(el.width) || el.width <= 0) el.width = 100;
+      if (typeof el.height !== 'number' || !Number.isFinite(el.height) || el.height <= 0) el.height = 40;
+    });
+  });
+  return projectData;
+};
+
 export const validateSlideElement = (el, index, slideIndex) => {
   if (!el || typeof el !== 'object') {
     throw new Error(`Slide ${slideIndex + 1}: Phần tử thứ ${index + 1} không hợp lệ.`);
@@ -73,6 +95,7 @@ export const parseAndValidateProjectJson = (rawContent) => {
 
 export const saveProjectToLocal = (projectData, userScope) => {
   try {
+    sanitizeProjectData(projectData);
     validateProjectData(projectData);
     const payload = {
       title: projectData.title || 'Bài Giảng Mĩ Thuật',
@@ -88,7 +111,26 @@ export const saveProjectToLocal = (projectData, userScope) => {
     // 2. Lưu vào LocalStorage
     if (typeof localStorage !== 'undefined') {
       try {
-        localStorage.setItem(key, JSON.stringify(payload));
+        const isVeryHeavy = payload.slides.length > 8 || payload.slides.some(s => s.elements?.some(e => e.src && e.src.length > 20000));
+        if (isVeryHeavy) {
+          const lightweightPayload = {
+            title: payload.title,
+            slidesCount: payload.slides.length,
+            updatedAt: payload.updatedAt,
+            version: payload.version,
+            inIndexedDB: true,
+            slides: payload.slides.map(s => ({
+              id: s.id,
+              title: s.title,
+              background: s.background,
+              notes: s.notes,
+              elements: (s.elements || []).map(e => e.src && e.src.length > 1000 ? { ...e, src: '' } : e)
+            }))
+          };
+          localStorage.setItem(key, JSON.stringify(lightweightPayload));
+        } else {
+          localStorage.setItem(key, JSON.stringify(payload));
+        }
       } catch (err) {
         console.warn('[storageService] LocalStorage vượt quá giới hạn 5MB, bài giảng đã được lưu an toàn trong IndexedDB.');
       }
@@ -110,6 +152,7 @@ export const loadProjectFromLocal = (userScope) => {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    sanitizeProjectData(parsed);
     validateProjectData(parsed);
     return parsed;
   } catch (err) {
@@ -126,6 +169,7 @@ export const loadProjectFromStorage = async (userScope) => {
   try {
     const idbData = await idbGet('projects', key);
     if (idbData && Array.isArray(idbData.slides) && idbData.slides.length > 0) {
+      sanitizeProjectData(idbData);
       validateProjectData(idbData);
       return idbData;
     }
@@ -269,6 +313,7 @@ export const saveProjectDraftToLocal = (projectData, userScope) => {
     if (!projectData || !Array.isArray(projectData.slides) || projectData.slides.length === 0) {
       return { success: false };
     }
+    sanitizeProjectData(projectData);
     const payload = {
       title: projectData.title || 'Bài Giảng Mĩ Thuật',
       slides: projectData.slides,
@@ -280,7 +325,26 @@ export const saveProjectDraftToLocal = (projectData, userScope) => {
     idbSet('projects', `draft_${key}`, payload).catch(() => {});
     if (typeof localStorage !== 'undefined') {
       try {
-        localStorage.setItem(key, JSON.stringify(payload));
+        const isVeryHeavy = payload.slides.length > 8 || payload.slides.some(s => s.elements?.some(e => e.src && e.src.length > 20000));
+        if (isVeryHeavy) {
+          const lightweightPayload = {
+            title: payload.title,
+            slidesCount: payload.slides.length,
+            updatedAt: payload.updatedAt,
+            isDraft: true,
+            inIndexedDB: true,
+            slides: payload.slides.map(s => ({
+              id: s.id,
+              title: s.title,
+              background: s.background,
+              notes: s.notes,
+              elements: (s.elements || []).map(e => e.src && e.src.length > 1000 ? { ...e, src: '' } : e)
+            }))
+          };
+          localStorage.setItem(key, JSON.stringify(lightweightPayload));
+        } else {
+          localStorage.setItem(key, JSON.stringify(payload));
+        }
       } catch (_) {}
     }
     return { success: true };
@@ -299,6 +363,7 @@ export const getProjectDraftFromLocal = (userScope) => {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+    sanitizeProjectData(parsed);
     validateProjectData(parsed);
     return parsed;
   } catch {

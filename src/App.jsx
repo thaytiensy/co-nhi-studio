@@ -480,6 +480,38 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [slides, projectTitle, isSaved, currentUserSession?.email]);
 
+  // Chuyển tab an toàn: tự động lưu bài giảng ngay lập tức trước khi rời khỏi tab soạn bài
+  const handleTabSwitch = useCallback((newTab) => {
+    if (slides && slides.length > 0) {
+      saveProjectToLocal({ title: projectTitle, slides }, currentUserSession?.email);
+    }
+    setActiveTab(newTab);
+  }, [slides, projectTitle, currentUserSession?.email]);
+
+  // Tự động lưu khi người dùng chuyển tab trình duyệt, thu nhỏ cửa sổ hoặc thoát ứng dụng
+  useEffect(() => {
+    const handleAutoSaveOnExit = () => {
+      if (slides && slides.length > 0) {
+        saveProjectToLocal({ title: projectTitle, slides }, currentUserSession?.email);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleAutoSaveOnExit);
+    window.addEventListener('pagehide', handleAutoSaveOnExit);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleAutoSaveOnExit();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleAutoSaveOnExit);
+      window.removeEventListener('pagehide', handleAutoSaveOnExit);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [slides, projectTitle, currentUserSession?.email]);
+
   // Manual local save cho không gian người dùng hiện tại
   const handleSave = () => {
     const payload = {
@@ -603,11 +635,14 @@ export default function App() {
     setSlides(parsedSlides);
     setCurrentSlideIndex(0);
     setSlideEditorResetKey(key => key + 1);
-    const cleanTitle = fileName.replace(/\.pptx$/i, '').replace(/_/g, ' ');
+    const cleanTitle = (fileName || 'Bài Giảng Mĩ Thuật').replace(/\.pptx$/i, '').replace(/_/g, ' ');
     setProjectTitle(cleanTitle);
     setActiveTab('editor');
     setPptxPreviewData(null);
-    setIsSaved(false);
+    saveProjectToLocal({ title: cleanTitle, slides: parsedSlides }, currentUserSession?.email);
+    clearProjectDraft(currentUserSession?.email);
+    setIsSaved(true);
+    showToast(`Đã nạp và lưu thành công bài giảng PowerPoint "${cleanTitle}" (${parsedSlides.length} trang)!`, 'success');
   };
 
   // Insert drawing into current slide
@@ -758,10 +793,10 @@ export default function App() {
         projectTitle={projectTitle}
         setProjectTitle={(t) => { setProjectTitle(t); setIsSaved(false); }}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabSwitch}
         onSave={handleSave}
         isSaved={isSaved}
-        onStartPresentation={() => { setActiveTab('editor'); setIsPresentationOpen(true); }}
+        onStartPresentation={() => { handleTabSwitch('editor'); setIsPresentationOpen(true); }}
         projectData={{ title: projectTitle, slides }}
         onImportProject={handleImportProject}
         onExportPPTX={handleExportPPTX}
@@ -814,7 +849,7 @@ export default function App() {
         {!isPresentationOpen && (
           <SmartSidebar
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={handleTabSwitch}
             isCollapsed={isSidebarCollapsed}
             setIsCollapsed={setIsSidebarCollapsed}
             onOpenInstallModal={() => {
@@ -958,7 +993,7 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       {!isPresentationOpen && (
-        <BottomNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <BottomNavBar activeTab={activeTab} setActiveTab={handleTabSwitch} />
       )}
 
       {/* 3. Floating Teacher Assistant Button: Có thể kéo thả tự do (tự động ẩn khi đang ở Slide Editor để không che thanh công cụ) */}

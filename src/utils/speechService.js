@@ -97,12 +97,13 @@ class SpeechService {
     this.stop();
     this.currentTextBeingSpoken = text;
 
-    // Ưu tiên phát âm thanh trực tiếp siêu tốc 0.2s - 0.3s nếu trình duyệt có giọng tiếng Việt
-    if (this.synth && this.vietnameseVoice) {
+    // Ưu tiên phát âm thanh trực tiếp nếu trình duyệt có giọng tiếng Việt chất lượng cao (Natural/Online)
+    const hasNaturalVoice = Boolean(this.synth && this.vietnameseVoice && /natural|online|neural|google/i.test(this.vietnameseVoice.name || ''));
+    if (hasNaturalVoice) {
       return this.speakWithWebSpeechFallback(cleanText);
     }
 
-    this.audioQueue = splitTextIntoChunks(cleanText);
+    this.audioQueue = splitTextIntoChunks(cleanText, 280);
     this.currentChunkIndex = 0;
     this.isSpeaking = true;
     this.isPaused = false;
@@ -122,6 +123,11 @@ class SpeechService {
 
     const chunkText = this.audioQueue[this.currentChunkIndex];
     const voiceParam = this.gender === 'female' ? 'vi-VN-HoaiMyNeural' : 'vi-VN-NamMinhNeural';
+
+    // Tiền nạp trước đoạn tiếp theo (Pre-buffering) giúp giọng đọc trôi chảy liền mạch không ngắt quãng
+    if (this.currentChunkIndex + 1 < this.audioQueue.length) {
+      this.player.prefetchChunk(this.audioQueue[this.currentChunkIndex + 1], voiceParam);
+    }
 
     this.player.playChunk({
       chunkText,

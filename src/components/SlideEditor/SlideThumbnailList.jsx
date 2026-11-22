@@ -2,6 +2,215 @@ import React, { useState } from 'react';
 import { Plus, Copy, Trash2, ArrowUp, ArrowDown, LayoutTemplate } from 'lucide-react';
 import { SLIDE_TEMPLATES } from '../../data/slideTemplates';
 
+const SlideThumbnailCard = React.memo(function SlideThumbnailCard({
+  slide,
+  index,
+  isSelected,
+  onSelectSlide,
+  onMoveSlide,
+  onDuplicateSlide,
+  onDeleteSlide,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  totalSlides,
+}) {
+  const titleText = slide.elements?.find(e => e.type === 'text' && e.text?.trim())?.text?.split('\n')[0] || `Trang ${index + 1}`;
+
+  return (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, index)}
+      onDragOver={onDragOver}
+      onDrop={(e) => onDrop(e, index)}
+      onClick={() => onSelectSlide(index)}
+      className={`group relative rounded-xl transition-all cursor-pointer p-2 ${
+        isSelected 
+          ? 'bg-amber-100/90 ring-2 ring-amber-500 shadow-sm' 
+          : 'bg-white hover:bg-slate-50 border border-slate-200 hover:border-amber-300'
+      }`}
+      style={{ contentVisibility: 'auto', containIntrinsicSize: '200px 140px' }}
+    >
+      {/* Header inside thumbnail: Slide number & Title & Actions */}
+      <div className="flex items-center justify-between mb-1.5 px-0.5 gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className={`text-[13px] font-black shrink-0 px-2 py-0.5 rounded-md ${
+            isSelected ? 'bg-amber-500 text-white shadow-2xs' : 'bg-slate-200 text-slate-800'
+          }`}>
+            {index + 1}
+          </span>
+          <span 
+            className={`text-[15px] font-bold truncate font-times-new-roman ${isSelected ? 'text-amber-950 font-black' : 'text-slate-900'}`}
+            title={titleText}
+          >
+            {titleText}
+          </span>
+        </div>
+
+        {/* Quick actions on hover */}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {index > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveSlide(index, index - 1); }}
+              className="p-1 hover:bg-slate-200 rounded text-slate-600"
+              title="Chuyển lên trên"
+            >
+              <ArrowUp className="w-3 h-3" />
+            </button>
+          )}
+          {index < totalSlides - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveSlide(index, index + 1); }}
+              className="p-1 hover:bg-slate-200 rounded text-slate-600"
+              title="Chuyển xuống dưới"
+            >
+              <ArrowDown className="w-3 h-3" />
+            </button>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDuplicateSlide(index); }}
+            className="p-1 hover:bg-slate-200 rounded text-slate-600"
+            title="Nhân bản slide này"
+          >
+            <Copy className="w-3 h-3" />
+          </button>
+          {totalSlides > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteSlide(index); }}
+              className="p-1 hover:bg-rose-100 rounded text-rose-600"
+              title="Xóa slide này"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 16:9 Thumbnail Canvas Preview using SVG viewBox - Auto Scale, 0 Clipping */}
+      <div className="w-full aspect-video rounded-lg border border-slate-200/80 overflow-hidden shadow-2xs relative bg-white">
+        <svg
+          viewBox="0 0 960 540"
+          className="w-full h-full block pointer-events-none select-none"
+          style={{ backgroundColor: slide.background || '#ffffff' }}
+        >
+          {/* Background rect */}
+          <rect width="960" height="540" fill={slide.background || '#ffffff'} />
+
+          {/* Render elements in 960x540 coordinates */}
+          {slide.elements && slide.elements.map((el) => {
+            if (el.type === 'shape') {
+              if (el.shapeType === 'circle') {
+                return (
+                  <ellipse
+                    key={el.id}
+                    cx={el.x + el.width / 2}
+                    cy={el.y + el.height / 2}
+                    rx={el.width / 2}
+                    ry={el.height / 2}
+                    fill={el.fill || '#cbd5e1'}
+                    opacity={el.opacity ?? 1}
+                  />
+                );
+              }
+              if (el.shapeType === 'triangle') {
+                const p1 = `${el.x + el.width / 2},${el.y}`;
+                const p2 = `${el.x + el.width},${el.y + el.height}`;
+                const p3 = `${el.x},${el.y + el.height}`;
+                return (
+                  <polygon
+                    key={el.id}
+                    points={`${p1} ${p2} ${p3}`}
+                    fill={el.fill || '#10b981'}
+                    opacity={el.opacity ?? 1}
+                  />
+                );
+              }
+              return (
+                <rect
+                  key={el.id}
+                  x={el.x}
+                  y={el.y}
+                  width={el.width}
+                  height={el.height}
+                  rx={el.shapeType === 'roundedRect' ? 16 : 4}
+                  fill={el.fill || '#f1f5f9'}
+                  stroke={el.stroke || 'none'}
+                  strokeWidth={el.strokeWidth || 0}
+                  opacity={el.opacity ?? 1}
+                />
+              );
+            }
+
+            if (el.type === 'text') {
+              const lines = (el.text || '').split('\n').slice(0, 4);
+              const fontSize = Math.max(14, el.fontSize || 16);
+              const lineHeight = fontSize * 1.25;
+
+              return (
+                <g key={el.id}>
+                  {lines.map((line, lIdx) => (
+                    <text
+                      key={lIdx}
+                      x={el.textAlign === 'center' ? el.x + el.width / 2 : el.x}
+                      y={el.y + fontSize + lIdx * lineHeight}
+                      fontSize={fontSize}
+                      fontWeight={el.fontWeight || 'normal'}
+                      fill={el.color || '#1e293b'}
+                      textAnchor={el.textAlign === 'center' ? 'middle' : 'start'}
+                    >
+                      {line.length > 60 ? line.slice(0, 60) + '...' : line}
+                    </text>
+                  ))}
+                </g>
+              );
+            }
+
+            if (el.type === 'image' && el.src) {
+              return (
+                <image
+                  key={el.id}
+                  href={el.src}
+                  x={el.x}
+                  y={el.y}
+                  width={el.width}
+                  height={el.height}
+                  preserveAspectRatio="none"
+                />
+              );
+            }
+
+            if (el.type === 'video') {
+              return (
+                <g key={el.id}>
+                  <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#090d16" rx="6" />
+                  <circle cx={el.x + el.width / 2} cy={el.y + el.height / 2} r="22" fill="#ef4444" opacity="0.9" />
+                  <polygon 
+                    points={`${el.x + el.width / 2 - 6},${el.y + el.height / 2 - 10} ${el.x + el.width / 2 + 10},${el.y + el.height / 2} ${el.x + el.width / 2 - 6},${el.y + el.height / 2 + 10}`} 
+                    fill="#ffffff" 
+                  />
+                </g>
+              );
+            }
+
+            if (el.type === 'audio') {
+              return (
+                <g key={el.id}>
+                  <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#ecfdf5" stroke="#10b981" strokeWidth="2" rx="10" />
+                  <text x={el.x + 14} y={el.y + el.height / 2 + 5} fontSize="15" fontWeight="bold" fill="#065f46">
+                    🎵 {el.title || 'Nhạc Nền'}
+                  </text>
+                </g>
+              );
+            }
+
+            return null;
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+});
+
 export default function SlideThumbnailList({
   slides,
   currentSlideIndex,
@@ -66,205 +275,22 @@ export default function SlideThumbnailList({
 
       {/* Slide Thumbnails Scroll Area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {slides.map((slide, index) => {
-          const isSelected = index === currentSlideIndex;
-          // Lấy tiêu đề slide tự nhiên không bị cắt
-          const titleText = slide.elements?.find(e => e.type === 'text' && e.text?.trim())?.text?.split('\n')[0] || `Trang ${index + 1}`;
-
-          return (
-            <div
-              key={slide.id || index}
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, index)}
-              onClick={() => onSelectSlide(index)}
-              className={`group relative rounded-xl transition-all cursor-pointer p-2 ${
-                isSelected 
-                  ? 'bg-amber-100/90 ring-2 ring-amber-500 shadow-sm' 
-                  : 'bg-white hover:bg-slate-50 border border-slate-200 hover:border-amber-300'
-              }`}
-              style={{ contentVisibility: 'auto', containIntrinsicSize: '200px 140px' }}
-            >
-              {/* Header inside thumbnail: Slide number & Title & Actions */}
-              <div className="flex items-center justify-between mb-1.5 px-0.5 gap-1.5">
-                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span className={`text-[13px] font-black shrink-0 px-2 py-0.5 rounded-md ${
-                    isSelected ? 'bg-amber-500 text-white shadow-2xs' : 'bg-slate-200 text-slate-800'
-                  }`}>
-                    {index + 1}
-                  </span>
-                  <span 
-                    className={`text-[15px] font-bold truncate font-times-new-roman ${isSelected ? 'text-amber-950 font-black' : 'text-slate-900'}`}
-                    title={titleText}
-                  >
-                    {titleText}
-                  </span>
-                </div>
-
-                {/* Quick actions on hover */}
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  {index > 0 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onMoveSlide(index, index - 1); }}
-                      className="p-1 hover:bg-slate-200 rounded text-slate-600"
-                      title="Chuyển lên trên"
-                    >
-                      <ArrowUp className="w-3 h-3" />
-                    </button>
-                  )}
-                  {index < slides.length - 1 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onMoveSlide(index, index + 1); }}
-                      className="p-1 hover:bg-slate-200 rounded text-slate-600"
-                      title="Chuyển xuống dưới"
-                    >
-                      <ArrowDown className="w-3 h-3" />
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDuplicateSlide(index); }}
-                    className="p-1 hover:bg-slate-200 rounded text-slate-600"
-                    title="Nhân bản slide này"
-                  >
-                    <Copy className="w-3 h-3" />
-                  </button>
-                  {slides.length > 1 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onDeleteSlide(index); }}
-                      className="p-1 hover:bg-rose-100 rounded text-rose-600"
-                      title="Xóa slide này"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* 16:9 Thumbnail Canvas Preview using SVG viewBox - Auto Scale, 0 Clipping */}
-              <div className="w-full aspect-video rounded-lg border border-slate-200/80 overflow-hidden shadow-2xs relative bg-white">
-                <svg
-                  viewBox="0 0 960 540"
-                  className="w-full h-full block pointer-events-none select-none"
-                  style={{ backgroundColor: slide.background || '#ffffff' }}
-                >
-                  {/* Background rect */}
-                  <rect width="960" height="540" fill={slide.background || '#ffffff'} />
-
-                  {/* Render elements in 960x540 coordinates */}
-                  {slide.elements && slide.elements.map((el) => {
-                    if (el.type === 'shape') {
-                      if (el.shapeType === 'circle') {
-                        return (
-                          <ellipse
-                            key={el.id}
-                            cx={el.x + el.width / 2}
-                            cy={el.y + el.height / 2}
-                            rx={el.width / 2}
-                            ry={el.height / 2}
-                            fill={el.fill || '#cbd5e1'}
-                            opacity={el.opacity ?? 1}
-                          />
-                        );
-                      }
-                      if (el.shapeType === 'triangle') {
-                        const p1 = `${el.x + el.width / 2},${el.y}`;
-                        const p2 = `${el.x + el.width},${el.y + el.height}`;
-                        const p3 = `${el.x},${el.y + el.height}`;
-                        return (
-                          <polygon
-                            key={el.id}
-                            points={`${p1} ${p2} ${p3}`}
-                            fill={el.fill || '#10b981'}
-                            opacity={el.opacity ?? 1}
-                          />
-                        );
-                      }
-                      return (
-                        <rect
-                          key={el.id}
-                          x={el.x}
-                          y={el.y}
-                          width={el.width}
-                          height={el.height}
-                          rx={el.shapeType === 'roundedRect' ? 16 : 4}
-                          fill={el.fill || '#f1f5f9'}
-                          stroke={el.stroke || 'none'}
-                          strokeWidth={el.strokeWidth || 0}
-                          opacity={el.opacity ?? 1}
-                        />
-                      );
-                    }
-
-                    if (el.type === 'text') {
-                      const lines = (el.text || '').split('\n').slice(0, 4);
-                      const fontSize = Math.max(14, el.fontSize || 16);
-                      const lineHeight = fontSize * 1.25;
-
-                      return (
-                        <g key={el.id}>
-                          {lines.map((line, lIdx) => (
-                            <text
-                              key={lIdx}
-                              x={el.textAlign === 'center' ? el.x + el.width / 2 : el.x}
-                              y={el.y + fontSize + lIdx * lineHeight}
-                              fontSize={fontSize}
-                              fontWeight={el.fontWeight || 'normal'}
-                              fill={el.color || '#1e293b'}
-                              textAnchor={el.textAlign === 'center' ? 'middle' : 'start'}
-                            >
-                              {line.length > 60 ? line.slice(0, 60) + '...' : line}
-                            </text>
-                          ))}
-                        </g>
-                      );
-                    }
-
-                    if (el.type === 'image' && el.src) {
-                      return (
-                        <image
-                          key={el.id}
-                          href={el.src}
-                          x={el.x}
-                          y={el.y}
-                          width={el.width}
-                          height={el.height}
-                          preserveAspectRatio="none"
-                        />
-                      );
-                    }
-
-                    if (el.type === 'video') {
-                      return (
-                        <g key={el.id}>
-                          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#090d16" rx="6" />
-                          <circle cx={el.x + el.width / 2} cy={el.y + el.height / 2} r="22" fill="#ef4444" opacity="0.9" />
-                          <polygon 
-                            points={`${el.x + el.width / 2 - 6},${el.y + el.height / 2 - 10} ${el.x + el.width / 2 + 10},${el.y + el.height / 2} ${el.x + el.width / 2 - 6},${el.y + el.height / 2 + 10}`} 
-                            fill="#ffffff" 
-                          />
-                        </g>
-                      );
-                    }
-
-                    if (el.type === 'audio') {
-                      return (
-                        <g key={el.id}>
-                          <rect x={el.x} y={el.y} width={el.width} height={el.height} fill="#ecfdf5" stroke="#10b981" strokeWidth="2" rx="10" />
-                          <text x={el.x + 14} y={el.y + el.height / 2 + 5} fontSize="15" fontWeight="bold" fill="#065f46">
-                            🎵 {el.title || 'Nhạc Nền'}
-                          </text>
-                        </g>
-                      );
-                    }
-
-                    return null;
-                  })}
-                </svg>
-              </div>
-            </div>
-          );
-        })}
+        {slides.map((slide, index) => (
+          <SlideThumbnailCard
+            key={slide.id || index}
+            slide={slide}
+            index={index}
+            isSelected={index === currentSlideIndex}
+            onSelectSlide={onSelectSlide}
+            onMoveSlide={onMoveSlide}
+            onDuplicateSlide={onDuplicateSlide}
+            onDeleteSlide={onDeleteSlide}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            totalSlides={slides.length}
+          />
+        ))}
       </div>
 
       {/* Template Selection Modal */}

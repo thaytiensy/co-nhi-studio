@@ -8,7 +8,7 @@
  */
 
 const DB_NAME = 'conhi_studio_db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORES = ['projects', 'office_docs', 'smas'];
 
 let dbPromise = null;

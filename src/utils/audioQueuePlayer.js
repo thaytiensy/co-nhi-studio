@@ -82,4 +82,13 @@ export class AudioQueuePlayer {
   setRate(rate) {
     if (this.currentAudio) this.currentAudio.playbackRate = rate;
   }
+
+  prefetchChunk(nextChunkText, voiceParam) {
+    if (!nextChunkText || typeof window === 'undefined') return;
+    try {
+      const nextUrl = `/api/tts?text=${encodeURIComponent(nextChunkText)}&voice=${voiceParam}`;
+      const prefetch = new Audio(nextUrl);
+      prefetch.preload = 'auto';
+    } catch (_) {}
+  }
 }
