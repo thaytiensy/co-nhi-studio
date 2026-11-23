@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" 
+      xmlns:w="urn:schemas-microsoft-com:office:word" 
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8">
+  <title>Bản Mô Tả Phần Mềm & Hướng Dẫn Sử Dụng Cọ Nhí Studio</title>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    @page Section1 {
+      size: 210mm 297mm; /* A4 */
+      margin: 20mm 20mm 20mm 30mm; /* Chuẩn Nghị định 30/2020/NĐ-CP: Trên 20, Dưới 20, Phải 20, Trái 30 */
+      mso-header-margin: 10mm;
+      mso-footer-margin: 10mm;
+      mso-paper-source: 0;
+    }
+    div.Section1 { page: Section1; }
+    
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 14pt;
+      line-height: 1.45;
+      color: #0f172a;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Quốc hiệu và Tiêu ngữ chuẩn */
+    .header-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+    }
+    .header-table td {
+      vertical-align: top;
+      text-align: center;
+      padding: 2px 4px;
+    }
+    .org-header {
+      font-size: 13pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #334155;
+    }
+    .org-sub {
+      font-size: 12pt;
+      font-weight: normal;
+      color: #475569;
+    }
+    .motto-country {
+      font-size: 13pt;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .motto-sub {
+      font-size: 14pt;
+      font-weight: bold;
+    }
+    .hr-short {
+      width: 140px;
+      height: 1.5px;
+      background-color: #000000;
+      margin: 4px auto 0 auto;
+      border: none;
+    }
+
+    /* Tiêu đề chính */
+    .doc-title {
+      text-align: center;
+      font-size: 18pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #b45309; /* Màu hổ phách nghệ thuật */
+      margin-top: 20px;
+      margin-bottom: 6px;
+    }
+    .doc-subtitle {
+      text-align: center;
+      font-size: 14pt;
+      font-style: italic;
+      color: #475569;
+      margin-bottom: 25px;
+    }
+
+    /* Khung tác giả & bảo mật */
+    .meta-box {
+      border: 1.5pt solid #d97706;
+      background-color: #fffbeb;
+      padding: 12px 18px;
+      border-radius: 6px;
+      margin-bottom: 25px;
+    }
+    .meta-box p {
+      margin: 4px 0;
+      font-size: 13.5pt;
+    }
+
+    /* Đề mục */
+    h2 {
+      font-size: 15pt;
+      font-weight: bold;
+      color: #0f172a;
+      text-transform: uppercase;
+      border-bottom: 1.5pt solid #cbd5e1;
+      padding-bottom: 4px;
+      margin-top: 25px;
+      margin-bottom: 12px;
+    }
+    h3 {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #b45309;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    p {
+      text-align: justify;
+      text-indent: 1.25cm; /* Thụt đầu dòng chuẩn hành chính */
+      margin: 6px 0;
+    }
+
+    ul, ol {
+      margin: 6px 0 10px 1.25cm;
+      padding-left: 10px;
+    }
+    li {
+      margin-bottom: 4px;
+      text-align: justify;
+    }
+
+    /* Bảng biểu */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 13pt;
+    }
+    table.data-table th, table.data-table td {
+      border: 1pt solid #475569;
+      padding: 8px 10px;
+      vertical-align: middle;
+    }
+    table.data-table th {
+      background-color: #f1f5f9;
+      font-weight: bold;
+      text-align: center;
+      color: #0f172a;
+    }
+    .text-center { text-align: center; }
+    .text-bold { font-weight: bold; }
+
+    .highlight-badge {
+      font-weight: bold;
+      color: #059669;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+<div class="Section1">
+
+  <!-- PHẦN ĐẦU TRANG THEO THỂ THỨC HÀNH CHÍNH NGHỊ ĐỊNH 30/2020/NĐ-CP -->
+  <table class="header-table">
+    <tr>
+      <td style="width: 45%;">
+        <div class="org-header">HỘI ĐỒNG CHUYÊN MÔN MĨ THUẬT TIỂU HỌC</div>
+        <div class="org-sub">BAN DỰ ÁN CÔNG NGHỆ GIÁO DỤC GDPT 2018</div>
+        <div class="hr-short" style="width: 100px;"></div>
+        <div style="font-size: 12pt; margin-top: 5px;">Số: 01/HD-CONHI-2026</div>
+      </td>
+      <td style="width: 55%;">
+        <div class="motto-country">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+        <div class="motto-sub">Độc lập - Tự do - Hạnh phúc</div>
+        <div class="hr-short"></div>
+        <div style="font-size: 13pt; font-style: italic; margin-top: 5px;">Hà Nội, ngày 24 tháng 11 năm 2026</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- TIÊU ĐỀ BẢN MÔ TẢ -->
+  <div class="doc-title">BẢN MÔ TẢ ĐẶC TẢ HỆ THỐNG & TÀI LIỆU HƯỚNG DẪN SỬ DỤNG</div>
+  <div class="doc-title" style="font-size: 16pt; margin-top: 0;">PHẦN MỀM SOẠN GIẢNG & TRÌNH CHIẾU MĨ THUẬT TIỂU HỌC "CỌ NHÍ STUDIO"</div>
+  <div class="doc-subtitle">(Phục vụ công tác giảng dạy, kiểm tra đánh giá và quản lý chuyên môn theo Chương trình GDPT 2018)</div>
+
+  <!-- HỘP THÔNG TIN TÁC GIẢ & BẢO MẬT (ĐÃ GIẤU 100% THÔNG TIN CÁ NHÂN) -->
+  <div class="meta-box">
+    <p><strong>👨‍🏫 Tác giả / Phụ trách chuyên môn:</strong> Thầy Giáo Mĩ Thuật (Thầy Cọ Nhí) - Ban Nghiên Cứu & Phát Triển Trợ Giảng Số.</p>
+    <p><strong>🏛️ Cơ quan chủ trì phát triển:</strong> Ban Đổi Mới Phương Pháp Dạy Học Mĩ Thuật Cấp Tiểu Học.</p>
+    <p><strong>🎯 Đối tượng áp dụng:</strong> Toàn thể Cán bộ quản lý chuyên môn và Giáo viên giảng dạy môn Mĩ thuật Tiểu học (Khối 1, 2, 3, 4, 5) trên toàn quốc.</p>
+    <p><strong>🔒 Quy chế bảo mật dữ liệu:</strong> <em>Đã ẩn danh hóa 100% danh tính cá nhân. Bản quyền phần mềm phân phối phi thương mại, miễn phí trọn đời phục vụ sự nghiệp giáo dục.</em></p>
+  </div>
+
+  <!-- PHẦN I -->
+  <h2>PHẦN I: CĂN CỨ PHÁP LÝ & TÔN CHỈ THIẾT KẾ</h2>
+  <p>Hệ thống phần mềm Cọ Nhí Studio được thiết kế và xây dựng dựa trên sự tuân thủ nghiêm ngặt các văn bản chỉ đạo chuyên môn cốt lõi của Bộ Giáo dục và Đào tạo:</p>
+  <ul>
+    <li><strong>Nghị quyết số 29-NQ/TW:</strong> Của Ban Chấp hành Trung ương Đảng về đổi mới căn bản, toàn diện giáo dục và đào tạo, đáp ứng yêu cầu công nghiệp hóa, hiện đại hóa trong điều kiện kinh tế thị trường định hướng xã hội chủ nghĩa và hội nhập quốc tế.</li>
+    <li><strong>Thông tư số 32/2018/TT-BGDĐT:</strong> Ban hành Chương trình giáo dục phổ thông 2018, trong đó môn Mĩ thuật cấp Tiểu học tập trung hình thành và phát triển ở học sinh năng lực mĩ thuật thông qua các hoạt động: Quan sát và nhận thức mĩ thuật, Sáng tạo và ứng dụng mĩ thuật, Phân tích và đánh giá mĩ thuật.</li>
+    <li><strong>Thông tư số 27/2020/TT-BGDĐT:</strong> Ban hành Quy định đánh giá học sinh tiểu học, chỉ đạo chuyển trọng tâm từ chấm điểm số sang đánh giá sự tiến bộ của học sinh bằng nhận xét định tính thường xuyên và tổng hợp định kỳ theo 3 mức: <em>Hoàn thành tốt (T), Hoàn thành (H), Chưa hoàn thành (C)</em>.</li>
+    <li><strong>Công văn số 2345/BGDĐT-GDTH:</strong> Về việc hướng dẫn xây dựng kế hoạch giáo dục của nhà trường và kế hoạch bài dạy (giáo án) cấp tiểu học, chuẩn hóa tiến trình 4 hoạt động: (1) Khởi động, (2) Khám phá, (3) Luyện tập - thực hành, (4) Vận dụng - trưng bày sản phẩm.</li>
+    <li><strong>Nghị định số 30/2020/NĐ-CP:</strong> Của Chính phủ về công tác văn thư, làm căn cứ chuẩn hóa toàn bộ phông chữ Times New Roman, cỡ chữ, khoảng cách dòng và thể thức xuất bản giáo án Word.</li>
+  </ul>
+
+  <!-- PHẦN II -->
+  <h2>PHẦN II: KIẾN TRÚC KỸ THUẬT & HẠ TẦNG 100% MIỄN PHÍ (ZERO-COST STACK)</h2>
+  <p>Cọ Nhí Studio được kiến tạo với sứ mệnh bình đẳng công nghệ trong giáo dục, vận hành trên nền tảng 100% miễn phí vĩnh viễn, không phát sinh chi phí cho giáo viên và nhà trường:</p>
+  
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Thành Phần Hệ Thống</th>
+        <th style="width: 35%;">Công Nghệ Sử Dụng</th>
+        <th style="width: 40%;">Lợi Ích Sư Phạm & An Toàn</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="text-bold">Giao Diện & Không Gian Làm Việc</td>
+        <td>React 19, Tailwind CSS, Vite, Lucide Icons</td>
+        <td>Giao diện trực quan, tốc độ phản hồi tức thì, mượt mà trên cả máy tính cũ và màn hình tương tác.</td>
+      </tr>
+      <tr>
+        <td class="text-bold">Bộ Lưu Trữ Cục Bộ (Local-First)</td>
+        <td>IndexedDB (Dung lượng lớn) & LocalStorage</td>
+        <td>Dữ liệu bài giảng và sổ điểm nằm hoàn toàn trên máy tính giáo viên; không bao giờ mất bài khi mất mạng hoặc F5.</td>
+      </tr>
+      <tr>
+        <td class="text-bold">Trí Tuệ Nhân Tạo (Multimodal AI)</td>
+        <td>Google Gemini Flash API (Google AI Studio Free)</td>
+        <td>Mắt thần AI chấm bài vẽ, phân tích bố cục, màu sắc và gợi ý 3 bước cải thiện cho học sinh.</td>
+      </tr>
+      <tr>
+        <td class="text-bold">Giọng Nói Sư Phạm Chuẩn (TTS)</td>
+        <td>Microsoft Edge Neural TTS (vi-VN-NamMinhNeural)</td>
+        <td>Giọng nam truyền cảm, tự nhiên như giáo viên thực thụ; hỗ trợ dặn dò và phát âm tiếng Việt chuẩn xác.</td>
+      </tr>
+      <tr>
+        <td class="text-bold">Bảo Mật Phân Vùng</td>
+        <td>Multi-User Workspace Isolation Protocol</td>
+        <td>Mỗi tài khoản giáo viên được cách ly 100%, không bị lẫn bài giảng hay điểm số với đồng nghiệp.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- PHẦN III -->
+  <h2>PHẦN III: ĐẶC TẢ CHI TIẾT 6 PHÂN HỆ CỐT LÕI</h2>
+
+  <h3>1. Phân Hệ Xác Thực Bảo Mật & Quản Trị Phân Quyền (Security Gate)</h3>
+  <p>Nhằm ngăn chặn truy cập trái phép và bảo vệ tài liệu giáo án của nhà trường, hệ thống áp dụng cơ chế màn hình khóa bảo vệ ngay khi mở ứng dụng. Giáo viên sử dụng địa chỉ Gmail đã được cấp quyền để truy cập. Sau khi đăng nhập, hệ thống tự động tải đúng không gian bài giảng và sổ điểm tương ứng của riêng giáo viên đó.</p>
+
+  <h3>2. Phân Hệ Kế Hoạch Bài Dạy & Bộ Nhận Diện Thông Minh Mọi Tệp (Universal File Engine)</h3>
+  <p>Phân hệ này cung cấp sẵn trọn bộ <strong>35 kế hoạch bài dạy chuẩn từ Lớp 1 đến Lớp 5</strong> theo bộ sách "Kết nối tri thức với cuộc sống". Điểm đột phá lớn nhất là <strong>Bộ nhận diện thông minh mọi tệp</strong>:</p>
+  <ul>
+    <li><strong>Tệp PowerPoint mới (.pptx) và PowerPoint cũ (.ppt 97-2003):</strong> Bộ giải mã nhị phân trực tiếp quét và bóc tách cấu trúc OLE2 Compound Document, trích xuất nguyên vẹn nội dung văn bản, tạo thành các slide 16:9 với phông chữ Times New Roman rõ ràng.</li>
+    <li><strong>Tệp Word mới (.docx) và Word cũ (.doc 97-2003):</strong> Nhận diện tiêu đề và nội dung bài học, nạp ngay vào khung kế hoạch bài dạy theo chuẩn Công văn 2345.</li>
+    <li><strong>Cơ chế lưu vĩnh viễn (Multi-Tier Persistence):</strong> Mọi tệp PowerPoint sau khi tải lên đều được lưu cố định trong IndexedDB theo mã bài dạy. Giáo viên chỉ cần bấm nút <strong>[▶ Trình Chiếu F5]</strong> là mở chiếu ngay mà không cần tải lại file.</li>
+  </ul>
+
+  <h3>3. Phân Hệ Phòng Soạn Slide 16:9 & Trình Chiếu F5 Toàn Màn Hình</h3>
+  <p>Được thiết kế tối ưu hóa cho màn hình tivi thông minh và máy chiếu tại các lớp học tiểu học:</p>
+  <ul>
+    <li><strong>Tỉ lệ khung hình 16:9:</strong> Đạt chuẩn quốc tế, tận dụng 100% diện tích hiển thị, không bị co méo hoặc viền đen hai bên như tỉ lệ 4:3 cũ.</li>
+    <li><strong>Chuẩn Typography chống lão thị / mỏi mắt:</strong> Cỡ chữ tiêu đề từ 26pt đến 36pt, nội dung từ 18pt đến 24pt, áp dụng hoàn toàn phông chữ Times New Roman chuẩn mực của ngành giáo dục.</li>
+    <li><strong>Phím tắt F5 & Bút bấm USB:</strong> Nhấn phím F5 trên bàn phím để kích hoạt chế độ chiếu toàn màn hình tức thì. Hỗ trợ đầy đủ các dòng bút trình chiếu không dây cổng USB, cho phép giáo viên vừa đi lại quan sát học sinh vừa chuyển slide mượt mà.</li>
+  </ul>
+
+  <h3>4. Phân Hệ Bảng Vẽ Tương Tác & Trò Chơi Mĩ Thuật Kích Hoạt Tư Duy</h3>
+  <p>Cung cấp không gian thực hành kỹ thuật số phong phú:</p>
+  <ul>
+    <li><strong>Bảng vẽ đa chất liệu:</strong> Tích hợp các công cụ vẽ nét thẳng, nét cong, nét lượn sóng, nét gấp khúc, hình học cơ bản, bút chì, sáp màu, màu nước và bảng màu phong phú.</li>
+    <li><strong>Kho đề tài mẫu:</strong> Hàng trăm hình vẽ mẫu theo chủ đề thiên nhiên, quê hương, chân dung, lễ hội để học sinh tham khảo nét vẽ từng bước.</li>
+    <li><strong>Trò chơi mĩ thuật tương tác:</strong> Các trò chơi "Ai nhanh hơn", "Đố vui sắc màu", "Ghép mảnh tranh nghệ thuật" giúp giáo viên tạo không khí khởi động lớp học vô cùng hào hứng.</li>
+  </ul>
+
+  <h3>5. Phân Hệ Mắt Thần AI Chấm Tranh & Đánh Giá Chuẩn Thông Tư 27</h3>
+  <p>Ứng dụng công nghệ thị giác máy tính Gemini Vision Multimodal đóng vai trò như một Thầy giáo Mĩ thuật chấm bài trực quan:</p>
+  <ul>
+    <li><strong>Thang Rubric 4 tiêu chí quốc tế:</strong> (1) Sáng tạo & Ý tưởng, (2) Bố cục & Không gian, (3) Nét vẽ & Màu sắc, (4) Cảm xúc thẩm mỹ.</li>
+    <li><strong>Nguyên tắc sư phạm nhân văn:</strong> Tuyệt đối không phán xét tiêu cực; luôn khen ngợi nét vẽ ngây thơ của học sinh và chỉ ra 3 bước cụ thể để hoàn thiện bức tranh.</li>
+    <li><strong>Quy đổi mức đánh giá TT 27:</strong> Tự động tổng hợp và quy đổi kết quả sang 3 mức quy chuẩn của Bộ GD&ĐT: <em>Hoàn thành tốt (T), Hoàn thành (H), Chưa hoàn thành (C)</em> kèm lời nhận xét ấm áp, sẵn sàng liên kết sang Sổ Điểm.</li>
+  </ul>
+
+  <h3>6. Phân Hệ Sổ Điểm SMAS & Xuất Báo Cáo Chuẩn Thể Thức Quốc Gia</h3>
+  <p>Giải quyết triệt để gánh nặng sổ sách hành chính cho giáo viên mĩ thuật:</p>
+  <ul>
+    <li><strong>Sổ theo dõi 35 tuần:</strong> Theo dõi đánh giá thường xuyên của tất cả các lớp giảng dạy, lọc học sinh theo từng khối lớp nhanh chóng.</li>
+    <li><strong>Tổng hợp định kỳ 1 chạm:</strong> Tự động tính toán kết quả Giữa kì (GK) và Cuối kì (CK) từ các tuần học thường xuyên.</li>
+    <li><strong>Xuất Excel chuẩn ngành:</strong> Xuất file Excel (.xlsx) đúng định dạng cột của hệ thống cơ sở dữ liệu ngành SMAS / vnEdu để giáo viên tải trực tiếp lên cổng điểm.</li>
+    <li><strong>Xuất giáo án Word chuẩn Nghị định 30/2020/NĐ-CP:</strong> Xuất tệp giáo án (.doc) với đầy đủ Quốc hiệu, Tiêu ngữ, bảng tiến trình 4 hoạt động và phông Times New Roman chuẩn mực.</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- PHẦN IV -->
+  <h2>PHẦN IV: HƯỚNG DẪN THAO TÁC CƠ BẢN DÀNH CHO GIÁO VIÊN</h2>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 15%;">Bước</th>
+        <th style="width: 30%;">Nhiệm Vụ Giảng Dạy</th>
+        <th style="width: 55%;">Thao Tác Thực Hiện Trên Phần Mềm</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="text-center text-bold">Bước 1</td>
+        <td>Đăng nhập & Chọn lớp dạy</td>
+        <td>Mở phần mềm -> Nhập Gmail được cấp quyền -> Vào trang tổng quan Bento Dashboard, chọn Khối lớp (Lớp 1 đến Lớp 5).</td>
+      </tr>
+      <tr>
+        <td class="text-center text-bold">Bước 2</td>
+        <td>Chuẩn bị bài giảng PowerPoint</td>
+        <td>Tại bài dạy tương ứng, bấm nút <strong>[Nhập Giáo Án PP]</strong> -> Chọn file PowerPoint có sẵn trên máy tính (.pptx hoặc .ppt cũ) -> Hệ thống trích xuất slide và lưu vĩnh viễn.</td>
+      </tr>
+      <tr>
+        <td class="text-center text-bold">Bước 3</td>
+        <td>Trình chiếu giảng dạy trên lớp</td>
+        <td>Bấm nút <strong>[▶ Trình Chiếu F5]</strong> trên danh sách bài dạy hoặc bấm phím <strong>F5</strong> trên bàn phím -> Sử dụng bút bấm USB hoặc chuột để chuyển slide dạy học.</td>
+      </tr>
+      <tr>
+        <td class="text-center text-bold">Bước 4</td>
+        <td>Thực hành & Khởi động trò chơi</td>
+        <td>Chuyển sang tab <strong>Bảng Vẽ</strong> để hướng dẫn nét vẽ mẫu, hoặc tab <strong>Trò Chơi</strong> để tổ chức đố vui màu sắc đầu giờ.</td>
+      </tr>
+      <tr>
+        <td class="text-center text-bold">Bước 5</td>
+        <td>Chấm bài vẽ & Đánh giá TT 27</td>
+        <td>Vào tab <strong>Mắt Thần</strong> -> Chụp ảnh bài vẽ của học sinh -> Nhận xét trực quan -> Bấm <strong>[Lưu Vào Sổ Điểm]</strong> để tự động ghi điểm T, H, C.</td>
+      </tr>
+      <tr>
+        <td class="text-center text-bold">Bước 6</td>
+        <td>Tổng hợp & Xuất báo cáo</td>
+        <td>Vào tab <strong>Sổ Điểm SMAS</strong> -> Bấm nút <strong>[Tổng Hợp Kỳ]</strong> -> Bấm <strong>[Xuất Excel SMAS]</strong> để tải file nộp trường.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- PHẦN KẾT LUẬN & CHỮ KÝ HÀNH CHÍNH -->
+  <h2>PHẦN V: HIỆU LỰC ÁP DỤNG & ĐIỀU KHOẢN CHUYÊN MÔN</h2>
+  <p>Tài liệu này là cẩm nang chính thức hướng dẫn vận hành và ứng dụng phần mềm Cọ Nhí Studio trong các trường tiểu học thực hiện Chương trình GDPT 2018. Mọi giáo viên mĩ thuật đều được khuyến khích sử dụng phần mềm nhằm đổi mới phương pháp giảng dạy, khơi dậy tiềm năng thẩm mỹ ở học sinh và giải phóng sức lao động trong công tác sổ sách hành chính./.</p>
+
+  <br><br>
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td style="width: 50%; vertical-align: top; text-align: center;">
+        <div style="font-weight: bold; text-transform: uppercase;">BAN CHUYÊN MÔN PHÁT TRIỂN PHẦN MỀM</div>
+        <div style="font-style: italic; color: #64748b; margin-top: 5px;">(Đã ký duyệt kỹ thuật)</div>
+        <br><br><br>
+        <div style="font-weight: bold; color: #b45309;">HỘI ĐỒNG SƯ PHẠM SỐ MĨ THUẬT</div>
+      </td>
+      <td style="width: 50%; vertical-align: top; text-align: center;">
+        <div style="font-weight: bold; text-transform: uppercase;">ĐẠI DIỆN TÁC GIẢ SƯ PHẠM</div>
+        <div style="font-style: italic; color: #64748b; margin-top: 5px;">(Bảo lưu quyền tác giả phi thương mại)</div>
+        <br><br><br>
+        <div style="font-weight: bold; color: #0f172a;">THẦY GIÁO MĨ THUẬT (THẦY CỌ NHÍ)</div>
+      </td>
+    </tr>
+  </table>
+
+</div>
+</body>
+</html>
