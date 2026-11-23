@@ -271,11 +271,271 @@ function extractTransform(element) {
   return { offX, offY, extCx, extCy };
 }
 
+/**
+ * Trích xuất nội dung văn bản và tạo bộ slide từ tệp PowerPoint định dạng cũ (.ppt 97-2003)
+ */
+export const parseLegacyPPTFile = async (file) => {
+  try {
+    if (!file) throw new Error('Không có tệp nào được chọn.');
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    // Bóc tách toàn bộ chuỗi văn bản UTF-16LE và ASCII từ tệp nhị phân .ppt
+    const extractedLines = [];
+    let curUtf16 = '';
+
+    // 1. Quét chuỗi UTF-16LE (2 bytes / ký tự) - định dạng chuẩn cho tiếng Việt Unicode trong PPT
+    for (let i = 0; i < bytes.length - 1; i += 2) {
+      const code = bytes[i] | (bytes[i + 1] << 8);
+      const isPrintable = (code >= 32 && code <= 126) || (code >= 0x00c0 && code <= 0x1ef9);
+      if (isPrintable) {
+        curUtf16 += String.fromCharCode(code);
+      } else {
+        if (curUtf16.trim().length >= 3) {
+          const trimmed = curUtf16.trim();
+          const isSystemMeta = /^(Root Entry|PowerPoint Document|Current User|Pictures|SummaryInformation|DocumentSummaryInformation|Default Design|Arial|Times New Roman|Calibri|Tahoma|Verdana|Wingdings|Symbol|Slide|NotesMaster|SlideMaster|Font|VBA)/i.test(trimmed);
+          if (!isSystemMeta && !extractedLines.includes(trimmed)) {
+            extractedLines.push(trimmed);
+          }
+        }
+        curUtf16 = '';
+      }
+    }
+
+    // 2. Quét chuỗi ASCII dự phòng
+    if (extractedLines.length < 5) {
+      let curAscii = '';
+      for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        if ((b >= 32 && b <= 126) || b === 10 || b === 13) {
+          curAscii += String.fromCharCode(b);
+        } else {
+          if (curAscii.trim().length >= 4) {
+            const trimmed = curAscii.trim();
+            const isSystemMeta = /^(Root Entry|PowerPoint Document|Current User|Pictures|SummaryInformation|Default Design|Arial|Times New Roman|Calibri)/i.test(trimmed);
+            if (!isSystemMeta && !extractedLines.includes(trimmed)) {
+              extractedLines.push(trimmed);
+            }
+          }
+          curAscii = '';
+        }
+      }
+    }
+
+    const cleanTitle = file.name.replace(/\.ppt$/i, '').replace(/_/g, ' ');
+    const slides = [];
+
+    // Tạo các slide từ các đoạn văn bản trích xuất được
+    if (extractedLines.length > 0) {
+      const slideChunks = [];
+      let currentChunk = [];
+
+      for (const line of extractedLines) {
+        const isActivityHeader = /^(BÀI|CHỦ ĐỀ|HOẠT ĐỘNG|KHỞI ĐỘNG|KHÁM PHÁ|LUYỆN TẬP|THỰC HÀNH|TRƯNG BÀY|ĐÁNH GIÁ|MỤC TIÊU|CHUẨN BỊ|TIẾT|\d+[\.\:])/i.test(line);
+        if (isActivityHeader && currentChunk.length >= 2) {
+          slideChunks.push(currentChunk);
+          currentChunk = [line];
+        } else {
+          currentChunk.push(line);
+          if (currentChunk.length >= 4) {
+            slideChunks.push(currentChunk);
+            currentChunk = [];
+          }
+        }
+      }
+      if (currentChunk.length > 0) slideChunks.push(currentChunk);
+
+      // Slide 1: Bìa bài học
+      slides.push({
+        id: `slide-legacy-0-${Date.now()}`,
+        background: '#ffffff',
+        elements: [
+          {
+            id: `el-bg-${Date.now()}`,
+            type: 'shape',
+            shapeType: 'roundedRect',
+            x: 40,
+            y: 40,
+            width: 880,
+            height: 460,
+            fill: '#f8fafc',
+            stroke: '#d97706',
+            strokeWidth: 3
+          },
+          {
+            id: `el-title-${Date.now()}`,
+            type: 'text',
+            x: 80,
+            y: 120,
+            width: 800,
+            height: 100,
+            text: extractedLines[0] && extractedLines[0].length < 80 ? extractedLines[0] : cleanTitle,
+            fontSize: 32,
+            fontWeight: 'bold',
+            color: '#92400e',
+            textAlign: 'center',
+            fontFamily: 'Times New Roman'
+          },
+          {
+            id: `el-sub-${Date.now()}`,
+            type: 'text',
+            x: 100,
+            y: 250,
+            width: 760,
+            height: 80,
+            text: extractedLines[1] ? extractedLines[1] : 'Giáo án điện tử Mĩ thuật - Trích xuất từ tệp .ppt cũ',
+            fontSize: 22,
+            fontWeight: 'normal',
+            color: '#1e293b',
+            textAlign: 'center',
+            fontFamily: 'Times New Roman'
+          },
+          {
+            id: `el-tip-${Date.now()}`,
+            type: 'text',
+            x: 120,
+            y: 380,
+            width: 720,
+            height: 60,
+            text: '💡 Mẹo giáo viên: Mở tệp trên máy tính và bấm F12 -> Lưu dạng .pptx để giữ nguyên 100% hình ảnh gốc.',
+            fontSize: 16,
+            fontWeight: 'normal',
+            fontStyle: 'italic',
+            color: '#059669',
+            textAlign: 'center',
+            fontFamily: 'Times New Roman'
+          }
+        ],
+        notes: 'Bài giảng trích xuất từ tệp PowerPoint cũ (.ppt)'
+      });
+
+      // Các slide nội dung tiếp theo
+      slideChunks.slice(0, 10).forEach((chunk, cIdx) => {
+        const slideTitle = chunk[0] || `Nội Dung Hoạt Động ${cIdx + 1}`;
+        const contentLines = chunk.slice(1);
+        const contentText = contentLines.length > 0 ? contentLines.join('\n\n• ') : 'Nội dung bài học';
+
+        slides.push({
+          id: `slide-legacy-${cIdx + 1}-${Date.now()}`,
+          background: '#ffffff',
+          elements: [
+            {
+              id: `el-header-box-${cIdx}-${Date.now()}`,
+              type: 'shape',
+              shapeType: 'roundedRect',
+              x: 50,
+              y: 40,
+              width: 860,
+              height: 70,
+              fill: '#fef3c7',
+              stroke: '#f59e0b',
+              strokeWidth: 2
+            },
+            {
+              id: `el-h-${cIdx}-${Date.now()}`,
+              type: 'text',
+              x: 70,
+              y: 52,
+              width: 820,
+              height: 50,
+              text: slideTitle,
+              fontSize: 26,
+              fontWeight: 'bold',
+              color: '#78350f',
+              textAlign: 'left',
+              fontFamily: 'Times New Roman'
+            },
+            {
+              id: `el-body-${cIdx}-${Date.now()}`,
+              type: 'text',
+              x: 70,
+              y: 140,
+              width: 820,
+              height: 340,
+              text: (contentLines.length > 0 ? '• ' : '') + contentText,
+              fontSize: 20,
+              fontWeight: 'normal',
+              color: '#0f172a',
+              textAlign: 'left',
+              fontFamily: 'Times New Roman'
+            }
+          ],
+          notes: `Trang ${cIdx + 2}: ${slideTitle}`
+        });
+      });
+    }
+
+    if (slides.length === 0) {
+      slides.push({
+        id: `slide-legacy-guide-${Date.now()}`,
+        background: '#ffffff',
+        elements: [
+          {
+            id: `guide-t-${Date.now()}`,
+            type: 'text',
+            x: 80,
+            y: 80,
+            width: 800,
+            height: 90,
+            text: `Tệp PowerPoint Định Dạng Cũ (.ppt): ${cleanTitle}`,
+            fontSize: 28,
+            fontWeight: 'bold',
+            color: '#b45309',
+            textAlign: 'center',
+            fontFamily: 'Times New Roman'
+          },
+          {
+            id: `guide-b-${Date.now()}`,
+            type: 'text',
+            x: 100,
+            y: 200,
+            width: 760,
+            height: 240,
+            text: 'Tệp này sử dụng cấu trúc nhị phân PowerPoint 97-2003 (.ppt).\n\nĐể nạp đầy đủ 100% hình ảnh, hình vẽ và bố cục vào Studio:\n1. Mở tệp bằng phần mềm PowerPoint trên máy tính.\n2. Bấm phím F12 (hoặc File -> Save As).\n3. Chọn định dạng: "PowerPoint Presentation (*.pptx)" rồi Lưu lại (chỉ mất 3 giây).\n4. Tải tệp .pptx vừa lưu lên Cọ Nhí Studio để trình chiếu và sử dụng mượt mà!',
+            fontSize: 20,
+            color: '#1e293b',
+            textAlign: 'left',
+            fontFamily: 'Times New Roman'
+          }
+        ],
+        notes: 'Hướng dẫn chuyển đổi tệp .ppt sang .pptx trong 3 giây'
+      });
+    }
+
+    return {
+      success: true,
+      isLegacyPpt: true,
+      fileName: file.name,
+      fileSize: file.size,
+      slidesCount: slides.length,
+      slides,
+      legacyNotice: 'Đã nhận diện tệp PowerPoint (.ppt) và trích xuất nội dung bài học thành công.',
+      stats: {
+        totalSlides: slides.length,
+        totalImages: 0,
+        totalVideos: 0,
+        totalAudios: 0,
+        totalNotes: 0
+      }
+    };
+  } catch (err) {
+    console.error('Lỗi phân tích tệp PPT cũ:', err);
+    return {
+      success: false,
+      error: 'Không thể đọc tệp PowerPoint cũ. Thầy/Cô vui lòng mở tệp trên máy tính và bấm F12 -> Lưu dạng .pptx (chỉ mất 3 giây).'
+    };
+  }
+};
+
 export const parsePPTXFile = async (file) => {
   try {
     if (!file) throw new Error('Không có tệp nào được chọn.');
-    if (!file.name.toLowerCase().endsWith('.pptx')) {
-      throw new Error('Định dạng tệp không hợp lệ. Vui lòng chọn tệp có đuôi .pptx');
+    const lowerName = (file.name || '').toLowerCase();
+    if (lowerName.endsWith('.ppt')) {
+      return await parseLegacyPPTFile(file);
+    }
+    if (!lowerName.endsWith('.pptx')) {
+      throw new Error('Định dạng tệp không hợp lệ. Vui lòng chọn tệp có đuôi .pptx hoặc .ppt');
     }
 
     const arrayBuffer = await file.arrayBuffer();

@@ -2,7 +2,7 @@
 // Dữ liệu mặc định lưu trên máy tính của giáo viên, phân vùng riêng biệt theo từng tài khoản.
 
 import { getScopedStorageKey } from './userWorkspaceService.js';
-import { idbSet, idbGet, idbDelete } from './idbStorage.js';
+import { idbSet, idbGet, idbDelete, idbGetAllKeys } from './idbStorage.js';
 
 export const STORAGE_KEY = 'co_nhi_studio_project_v1';
 export const STORAGE_DRAFT_KEY = 'co_nhi_studio_draft_v1';
@@ -298,6 +298,42 @@ export const deletePlanSlidesFromStorage = async (planId, userScope) => {
   try {
     await idbDelete('projects', key);
   } catch (_) {}
+};
+
+/**
+ * Lấy tóm tắt toàn bộ các bài dạy đã được lưu bộ slide riêng biệt trong IndexedDB
+ * @param {string} [userScope]
+ * @returns {Promise<Record<string, { planId: string, hasCustomSlides: boolean, slideCount: number, fileName: string, updatedAt: string }>>}
+ */
+export const getStoredPlansSummary = async (userScope) => {
+  const summary = {};
+  try {
+    const allKeys = await idbGetAllKeys('projects');
+    const prefix = getScopedStorageKey('conhi_plan_slides_', userScope);
+    const targetKeys = allKeys.filter(k => typeof k === 'string' && k.startsWith(prefix));
+    
+    await Promise.all(
+      targetKeys.map(async (key) => {
+        const planId = key.slice(prefix.length);
+        if (!planId) return;
+        try {
+          const data = await idbGet('projects', key);
+          if (data && Array.isArray(data.slides) && data.slides.length > 0) {
+            summary[planId] = {
+              planId,
+              hasCustomSlides: true,
+              slideCount: data.slides.length,
+              fileName: data.fileName || `${data.title || 'Bài giảng'}.pptx`,
+              updatedAt: data.updatedAt || new Date().toISOString()
+            };
+          }
+        } catch (_) {}
+      })
+    );
+  } catch (err) {
+    console.error('[storageService] Lỗi quét danh sách slide bài dạy từ IndexedDB:', err);
+  }
+  return summary;
 };
 
 function restoreOfficeDocUrls(stored) {

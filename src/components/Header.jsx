@@ -263,8 +263,8 @@ export default function Header({
                 </button>
                 <label className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 flex items-center gap-2 cursor-pointer">
                   <Upload className="w-4 h-4 text-indigo-600" />
-                  <span>Mở tệp từ máy (.conhi, .pptx)</span>
-                  <input type="file" accept=".conhi,.json,.pptx" className="hidden" onChange={handleFileInput} />
+                  <span>Mở tệp từ máy (.conhi, .pptx, .ppt)</span>
+                  <input type="file" accept=".conhi,.json,.pptx,.ppt" className="hidden" onChange={handleFileInput} />
                 </label>
                 <button
                   onClick={onUploadPPTX}

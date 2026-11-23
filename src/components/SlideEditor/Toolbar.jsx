@@ -189,15 +189,15 @@ export default function Toolbar({
         </div>
 
         {/* Right section: Enlarge Text, Focus Mode & Undo / Redo */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto pl-2">
           {onEnlargeSlideText && (
             <button
               type="button"
               onClick={onEnlargeSlideText}
-              className="px-2.5 py-1 text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 shrink-0"
+              className="px-2.5 py-1.5 text-[14px] font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95 shrink-0"
               title="Tăng cỡ chữ toàn bộ bài giảng trên trang này thêm 4pt cho dễ đọc"
             >
-              <span className="text-amber-700 font-bold">🗚</span>
+              <span className="text-amber-700 font-bold text-base leading-none">🗚</span>
               <span className="hidden sm:inline">Cỡ Chữ Slide (+4pt)</span>
             </button>
           )}
@@ -206,7 +206,7 @@ export default function Toolbar({
             <button
               type="button"
               onClick={onToggleFocusMode}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg flex items-center gap-1 transition-all shadow-2xs cursor-pointer active:scale-95 border shrink-0 ${
+              className={`px-2.5 py-1.5 text-[14px] font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95 border shrink-0 ${
                 isFocusMode
                   ? 'bg-amber-500 text-white border-amber-600'
                   : 'text-slate-700 bg-white hover:bg-slate-50 border-slate-300'

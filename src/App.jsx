@@ -530,11 +530,11 @@ export default function App() {
     }
   };
 
-  // Import native .conhi project hoặc tự động nhận diện nếu người dùng chọn .pptx
+  // Import native .conhi project hoặc tự động nhận diện nếu người dùng chọn .pptx hoặc .ppt
   const handleImportProject = async (file) => {
     if (!file) return;
     const lowerName = file.name.toLowerCase();
-    if (lowerName.endsWith('.pptx')) {
+    if (lowerName.endsWith('.pptx') || lowerName.endsWith('.ppt')) {
       setIsImportingPPTX(true);
       try {
         const { parsePPTXFile } = await import('./utils/pptxImportService');
@@ -591,11 +591,14 @@ export default function App() {
           handleConfirmOpenPPTX(result.slides, file.name);
           setOfficeSubTab('pptx');
           setActiveTab('editor');
-          const cleanTitle = file.name.replace(/\.pptx$/i, '').replace(/_/g, ' ');
+          const cleanTitle = file.name.replace(/\.(pptx|ppt)$/i, '').replace(/_/g, ' ');
           saveProjectToLocal({ title: cleanTitle, slides: result.slides }, currentUserSession?.email);
           clearProjectDraft(currentUserSession?.email);
           setIsSaved(true);
-          showToast(`Đã mở và lưu thành công bài giảng PowerPoint "${file.name}" (${result.slides.length} trang)!`, 'success');
+          const noticeMsg = result.isLegacyPpt 
+            ? `Đã mở và lưu bài giảng từ file PowerPoint cũ "${file.name}" (${result.slides.length} trang)!`
+            : `Đã mở và lưu thành công bài giảng PowerPoint "${file.name}" (${result.slides.length} trang)!`;
+          showToast(noticeMsg, 'success');
         } else {
           showToast('Tệp PowerPoint không có slide hoặc không đọc được.', 'error');
         }

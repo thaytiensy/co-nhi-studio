@@ -45,7 +45,7 @@ import {
   fetchStorageFromFirebase,
   subscribeToFirebaseStatus
 } from '../../utils/firebaseDatabaseService';
-import { savePlanSlidesToStorage, deletePlanSlidesFromStorage } from '../../utils/storageService';
+import { savePlanSlidesToStorage, deletePlanSlidesFromStorage, getStoredPlansSummary } from '../../utils/storageService';
 import PlanPPTXImportModal from './PlanPPTXImportModal';
 
 export default function BentoDashboardView({
@@ -93,10 +93,52 @@ export default function BentoDashboardView({
     return () => unsubscribe();
   }, []);
 
+  // Tự động kiểm tra và đồng bộ huy hiệu bài giảng đã lưu từ IndexedDB
+  const syncPlansWithIndexedDB = useCallback(async () => {
+    try {
+      const summary = await getStoredPlansSummary();
+      const planKeys = Object.keys(summary);
+      if (planKeys.length === 0) return;
+
+      setData((prevData) => {
+        if (!prevData?.plans) return prevData;
+        let hasChanges = false;
+        const updatedPlans = prevData.plans.map((p) => {
+          const item = summary[p.id];
+          if (item) {
+            if (!p.hasCustomSlides || p.slideCount !== item.slideCount) {
+              hasChanges = true;
+              return {
+                ...p,
+                hasCustomSlides: true,
+                slideCount: item.slideCount,
+                fileName: item.fileName,
+                customSlidesUpdatedAt: item.updatedAt
+              };
+            }
+          }
+          return p;
+        });
+
+        if (hasChanges) {
+          const next = { ...prevData, plans: updatedPlans };
+          saveStoredData(next);
+          return next;
+        }
+        return prevData;
+      });
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => {
+    syncPlansWithIndexedDB();
+  }, [syncPlansWithIndexedDB]);
+
   // Đăng ký lắng nghe thay đổi LocalStorage và chuyển đổi không gian tài khoản
   useEffect(() => {
     const handleStorageUpdate = () => {
       setData(getStoredData());
+      syncPlansWithIndexedDB();
     };
     window.addEventListener('conhi_storage_updated', handleStorageUpdate);
     window.addEventListener('conhi-storage-updated', handleStorageUpdate);
@@ -108,7 +150,7 @@ export default function BentoDashboardView({
       window.removeEventListener('conhi-workspace-changed', handleStorageUpdate);
       window.removeEventListener('storage', handleStorageUpdate);
     };
-  }, []);
+  }, [syncPlansWithIndexedDB]);
 
   // Hiển thị thông báo Toast mượt mà
   const showToast = (message, type = 'success') => {
@@ -729,15 +771,15 @@ export default function BentoDashboardView({
                             onNavigateTab('editor');
                           }
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl border text-[13px] font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 rounded-xl border text-[14px] font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95 ${
                           plan.hasCustomSlides
-                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-500 shadow-2xs hover:from-emerald-700 hover:to-teal-700'
+                            ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white border-emerald-500 shadow-sm'
                             : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
                         }`}
                         title={`Trình Chiếu F5 bài học: "${plan.title}"${plan.hasCustomSlides ? ` (${plan.slideCount || 0} slide đã lưu)` : ''}`}
                       >
                         <Presentation className="w-4 h-4 shrink-0" />
-                        <span className="hidden sm:inline whitespace-nowrap">Trình Chiếu</span>
+                        <span className="whitespace-nowrap">{plan.hasCustomSlides ? 'Trình Chiếu F5' : 'Trình Chiếu'}</span>
                       </button>
 
                       <button

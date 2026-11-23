@@ -37,8 +37,9 @@ export default function PlanPPTXImportModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.pptx')) {
-      setErrorMessage('Vui lòng chọn tệp định dạng PowerPoint (.pptx).');
+    const lowerName = (file.name || '').toLowerCase();
+    if (!lowerName.endsWith('.pptx') && !lowerName.endsWith('.ppt')) {
+      setErrorMessage('Vui lòng chọn tệp định dạng PowerPoint (.pptx hoặc .ppt).');
       return;
     }
 
@@ -51,7 +52,8 @@ export default function PlanPPTXImportModal({
         setParsedResult({
           slides: result.slides,
           count: result.slides.length,
-          fileName: file.name
+          fileName: file.name,
+          isLegacyPpt: Boolean(result.isLegacyPpt)
         });
       } else {
         setErrorMessage(result.error || 'Không trích xuất được slide từ tệp PowerPoint.');
@@ -149,6 +151,18 @@ export default function PlanPPTXImportModal({
                 Bài giảng đã được trích xuất hoàn tất và sẽ được <strong>lưu vĩnh viễn</strong> vào bài học <strong>"{plan.title}"</strong>. Thầy/Cô chọn cách bắt đầu:
               </div>
 
+              {parsedResult.isLegacyPpt && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-[14px] text-amber-900 flex items-start gap-2 shadow-2xs">
+                  <span className="text-base shrink-0">💡</span>
+                  <div className="flex-1">
+                    <strong>Đã đọc nội dung từ file PowerPoint cũ (.ppt):</strong>
+                    <p className="mt-0.5 text-[14px] text-amber-800 leading-relaxed">
+                      Hệ thống đã trích xuất toàn bộ nội dung bài học. Để có đầy đủ 100% hình ảnh và hiệu ứng gốc từ PowerPoint, Thầy/Cô có thể mở tệp trên máy tính và bấm <strong>F12 $\rightarrow$ Lưu dạng .pptx</strong> (chỉ mất 3 giây).
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <button
                   type="button"
@@ -239,7 +253,7 @@ export default function PlanPPTXImportModal({
         <input
           type="file"
           ref={fileInputRef}
-          accept=".pptx"
+          accept=".pptx,.ppt"
           className="hidden"
           onChange={handleFileChange}
         />

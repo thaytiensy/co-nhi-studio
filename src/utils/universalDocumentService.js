@@ -3,21 +3,106 @@ import * as XLSX from 'xlsx';
 import { parsePPTXFile } from './pptxImportService.js';
 
 /**
+ * Trích xuất nội dung văn bản từ tệp Word định dạng cũ (.doc 97-2003)
+ */
+export async function parseLegacyWordDoc(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    const strings = [];
+    let curUtf16 = '';
+
+    // Quét chuỗi UTF-16LE
+    for (let i = 0; i < bytes.length - 1; i += 2) {
+      const code = bytes[i] | (bytes[i + 1] << 8);
+      const isPrintable = (code >= 32 && code <= 126) || (code >= 0x00c0 && code <= 0x1ef9);
+      if (isPrintable) {
+        curUtf16 += String.fromCharCode(code);
+      } else {
+        if (curUtf16.trim().length >= 3) {
+          const trimmed = curUtf16.trim();
+          const isSystemMeta = /^(Root Entry|WordDocument|1Table|0Table|Data|SummaryInformation|DocumentSummaryInformation|CompObj|ObjectPool|Normal|Default Paragraph Font)/i.test(trimmed);
+          if (!isSystemMeta && !strings.includes(trimmed)) {
+            strings.push(trimmed);
+          }
+        }
+        curUtf16 = '';
+      }
+    }
+
+    // Quét ASCII dự phòng
+    if (strings.length < 5) {
+      let curAscii = '';
+      for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        if ((b >= 32 && b <= 126) || b === 10 || b === 13) {
+          curAscii += String.fromCharCode(b);
+        } else {
+          if (curAscii.trim().length >= 4) {
+            const trimmed = curAscii.trim();
+            const isSystemMeta = /^(Root Entry|WordDocument|SummaryInformation)/i.test(trimmed);
+            if (!isSystemMeta && !strings.includes(trimmed)) {
+              strings.push(trimmed);
+            }
+          }
+          curAscii = '';
+        }
+      }
+    }
+
+    const cleanTitle = file.name.replace(/\.doc$/i, '').replace(/_/g, ' ');
+    const items = strings.map((str) => {
+      const isHeading = str.length < 90 && (/^(BÀI|CHỦ ĐỀ|HOẠT ĐỘNG|I\.|II\.|III\.|IV\.|GIÁO ÁN)/i.test(str) || str.toUpperCase() === str);
+      return {
+        type: isHeading ? 'heading' : 'paragraph',
+        text: str,
+        isBold: isHeading
+      };
+    });
+
+    return {
+      success: true,
+      type: 'docx',
+      fileName: file.name,
+      fileSize: file.size,
+      title: items.find(it => it.type === 'heading')?.text || cleanTitle,
+      items: items.length > 0 ? items : [{ type: 'paragraph', text: 'Tệp Word cũ (.doc). Thầy/Cô vui lòng mở trên máy và bấm F12 -> Lưu dạng .docx để xem đầy đủ bảng biểu.' }],
+      fullText: strings.join('\n\n'),
+      isLegacyDoc: true
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: `Không thể đọc tệp Word cũ (.doc): ${err.message || err}`
+    };
+  }
+}
+
+/**
  * Phân tích tệp Word (.docx) trực tiếp trên trình duyệt
  * Trích xuất: Tiêu đề, các đoạn văn, bảng biểu, danh sách mục
  */
 export async function parseWordDocx(file) {
   try {
+    const lowerName = (file.name || '').toLowerCase();
+    if (lowerName.endsWith('.doc')) {
+      return await parseLegacyWordDoc(file);
+    }
+
     const arrayBuffer = await file.arrayBuffer();
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    let zip;
+    try {
+      zip = await JSZip.loadAsync(arrayBuffer);
+    } catch (_) {
+      // Fallback sang parse legacy nếu tệp có đuôi .docx nhưng nội dung thực tế là .doc cũ
+      return await parseLegacyWordDoc(file);
+    }
+
     const docXmlFile = zip.file('word/document.xml');
     
     if (!docXmlFile) {
-      // Trường hợp tệp .doc cũ hoặc không chuẩn OpenXML
-      return {
-        success: false,
-        error: 'Tệp Word không theo chuẩn OpenXML (.docx). Vui lòng lưu tệp ở định dạng .docx để đọc đầy đủ cấu trúc.'
-      };
+      // Fallback sang parse legacy
+      return await parseLegacyWordDoc(file);
     }
 
     const xmlText = await docXmlFile.async('text');

@@ -131,3 +131,29 @@ export async function idbDelete(storeName, key) {
     return false;
   }
 }
+
+/**
+ * Lấy toàn bộ danh sách khóa trong store của IndexedDB
+ * @param {'projects' | 'office_docs' | 'smas'} storeName
+ * @returns {Promise<string[]>}
+ */
+export async function idbGetAllKeys(storeName) {
+  try {
+    const db = await getDB();
+    if (!db) return [];
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const req = store.getAllKeys();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      } catch (_) {
+        resolve([]);
+      }
+    });
+  } catch (_) {
+    return [];
+  }
+}
