@@ -799,7 +799,7 @@ export async function generateSlidePedagogyTips({ slide, grade = 1, isOnline = t
   // 2. Nếu online, thử gọi AI để tinh chỉnh chi tiết
   if (isOnline && combinedContext.length > 10) {
     try {
-      const prompt = `Bạn là Thầy Cọ Nhí - Giáo viên Mĩ thuật tiểu học Việt Nam (GDPT 2018).
+      const prompt = `Bạn là Cọ Nhí - Giáo viên Mĩ thuật tiểu học Việt Nam (GDPT 2018).
 Dựa vào nội dung slide: "${combinedContext.slice(0, 300)}" (Dành cho Lớp ${grade}).
 Hãy trả về JSON gồm:
 {

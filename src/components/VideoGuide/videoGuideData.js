@@ -1,107 +1,111 @@
 /**
  * Bộ dữ liệu 6 chương video hướng dẫn sử dụng Cọ Nhí Studio lưu cục bộ trong app
- * Tương ứng 6 phân hệ cốt lõi với audio Neural Thuyết minh Nam Minh & Nữ Hoài My
+ * Bám sát 100% các phân hệ thực tế: Bento Dashboard, Soạn Slide & Nhận Diện Mọi Tệp Office,
+ * Trình Chiếu F5, Bảng Vẽ 11 Khối 3D & Trò Chơi, Cam Chấm Tranh AI, Sổ Điểm SMAS 35 Tuần
  */
 
 export const VIDEO_CHAPTERS = [
   {
     id: 1,
     partNumber: 'PHẦN 1 / 6',
-    title: 'Giới Thiệu Tổng Quan & Khởi Đầu Với Trang Trắng',
+    title: 'Tổng Quan Bento Dashboard & Lịch Báo Giảng 35 Tuần GDPT 2018',
     time: '0:00 - 0:45',
     durationSec: 45,
     audioSrc: '/video-guide/audio/part1.mp3',
-    targetTab: 'editor',
-    highlights: ['100% Cục bộ Ngoại tuyến', 'Không quảng cáo • Miễn phí', 'Chuẩn GDPT 2018'],
+    targetTab: 'dashboard',
+    highlights: ['Bento Dashboard Trực Quan', 'Lọc Khối Lớp 1 - 5 Chuẩn SGK', 'Nút Nhập Giáo Án PP 1 Chạm', 'Lưu Cục Bộ Vĩnh Viễn'],
     sentences: [
-      'Kính chào quý Thầy Cô giáo dạy Mĩ thuật Tiểu học trên mọi miền Tổ quốc!',
-      'Một tiết học vẽ thành công luôn bắt đầu từ niềm cảm hứng và sự chuẩn bị chu đáo của Thầy Cô.',
-      'Làm sao để vừa có slide bài giảng sinh động, vừa thị phạm nét vẽ dễ hiểu, lại vừa chấm bài theo Thông tư 27 thật nhanh chóng mà hoàn toàn miễn phí?',
-      'Chào mừng quý Thầy Cô đến với Cọ Nhí Studio - phần mềm soạn giảng và trình chiếu mĩ thuật chuyên biệt theo bộ sách Kết nối tri thức với cuộc sống.',
-      'Không gian làm việc trắng tinh, sạch sẽ, không quảng cáo, sẵn sàng cho những ý tưởng sáng tạo tuyệt vời!'
+      'Kính chào quý Thầy Cô giáo dạy môn Mĩ thuật Tiểu học trên toàn quốc!',
+      'Chào mừng Thầy Cô đến với Cọ Nhí Studio - nền tảng soạn giảng và quản lý mĩ thuật chuyên biệt chuẩn GDPT 2018.',
+      'Tại phân hệ Tổng Quan Bento Dashboard, Thầy Cô quản lý trọn vẹn 35 tuần kế hoạch bài dạy theo bộ sách Kết nối tri thức từ Lớp 1 đến Lớp 5.',
+      'Bộ lọc thông minh giúp Thầy Cô lọc nhanh theo khối lớp, theo trạng thái Đã dạy hoặc Sắp dạy, kèm các thẻ thống kê KPI tiến độ trực quan.',
+      'Đặc biệt, mỗi bài dạy đều tích hợp nút Nhập Giáo Án PP để tải slide bài giảng và nút Trình Chiếu trực tiếp mà không cần nạp lại!'
     ]
   },
   {
     id: 2,
     partNumber: 'PHẦN 2 / 6',
-    title: 'Soạn Slide 16:9, Tải Lên & Xuất PowerPoint',
+    title: 'Phòng Soạn Slide 16:9, Bộ Nhận Diện Thông Minh Mọi Tệp & Lưu IndexedDB',
     time: '0:45 - 1:45',
     durationSec: 60,
     audioSrc: '/video-guide/audio/part2.mp3',
     targetTab: 'editor',
-    highlights: ['Tỉ lệ vàng 16:9 sắc nét', 'Nhập / Xuất PowerPoint', 'Phím tắt đứng lớp F5'],
+    highlights: ['Nhận Diện Mọi File PPTX/PPT/Word/Excel/PDF', 'Lưu Đa Tầng Vào IndexedDB', 'Tỉ Lệ Vàng 16:9 Chuẩn Tivi', 'Chữ To Hỗ Trợ GV 50+'],
     sentences: [
-      'Thao tác trên Cọ Nhí Studio vô cùng quen thuộc và trực quan giống như PowerPoint.',
-      'Màn hình trung tâm luôn giữ đúng tỉ lệ vàng 16 chia 9, không bao giờ bị méo hình hay tràn viền trên tivi, máy chiếu.',
-      'Thầy Cô có thể dễ dàng thêm chữ, đổi màu sắc tươi sáng, chèn hình khối và hình ảnh minh họa.',
-      'Khi cần xóa ảnh hay đối tượng, chỉ cần bấm biểu tượng thùng rác màu đỏ hoặc ấn phím Delete trên bàn phím.',
-      'Đặc biệt, nếu Thầy Cô đã có bài PowerPoint cũ, chỉ cần bấm "Tải giáo án PowerPoint lên" để mở ngay trong trình duyệt.',
-      'Soạn xong, Thầy Cô có thể bấm "Xuất PowerPoint" để mang đi giảng dạy ở bất cứ đâu!'
+      'Phân hệ PowerPoint & Office sở hữu Bộ nhận diện thông minh xử lý mọi định dạng tệp người dùng tải lên.',
+      'Hệ thống tự động đọc tệp PowerPoint mới .pptx, tệp PowerPoint cũ .ppt 97-2003, văn bản Word .docx, .doc, bảng tính Excel và tệp PDF.',
+      'Với tệp PowerPoint cũ .ppt, phần mềm tự động bóc tách chuỗi văn bản tạo slide chuẩn và hướng dẫn lưu sang .pptx chỉ trong 3 giây.',
+      'Toàn bộ bài giảng được lưu trữ vĩnh viễn vào bộ nhớ IndexedDB trên máy tính giáo viên, chuyển tab hay làm mới trang F5 đều không bao giờ mất bài.',
+      'Khung soạn thảo chuẩn tỉ lệ 16:9 sắc nét, phông chữ Times New Roman từ 14pt trở lên, tích hợp chế độ chữ to hỗ trợ giáo viên lớn tuổi!'
     ]
   },
   {
     id: 3,
     partNumber: 'PHẦN 3 / 6',
-    title: 'Trợ Lý Sư Phạm AI & Giọng Đọc Thầy Nam / Cô Nữ',
+    title: 'Trình Chiếu Toàn Màn Hình F5 Lớp Học & Tương Thích Bút Trình Chiếu USB',
     time: '1:45 - 2:45',
     durationSec: 60,
     audioSrc: '/video-guide/audio/part3.mp3',
-    targetTab: 'dashboard',
-    highlights: ['Đàm thoại giọng nói 0.3s', 'Tự đổi giọng Nam/Nữ', 'Gợi ý chuẩn Thông tư 32'],
+    targetTab: 'editor',
+    highlights: ['Kích Hoạt F5 / F11 Tức Thì', 'Tương Thích 100% Bút Bấm USB', 'Phím Tắt Đứng Lớp B, W, L', 'Vẽ Trực Tiếp Lên Slide'],
     sentences: [
-      'Điểm khác biệt lớn nhất của Cọ Nhí Studio chính là người bạn Trợ Giảng Sư Phạm luôn túc trực ở góc màn hình.',
-      'Thầy Cô chỉ cần chọn khối lớp và bài học, Trợ giảng sẽ gợi ý ngay mục tiêu cần đạt theo Thông tư 32 và thiết kế trò chơi khởi động.',
-      'Thầy Cô có thể dùng trợ giảng Cục bộ ngoại tuyến không cần mạng, hoặc dùng AI trực tuyến miễn phí 100%.',
-      'Hệ thống trang bị giọng đọc tiếng Việt chuẩn Neural: giọng Thầy giáo Nam Minh trầm ấm hào sảng, hoặc Cô giáo Hoài My nhẹ nhàng truyền cảm xuyên suốt ứng dụng!'
+      'Khi bước vào tiết dạy trên lớp, Thầy Cô chỉ cần bấm phím F5 trên bàn phím hoặc nhấp nút Trình Chiếu trên thanh công cụ.',
+      'Chế độ toàn màn hình 16:9 tối ưu cho màn hình tivi 55 đến 85 inch và máy chiếu lớp học, mang lại trải nghiệm thị giác cuốn hút.',
+      'Hệ thống tương thích hoàn hảo với bút trình chiếu không dây cổng USB, giúp Thầy Cô tự do di chuyển khắp lớp học để hướng dẫn học sinh.',
+      'Các phím tắt sư phạm tiện lợi: phím B chuyển màn hình đen tập trung, phím W mở bảng trắng, phím L kích hoạt tia laser chỉ điểm.',
+      'Thầy Cô còn có thể dùng cọ dạ quang và bút vẽ điện tử để gạch chân, khoanh tròn điểm nhấn trực tiếp trên trang slide khi giảng bài!'
     ]
   },
   {
     id: 4,
     partNumber: 'PHẦN 4 / 6',
-    title: 'Bảng Vẽ Thị Phạm 11 Khối 3D & Mini-Game Mĩ Thuật',
+    title: 'Bảng Vẽ Thị Phạm 11 Khối 3D & Sân Chơi Trò Chơi Mĩ Thuật Tương Tác',
     time: '2:45 - 3:45',
     durationSec: 60,
-    audioSrc: '/video-guide/audio/part5.mp3',
+    audioSrc: '/video-guide/audio/part4.mp3',
     targetTab: 'drawing',
-    highlights: ['11 Khối không gian 3D', 'Nét vẽ Bézier mượt mà', 'Mini-game thi đấu giữa các tổ'],
+    highlights: ['11 Khối Không Gian 3D Chuẩn SGK', 'Nét Vẽ Bézier Mượt Mà Bằng Chuột', 'Chèn Tranh Vào Slide 1 Chạm', '3 Mini-Game Khởi Động Hào Hứng'],
     sentences: [
-      'Để giúp học sinh nắm vững cách phác hình và dựng khối, tab Bảng Vẽ Thị Phạm được trang bị đầy đủ 11 hình phẳng và khối 3D.',
-      'Nét vẽ được tối ưu bằng thuật toán Bézier bậc 2, giúp Thầy Cô vẽ bằng chuột vẫn mềm mại, tròn trịa.',
-      'Vẽ xong, chỉ cần bấm "Chèn Tranh Vào Slide" là tác phẩm đã nằm ngay trên bài giảng!',
-      'Hệ thống tích hợp 3 Mini-game mĩ thuật tương tác: Ghép màu nóng lạnh, nhận biết hình khối và tìm chi tiết tranh để học sinh thi đua sôi nổi!'
+      'Bảng Vẽ Thị Phạm được thiết kế như một bàn vẽ nghệ thuật kỹ thuật số phục vụ giáo viên thị phạm các bước tạo hình mẫu.',
+      'Trang bị hệ thống 11 khối hình học 3D chuẩn giáo trình: khối hộp, khối cầu, nón, trụ, lăng trụ cùng quy trình 4 bước vẽ chuẩn mực.',
+      'Thuật toán làm mượt Bézier bậc hai giúp Thầy Cô vẽ nét bằng chuột máy tính vẫn tròn trịa, mềm mại như vẽ bằng bút vẽ chuyên dụng.',
+      'Chỉ với một cú chạm vào nút "Chèn Tranh Vào Slide", nét vẽ thị phạm mẫu sẽ được tự động đưa ngay vào bài giảng đang soạn thảo.',
+      'Bên cạnh đó, phân hệ Trò Chơi Mĩ Thuật với 3 mini-game: Bánh xe màu sắc, Nhận biết hình khối và Ghép tranh nghệ thuật giúp lớp học sôi nổi ngay từ phút đầu tiên!'
     ]
   },
   {
     id: 5,
     partNumber: 'PHẦN 5 / 6',
-    title: 'Cam Chấm Tranh Rubric TT27 & Sổ Điểm SMAS 35 Tuần',
+    title: 'Cam Chấm Tranh Mắt Thần AI (Rubric TT27) & Trợ Giảng Cọ Nhí',
     time: '3:45 - 4:45',
     durationSec: 60,
-    audioSrc: '/video-guide/audio/part6.mp3',
-    targetTab: 'evaluation',
-    highlights: ['Chấm Webcam/Ảnh 4 tiêu chí', 'Sổ 35 tuần & Sổ tổng hợp', 'Xuất Excel Viettel SMAS'],
+    audioSrc: '/video-guide/audio/part5.mp3',
+    targetTab: 'camera',
+    highlights: ['Quét Webcam & Tải Ảnh Tranh', 'Rubric 4 Tiêu Chí GDPT 2018', 'Quy Đổi T, H, C Theo TT 27', 'Đồng Bộ Thẳng Vào Sổ Điểm'],
     sentences: [
-      'Đến khâu đánh giá sản phẩm, chức năng Cam Chấm Tranh sẽ là trợ thủ đắc lực cho Thầy Cô.',
-      'Thầy Cô có thể dùng webcam máy tính hoặc tải ảnh chụp bài vẽ của học sinh lên để phân tích bố cục và hòa sắc.',
-      'Dựa trên Thang Rubric 4 tiêu chí chuẩn GDPT 2018, app sẽ gợi ý 3 bước cải thiện cụ thể và soạn sẵn câu nhận xét ấm áp, khích lệ.',
-      'Tại tab Sổ Điểm SMAS, Thầy Cô quản lý song song Sổ theo dõi thường xuyên 35 tuần và Sổ tổng hợp định kỳ, xuất Excel nộp nhà trường trong chớp mắt!'
+      'Phân hệ Cam Chấm Tranh ứng dụng công nghệ trí tuệ nhân tạo thị giác máy tính Gemini Multimodal để thẩm định bài vẽ của học sinh.',
+      'Thầy Cô có thể quét bài trực tiếp qua webcam máy tính hoặc tải ảnh chụp tranh từ điện thoại và máy tính lên.',
+      'AI thẩm định theo Rubric 4 tiêu chí chuẩn GDPT 2018: Sáng tạo ý tưởng, Bố cục không gian, Kỹ thuật nét màu và Cảm xúc thẩm mĩ.',
+      'Hệ thống tự động quy đổi kết quả sang 3 mức theo Thông tư 27: Hoàn thành tốt (T), Hoàn thành (H), Chưa hoàn thành (C).',
+      'Đồng thời, Trợ giảng AI soạn sẵn lời nhận xét sư phạm ấm áp, chỉ ra 3 bước cụ thể để hoàn thiện bức tranh và tự động lưu thẳng vào sổ theo dõi!'
     ]
   },
   {
     id: 6,
     partNumber: 'PHẦN 6 / 6',
-    title: 'Trình Chiếu F5 Lớp Học, Phím Tắt & Lưu Trữ Cục Bộ',
+    title: 'Sổ Điểm SMAS 35 Tuần, Bộ Lọc Lớp Dạy & Xuất Báo Cáo Chuẩn Quy Định',
     time: '4:45 - 6:00',
     durationSec: 75,
-    audioSrc: '/video-guide/audio/part7.mp3',
-    targetTab: 'editor',
-    highlights: ['Toàn màn hình F5 sắc nét', 'Phím tắt B, W, L, Space', 'Lưu an toàn trên máy'],
+    audioSrc: '/video-guide/audio/part6.mp3',
+    targetTab: 'evaluation',
+    highlights: ['Lọc Đúng Các Lớp Phụ Trách', '2 Sổ: 35 Tuần & Tổng Hợp Định Kỳ', 'Tổng Hợp GK/CK 1 Chạm', 'Xuất Excel SMAS/vnEdu & Word CV 2345'],
     sentences: [
-      'Khi bước vào giờ dạy, Thầy Cô chỉ cần bấm F5 hoặc nút Trình Chiếu.',
-      'Giao diện toàn màn hình sắc nét, điều khiển mượt mà bằng phím bấm hoặc chuột, tích hợp đồng hồ bấm giờ và lời giảng sinh động.',
-      'Ứng dụng chạy mượt trên mọi máy tính mà không cần cài đặt phức tạp, dữ liệu lưu an toàn 100% trên máy.',
-      'Kính chúc quý Thầy Cô có những tiết dạy mĩ thuật tràn đầy niềm vui và chắp cánh cho ước mơ hội họa của các thế hệ học trò thân yêu!',
-      'Xin chân thành cảm ơn quý Thầy Cô!'
+      'Phân hệ Sổ Điểm SMAS giúp Thầy Cô số hóa toàn diện công tác ghi chép và đánh giá học sinh tiểu học.',
+      'Bộ lọc lớp dạy thông minh chỉ hiển thị những lớp giáo viên thực dạy, giúp theo dõi danh sách học sinh chuẩn xác và gọn gàng.',
+      'Hệ thống quản lý song song Sổ theo dõi đánh giá thường xuyên 35 tuần và Sổ tổng hợp đánh giá định kỳ Giữa kỳ, Cuối kỳ.',
+      'Tính năng Tổng hợp định kỳ 1 chạm tự động tính toán tỷ lệ Hoàn thành tốt và đề xuất câu nhận xét không trùng lặp cho từng học sinh.',
+      'Thao tác xuất file cực kỳ linh hoạt: Xuất file Excel chuẩn mẫu nhập điểm hệ thống SMAS Viettel và vnEdu, xuất giáo án Word chuẩn Nghị định 30.',
+      'Kính chúc quý Thầy Cô có những tiết dạy mĩ thuật tràn ngập cảm hứng và thành công rực rỡ cùng Cọ Nhí Studio!'
     ]
   }
 ];

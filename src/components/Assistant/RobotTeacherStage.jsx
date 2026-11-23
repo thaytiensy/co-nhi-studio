@@ -63,7 +63,7 @@ export default function RobotTeacherStage({
             </div>
             <div className="mt-4 text-center">
               <h4 className="text-sm font-black text-amber-200 tracking-wide">
-                {currentGender === 'male' ? 'Thầy Cọ Nhí Sư Phạm' : 'Cô Trợ Giảng Mĩ Thuật'}
+                {currentGender === 'male' ? 'Cọ Nhí Sư Phạm' : 'Cô Trợ Giảng Mĩ Thuật'}
               </h4>
               <p className="text-[11px] text-amber-300/80 font-medium mt-0.5">
                 {activeTopicLabel || 'Đàm thoại Sư phạm GDPT 2018'}

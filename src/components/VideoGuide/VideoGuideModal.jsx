@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ExternalLink, FileText, Download, Presentation, Globe, BookOpen } from 'lucide-react';
+import { X, FileText, Download, Presentation, BookOpen } from 'lucide-react';
 import { VIDEO_CHAPTERS } from './videoGuideData';
 import VideoPlayerStage from './VideoPlayerStage';
 import VideoChapterList from './VideoChapterList';
@@ -24,10 +24,6 @@ export default function VideoGuideModal({ isOpen, onClose, onNavigateTab }) {
   const handleSelectChapter = (index) => {
     setCurrentChapterIndex(index);
     setIsPlaying(true);
-  };
-
-  const handleOpenCanva = () => {
-    window.open('https://canva.link/eci6lflrsyyf8ke', '_blank', 'noopener,noreferrer');
   };
 
   const handleDownloadPptx = () => {
@@ -67,23 +63,13 @@ export default function VideoGuideModal({ isOpen, onClose, onNavigateTab }) {
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">
-                Đầy đủ 6 phân hệ • Slide Canva Online • Tệp PowerPoint (.pptx) • Văn bản Word (.doc) & Video giọng đọc AI
+                Đầy đủ 6 phân hệ • Bộ Slide PowerPoint (.pptx) • Văn bản Word (.doc) & Video giọng đọc AI Nam Minh
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* 1. Mở Slide Canva Online */}
-            <button
-              onClick={handleOpenCanva}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer border border-teal-400/30"
-              title="Mở xem & trình chiếu bộ slide hướng dẫn trực tuyến trên Canva"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>Slide Canva Online</span>
-            </button>
-
-            {/* 2. Tải Tệp PowerPoint PPTX */}
+            {/* 1. Tải Tệp PowerPoint PPTX */}
             <button
               onClick={handleDownloadPptx}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer border border-amber-400/30"
@@ -93,7 +79,7 @@ export default function VideoGuideModal({ isOpen, onClose, onNavigateTab }) {
               <span>Tải Slide PPTX</span>
             </button>
 
-            {/* 3. Tải File Mô Tả App Word (.doc) Button */}
+            {/* 2. Tải File Mô Tả App Word (.doc) Button */}
             <button
               onClick={handleDownloadWordDoc}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs shadow-sm transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer border border-indigo-400/30"
@@ -117,10 +103,7 @@ export default function VideoGuideModal({ isOpen, onClose, onNavigateTab }) {
         <div className="bg-slate-800/60 border-b border-slate-700/60 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300 shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-amber-400 font-bold">💡 Tài liệu đi kèm:</span>
-            <span>Slide Canva trực tuyến, Tệp PowerPoint 16:9, Văn bản Word chuẩn NĐ 30/2020/NĐ-CP & Audio giọng đọc AI Nam Minh.</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-400 text-xs">
-            <span>🔒 Bảo mật: Đã giấu thông tin cá nhân</span>
+            <span>Bộ Slide PowerPoint 16:9, Văn bản Word chuẩn NĐ 30/2020/NĐ-CP & Video thuyết minh minh họa tương tác.</span>
           </div>
         </div>
 

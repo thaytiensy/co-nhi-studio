@@ -291,7 +291,7 @@ export default function Header({
             <button
               onClick={onToggleAssistant}
               className="px-3 py-1.5 text-xs font-black text-amber-950 bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 hover:from-amber-200 hover:to-amber-300 border border-amber-300 rounded-lg shadow-2xs hover:shadow-xs flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer"
-              title="Mở Thầy Trợ Giảng AI Mĩ Thuật GDPT 2018"
+              title="Mở Trợ Giảng AI Cọ Nhí Mĩ Thuật GDPT 2018"
             >
               <Sparkles className="w-4 h-4 text-amber-600 fill-amber-500" />
               <span className="hidden xl:inline">Trợ Giảng AI</span>

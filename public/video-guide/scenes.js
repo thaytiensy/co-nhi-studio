@@ -104,7 +104,7 @@ export const VIDEO_SCENES = [
       ctx.fillStyle = '#1e293b';
       ctx.font = 'bold 16px sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('Thầy Cọ Nhí kính chào Thầy Cô!', tx - 305, ty - 25);
+      ctx.fillText('Cọ Nhí kính chào Thầy Cô!', tx - 305, ty - 25);
 
       ctx.restore();
     }

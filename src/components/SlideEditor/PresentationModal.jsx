@@ -1449,7 +1449,7 @@ export default function PresentationModal({
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm text-white">Gợi Ý Sư Phạm AI — Thầy Cọ Nhí</h3>
+                  <h3 className="font-extrabold text-sm text-white">Gợi Ý Sư Phạm AI — Cọ Nhí</h3>
                   <p className="text-[11px] text-amber-300/80 font-medium">Chủ đề nhận diện: {aiTips?.topic || 'Mĩ Thuật GDPT 2018'}</p>
                 </div>
               </div>
@@ -1464,7 +1464,7 @@ export default function PresentationModal({
             {isLoadingAiTips ? (
               <div className="py-8 text-center space-y-2">
                 <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs text-slate-400">Thầy Cọ Nhí đang đọc nội dung slide và chuẩn bị câu hỏi...</p>
+                <p className="text-xs text-slate-400">Cọ Nhí đang đọc nội dung slide và chuẩn bị câu hỏi...</p>
               </div>
             ) : aiTips ? (
               <div className="space-y-3">

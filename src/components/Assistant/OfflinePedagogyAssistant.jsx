@@ -76,7 +76,7 @@ export default function OfflinePedagogyAssistant({
   };
 
   const handleCharacterClick = () => {
-    const roleTitle = currentGender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
+    const roleTitle = currentGender === 'male' ? 'Trợ Giảng AI Cọ Nhí' : 'Cô Trợ Giảng AI';
     const prompt = `Dạ em chào Thầy Cô ạ! Em là ${roleTitle} của Cọ Nhí Studio. Thầy Cô cần em tư vấn mẹo xử lý học sinh sợ vẽ sai, hay trò chơi khởi động năm phút không ạ?`;
     setCurrentSpokenText(prompt);
     speechService.speak(prompt);

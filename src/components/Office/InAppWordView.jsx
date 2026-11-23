@@ -145,7 +145,7 @@ export default function InAppWordView({ docData, onUploadDocx }) {
                 ? 'bg-rose-600 text-white border-rose-400 animate-pulse'
                 : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400/40 shadow-xs'
             }`}
-            title="Nghe Thầy Cọ Nhí đọc to toàn bộ giáo án bằng giọng Nam Minh Neural"
+            title="Nghe Cọ Nhí đọc to toàn bộ giáo án bằng giọng Nam Minh Neural"
           >
             {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
             <span>{isSpeaking ? 'Dừng Đọc' : 'Đọc Văn Bản'}</span>

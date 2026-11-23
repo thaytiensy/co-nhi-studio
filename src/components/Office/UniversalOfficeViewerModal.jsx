@@ -93,10 +93,10 @@ export default function UniversalOfficeViewerModal({
                     ? 'bg-rose-500 text-white border-rose-400 animate-pulse'
                     : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400/40'
                 }`}
-                title="Nghe Thầy Cọ Nhí đọc to toàn bộ văn bản giáo án"
+                title="Nghe Cọ Nhí đọc to toàn bộ văn bản giáo án"
               >
                 {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">{isSpeaking ? 'Dừng Đọc' : 'Thầy Cọ Nhí Đọc'}</span>
+                <span className="hidden sm:inline">{isSpeaking ? 'Dừng Đọc' : 'Cọ Nhí Đọc'}</span>
               </button>
             )}
 

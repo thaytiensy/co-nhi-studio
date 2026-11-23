@@ -430,7 +430,7 @@ export default function SpeakerNotes({
                 ? 'bg-amber-100 text-amber-950 border border-amber-400 animate-pulse'
                 : 'text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 active:scale-95'
             }`}
-            title="AI Thầy Cọ Nhí tự động phân tích trang slide và soạn thảo lời giảng truyền cảm hứng theo SGK Kết Nối Tri Thức Với Cuộc Sống"
+            title="AI Cọ Nhí tự động phân tích trang slide và soạn thảo lời giảng truyền cảm hứng theo SGK Kết Nối Tri Thức Với Cuộc Sống"
           >
             <Sparkles className={`w-4 h-4 text-amber-600 ${isGeneratingAiSpeech ? 'animate-spin' : ''}`} />
             <span>
