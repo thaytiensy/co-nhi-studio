@@ -17,6 +17,7 @@ import {
   FilePlus,
   RotateCcw,
   Film,
+  BookOpen,
   Lock,
   Unlock,
   Mail,
@@ -127,15 +128,15 @@ export default function Header({
             </button>
           )}
 
-          {/* Hiển thị không gian làm việc riêng biệt của từng tài khoản */}
+          {/* Hiển thị không gian làm việc riêng biệt của từng tài khoản (Bảo vệ thông tin cá nhân) */}
           {userSession?.role === 'super_admin' ? (
             /* Super Admin 1 */
             <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-200 text-rose-950 rounded-xl text-xs font-black shadow-2xs">
               <ShieldCheck className="w-4 h-4 text-rose-600 shrink-0" />
               <div className="flex flex-col text-left">
-                <span className="text-[9px] text-rose-600 font-extrabold uppercase tracking-wider">Không gian Super Admin</span>
-                <span className="truncate max-w-[190px]" title={userSession.email}>
-                  {userSession.email}
+                <span className="text-[11px] text-rose-600 font-extrabold uppercase tracking-wider">Không gian Super Admin</span>
+                <span className="truncate max-w-[190px]" title="Tài khoản Quản trị cấp 1">
+                  {userSession.email ? `${userSession.email.slice(0, 2)}***@${userSession.email.split('@')[1] || 'gmail.com'}` : 'Admin'}
                 </span>
               </div>
               {onLogout && (
@@ -153,9 +154,9 @@ export default function Header({
             <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-950 rounded-xl text-xs font-black shadow-2xs">
               <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
               <div className="flex flex-col text-left">
-                <span className="text-[9px] text-indigo-600 font-extrabold uppercase tracking-wider">Không gian Admin</span>
-                <span className="truncate max-w-[190px]" title={userSession.email}>
-                  {userSession.email}
+                <span className="text-[11px] text-indigo-600 font-extrabold uppercase tracking-wider">Không gian Admin</span>
+                <span className="truncate max-w-[190px]" title="Tài khoản Quản trị phụ">
+                  {userSession.email ? `${userSession.email.slice(0, 2)}***@${userSession.email.split('@')[1] || 'gmail.com'}` : 'Admin'}
                 </span>
               </div>
               {onLogout && (
@@ -175,9 +176,9 @@ export default function Header({
                 {userSession.email[0].toUpperCase()}
               </div>
               <div className="flex flex-col text-left">
-                <span className="text-[9px] text-amber-700 font-bold uppercase tracking-wider">Không gian riêng</span>
-                <span className="truncate max-w-[190px] font-bold" title={userSession.email}>
-                  {userSession.email}
+                <span className="text-[11px] text-amber-700 font-bold uppercase tracking-wider">Không gian riêng</span>
+                <span className="truncate max-w-[190px] font-bold" title="Không gian giáo viên">
+                  {userSession.email ? `${userSession.email.slice(0, 2)}***@${userSession.email.split('@')[1] || 'gmail.com'}` : 'Giáo viên'}
                 </span>
               </div>
               {onLogout && (
@@ -194,12 +195,12 @@ export default function Header({
           {onOpenVideoGuide && (
             <button
               onClick={onOpenVideoGuide}
-              className="px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 rounded-lg flex items-center gap-1.5 transition-all shadow-sm transform hover:-translate-y-0.5 active:scale-95"
-              title="Xem video giới thiệu & hướng dẫn sử dụng Cọ Nhí Studio (6 phút)"
+              className="px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-rose-500 via-amber-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 rounded-lg flex items-center gap-1.5 transition-all shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              title="Xem cẩm nang hướng dẫn sử dụng, slide thuyết trình & video demo chi tiết (GDPT 2018)"
             >
-              <Film className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Video Hướng Dẫn (6p)</span>
-              <span className="md:hidden">Video 6p</span>
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden md:inline whitespace-nowrap">Hướng Dẫn Sử Dụng</span>
+              <span className="md:hidden whitespace-nowrap">Hướng Dẫn</span>
             </button>
           )}
 
