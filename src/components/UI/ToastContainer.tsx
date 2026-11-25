@@ -2,20 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
-import { toastService, ToastItem } from '../../utils/toastService';
+import { toastService, type ToastItem } from '../../utils/toastService';
 
 export default function ToastContainer(): React.JSX.Element | null {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
-    const unsubscribe = toastService.subscribe((newToast) => {
+    const unsubscribe = toastService.subscribe((newToast: ToastItem) => {
       setToasts((prev) => [...prev.slice(-4), newToast]); // Giữ tối đa 5 toast gần nhất
       const duration = newToast.duration || 3500;
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== newToast.id));
       }, duration);
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleDismiss = (id: string) => {

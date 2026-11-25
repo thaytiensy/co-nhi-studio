@@ -16,6 +16,7 @@ export interface TeachingPlanItem {
   materials: string;
   status: 'Đã dạy' | 'Đang dạy' | 'Chưa dạy' | 'Sắp dạy';
   notes: string;
+  duration?: string;
 }
 
 export interface StudentEvaluationItem {

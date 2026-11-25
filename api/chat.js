@@ -1,9 +1,74 @@
+import {
+  extractBearerToken,
+  getClientIp,
+  verifyFirebaseIdToken,
+  verifySessionToken,
+} from '../server/sessionToken.js';
+
 const MODEL = 'qwen/qwen3.8-27b';
 const MAX_BODY_BYTES = 128 * 1024;
 const MAX_MESSAGES = 11;
 const MAX_MESSAGE_CHARS = 4000;
 const MAX_TOTAL_CHARS = 24_000;
 const REQUEST_TIMEOUT_MS = 30000;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 phút
+const MAX_REQUESTS_PER_MINUTE = 20;
+
+const chatRateStore = new Map();
+
+export function resetChatRateLimits() {
+  chatRateStore.clear();
+}
+
+function consumeRateLimit(key, now = Date.now()) {
+  const cutoff = now - RATE_LIMIT_WINDOW_MS;
+  const timestamps = (chatRateStore.get(key) || []).filter((ts) => ts > cutoff);
+  if (timestamps.length >= MAX_REQUESTS_PER_MINUTE) {
+    chatRateStore.set(key, timestamps);
+    const oldest = timestamps[0] || now;
+    const retryAfterSec = Math.max(1, Math.ceil((oldest + RATE_LIMIT_WINDOW_MS - now) / 1000));
+    return { allowed: false, retryAfterSec };
+  }
+  timestamps.push(now);
+  chatRateStore.set(key, timestamps);
+  if (chatRateStore.size > 5000) {
+    for (const [k, list] of chatRateStore.entries()) {
+      if (!list.some((ts) => ts > cutoff)) chatRateStore.delete(k);
+    }
+  }
+  return { allowed: true, retryAfterSec: 0 };
+}
+
+async function authenticateChatRequest(req) {
+  const token = extractBearerToken(req);
+  if (!token) return null;
+
+  const sessionSecret = (process.env.CONHI_SESSION_SECRET || '').trim();
+  if (sessionSecret) {
+    const verifiedSession = verifySessionToken(token, sessionSecret);
+    if (verifiedSession) {
+      return {
+        uid: verifiedSession.uid || verifiedSession.email,
+        email: verifiedSession.email,
+        role: verifiedSession.role || 'teacher',
+      };
+    }
+  }
+
+  const firebaseApiKey = (process.env.VITE_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY || '').trim();
+  if (firebaseApiKey) {
+    const firebaseUser = await verifyFirebaseIdToken(token, firebaseApiKey);
+    if (firebaseUser) {
+      return {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        role: 'teacher',
+      };
+    }
+  }
+
+  return null;
+}
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -165,6 +230,23 @@ async function streamGroqResponse(response, res) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'Chỉ hỗ trợ POST.' });
+
+  const principal = await authenticateChatRequest(req);
+  if (!principal) {
+    return sendJson(res, 401, { error: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại để sử dụng Trợ giảng ART AI.' });
+  }
+
+  const now = Date.now();
+  const ipRate = consumeRateLimit(`ip:${getClientIp(req)}`, now);
+  if (!ipRate.allowed) {
+    res.setHeader?.('Retry-After', String(ipRate.retryAfterSec));
+    return sendJson(res, 429, { error: 'Quá nhiều yêu cầu từ thiết bị này (giới hạn 20 lượt/phút). Vui lòng đợi một chút rồi thử lại.' });
+  }
+  const userRate = consumeRateLimit(`user:${principal.email || principal.uid}`, now);
+  if (!userRate.allowed) {
+    res.setHeader?.('Retry-After', String(userRate.retryAfterSec));
+    return sendJson(res, 429, { error: 'Bạn đang gửi tin nhắn quá nhanh (giới hạn 20 lượt/phút). Vui lòng đợi một chút rồi thử lại.' });
+  }
 
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || !apiKey.trim()) {

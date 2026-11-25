@@ -3,11 +3,11 @@ import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
 
-// Đường dẫn chuẩn của ONLYOFFICE Desktop Editors (Bản mặc định của Thầy/Cô)
+// Đường dẫn chuẩn của ONLYOFFICE Desktop Editors (chỉ dùng cho môi trường dev cục bộ trên Windows)
 const ONLYOFFICE_PATHS = [
   'C:\\Program Files\\ONLYOFFICE\\DesktopEditors\\DesktopEditors.exe',
   'C:\\Program Files (x86)\\ONLYOFFICE\\DesktopEditors\\DesktopEditors.exe',
-  path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'ONLYOFFICE', 'DesktopEditors', 'DesktopEditors.exe')
+  path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'ONLYOFFICE', 'DesktopEditors', 'DesktopEditors.exe'),
 ];
 
 /**
@@ -22,7 +22,6 @@ export function detectInstalledOffice() {
     }
   }
 
-  // Kiểm tra thư mục Portable đi kèm (nếu Thầy/Cô copy app sang máy khác)
   const portablePath = path.resolve(process.cwd(), 'ONLYOFFICE', 'DesktopEditors.exe');
   if (!onlyofficeExe && fs.existsSync(portablePath)) {
     onlyofficeExe = portablePath;
@@ -31,21 +30,21 @@ export function detectInstalledOffice() {
   const hasOffice = Boolean(onlyofficeExe);
 
   return {
-    hasOffice: true, // Luôn true vì Windows luôn có trình mở file mặc định
+    hasOffice: true,
     hasOnlyOffice: hasOffice,
     primary: hasOffice ? 'ONLYOFFICE Desktop Editors' : 'Trình xem Office mặc định của Windows',
     exePath: onlyofficeExe,
-    supportedFormats: ['.pptx', '.docx', '.xlsx']
+    supportedFormats: ['.pptx', '.docx', '.xlsx'],
   };
 }
 
 /**
- * Kích hoạt trực tiếp file Office trên máy tính bằng ONLYOFFICE (hoặc trình xem mặc định khi ở máy khác)
+ * Kích hoạt trực tiếp file Office trên máy tính bằng ONLYOFFICE (hoặc trình xem mặc định)
  */
 export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer = null }) {
   const detected = detectInstalledOffice();
   const ext = (type.startsWith('.') ? type.slice(1) : type).toLowerCase();
-  const safeName = (fileName ? fileName.replace(/[^a-zA-Z0-9_\-\u00C0-\u1EF9]/g, '_') : `BaiGiang_MiThuat_GDPT2018`) + `_${Date.now()}.${ext}`;
+  const safeName = (fileName ? fileName.replace(/[^a-zA-Z0-9_\-\u00C0-\u1EF9]/g, '_') : 'BaiGiang_MiThuat_GDPT2018') + `_${Date.now()}.${ext}`;
   const targetFile = path.join(os.tmpdir(), safeName);
 
   if (buffer) {
@@ -55,7 +54,6 @@ export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer 
   const targetExe = detected.exePath;
   const appName = detected.primary;
 
-  // Lệnh chạy: Nếu có ONLYOFFICE thì mở trực tiếp bằng ONLYOFFICE, nếu ở máy tính khác chưa cài thì mở bằng ứng dụng mặc định của Windows
   if (targetExe && fs.existsSync(targetExe)) {
     const child = spawn(targetExe, [targetFile], { detached: true, stdio: 'ignore' });
     child.unref();
@@ -70,7 +68,7 @@ export async function openOfficeDocument({ type = 'pptx', fileName = '', buffer 
     appName,
     targetFile,
     message: detected.hasOnlyOffice
-      ? `Đã mở tệp thành công bằng ONLYOFFICE Desktop Editors!`
-      : `Đã mở tệp bằng ứng dụng Office mặc định của máy tính!`
+      ? 'Đã mở tệp thành công bằng ONLYOFFICE Desktop Editors!'
+      : 'Đã mở tệp bằng ứng dụng Office mặc định của máy tính!',
   };
 }

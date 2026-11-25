@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as XLSX from 'xlsx';
 import { generateGameQuestionsByTheme, detectTopicMatch } from '../src/data/artGamesCurriculumBank.js';
 import { ROLES, getAccessErrorMessage, loginAccess } from '../src/utils/adminAuthService.js';
-import { validateEmail, isValidAccessGrant, isValidUserSession, AUTH_ROLES, ADMIN_1_EMAIL, ADMIN_1_PASSWORD } from '../src/contracts/authContract.js';
+import { validateEmail, isValidAccessGrant, isValidUserSession, AUTH_ROLES } from '../src/contracts/authContract.js';
 import { validateSlideElement } from '../src/utils/storageService.js';
 import { parseSmasWorkbook, shuffleClassComments } from '../src/utils/smasExcelService.js';
 
@@ -358,24 +358,36 @@ describe('Giai đoạn 2 - Kiểm thử khả năng chịu lỗi & Ứng phó ng
     assert.equal(isValidUserSession({ uid: 'u4', email: 'd@b.com', role: 'hacker' }), false);
   });
 
-  it('9c. Kiểm tra phân quyền Admin 1 Ẩn danh (Mật khẩu Tiensy2026@) và Admin 2, 3 Không ẩn danh', async () => {
-    // 1. Admin 1 đăng nhập với mật khẩu sai -> từ chối
-    const failRes = await loginAccess(ADMIN_1_EMAIL, 'wrong-password');
+  it('9c. Kiem tra chan dang nhap Gmail khong mat khau va xac thuc Quan tri vien qua /api/auth', async () => {
+    const noPassRes = await loginAccess('teacher.demo@example.com', '');
+    assert.equal(noPassRes.success, false);
+    assert.match(noPassRes.message, /Google/);
+    const failRes = await loginAccess('admin.demo@example.com', 'wrong-password', async () => ({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'Email hoac mat khau quan tri vien khong chinh xac.' }),
+    }));
     assert.equal(failRes.success, false);
-    assert.match(failRes.message, /Mật khẩu bảo mật Admin 1 không chính xác/);
-
-    // 2. Admin 1 đăng nhập với đúng mật khẩu -> thành công và ở chế độ Ẩn danh (isAnonymous: true)
-    const successRes = await loginAccess(ADMIN_1_EMAIL, ADMIN_1_PASSWORD);
+    assert.match(failRes.message, /khong chinh xac/i);
+    const successRes = await loginAccess('admin.demo@example.com', 'valid-server-password', async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        session: {
+          uid: 'admin-demo',
+          email: 'admin.demo@example.com',
+          role: AUTH_ROLES.SUPER_ADMIN,
+          adminTitle: 'Admin 1',
+          isAnonymous: true,
+          authMethod: 'admin_password',
+        },
+        token: 'mock.signed.token',
+      }),
+    }));
     assert.equal(successRes.success, true);
     assert.equal(successRes.session.role, AUTH_ROLES.SUPER_ADMIN);
     assert.equal(successRes.session.isAnonymous, true);
-
-    // 3. Admin 2 / Admin 3 đăng nhập -> thành công và ở chế độ Không ẩn danh (isAnonymous: false)
-    const subAdminRes = await loginAccess('thaytiensy@gmail.com');
-    assert.equal(subAdminRes.success, true);
-    assert.equal(subAdminRes.session.role, AUTH_ROLES.SUB_ADMIN);
-    assert.equal(subAdminRes.session.isAnonymous, false);
-    assert.ok(subAdminRes.session.adminTitle.includes('Admin 2') || subAdminRes.session.adminTitle.includes('Admin Phụ'));
+    assert.equal(successRes.token, 'mock.signed.token');
   });
 });
 

@@ -50,7 +50,7 @@ test('Giai đoạn 5 - Kiểm thử Phân Vùng Không Gian Riêng Biệt Theo N
     assert.strictEqual(sanitizeUserScope(null), '');
     assert.strictEqual(sanitizeUserScope('GiaoVien.TieuHoc@gmail.com'), 'giaovien_tieuhoc_gmail_com');
     assert.strictEqual(sanitizeUserScope('  ThayTienSy+Art@gmail.com  '), 'thaytiensy_art_gmail_com');
-    assert.strictEqual(sanitizeUserScope('ngathuyphu2@gmail.com'), 'ngathuyphu2_gmail_com');
+    assert.strictEqual(sanitizeUserScope('teacher.demo@example.com'), 'teacher_demo_example_com');
   });
 
   await t.test('2. Quản lý trạng thái Active User Scope', () => {

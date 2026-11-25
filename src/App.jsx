@@ -32,7 +32,7 @@ const InstallAppModal = React.lazy(() => import('./components/Install/InstallApp
 const BentoDashboardView = React.lazy(() => import('./components/Dashboard/BentoDashboardView'));
 import SmartSidebar from './components/Navigation/SmartSidebar';
 import BottomNavBar from './components/Navigation/BottomNavBar';
-import { getCurrentSession, getAccessErrorMessage, logoutAdmin, resolveCurrentSession, ROLES } from './utils/adminAuthService';
+import { getCurrentSession, getAccessErrorMessage, logoutAdmin, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
 import { Sparkles } from 'lucide-react';
 import DraggableAssistantButton from './components/UI/DraggableAssistantButton';
@@ -304,6 +304,8 @@ export default function App() {
     if (!auth) return undefined;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
+        const activeSession = getCurrentSession();
+        if (activeSession?.authMethod === 'admin_password') return;
         clearActiveUserScope();
         setIsAuthenticated(false);
         setCurrentUserSession(null);

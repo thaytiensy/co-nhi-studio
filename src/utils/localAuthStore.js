@@ -1,62 +1,59 @@
-import { ADMIN_1_EMAIL, ADMIN_1_PASSWORD, AUTH_ROLES } from '../contracts/authContract.js';
-
 export const STORAGE_KEY_SHARED = 'conhi_shared_gmails_v1';
 export const STORAGE_KEY_SUB_ADMINS = 'conhi_sub_admins_v1';
 export const STORAGE_KEY_SESSION = 'conhi_active_session_v1';
+export const STORAGE_KEY_AUTH_TOKEN = 'conhi_auth_token_v1';
 
 // Migration: xóa session cũ khỏi localStorage (tránh auto-login từ các phiên trước)
 if (typeof window !== 'undefined') {
-  try { localStorage.removeItem(STORAGE_KEY_SESSION); } catch {}
+  try {
+    localStorage.removeItem(STORAGE_KEY_SESSION);
+    localStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
+  } catch {}
 }
 
-export const MASTER_ADMINS = [ADMIN_1_EMAIL];
-
-export const INITIAL_SUB_ADMINS = [
-  { id: 'sub-1', email: 'thaytiensy@gmail.com', role: AUTH_ROLES.SUB_ADMIN, title: 'Admin 2', active: true, addedBy: ADMIN_1_EMAIL },
-  { id: 'sub-2', email: 'ngathuyphu2@gmail.com', role: AUTH_ROLES.SUB_ADMIN, title: 'Admin 3', active: true, addedBy: ADMIN_1_EMAIL },
-];
-
-export const INITIAL_SEEDED_GMAILS = [
-  { id: 'seed-1', email: 'hoangthanhtam1980@gmail.com', role: AUTH_ROLES.TEACHER, addedBy: 'ngathuyphu2@gmail.com', active: true },
-];
+export const INITIAL_SUB_ADMINS = [];
+export const INITIAL_SEEDED_GMAILS = [];
 
 export function getLocalSubAdmins() {
   if (typeof window === 'undefined') return INITIAL_SUB_ADMINS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SUB_ADMINS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_SUB_ADMINS, JSON.stringify(INITIAL_SUB_ADMINS));
-      return INITIAL_SUB_ADMINS;
-    }
-    return JSON.parse(raw);
-  } catch { return INITIAL_SUB_ADMINS; }
+    if (!raw) return INITIAL_SUB_ADMINS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : INITIAL_SUB_ADMINS;
+  } catch {
+    return INITIAL_SUB_ADMINS;
+  }
 }
 
 export function saveLocalSubAdmins(list) {
   if (typeof window === 'undefined') return;
-  try { localStorage.setItem(STORAGE_KEY_SUB_ADMINS, JSON.stringify(list)); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY_SUB_ADMINS, JSON.stringify(list));
+  } catch {}
 }
 
 export function getLocalSharedGmails() {
   if (typeof window === 'undefined') return INITIAL_SEEDED_GMAILS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SHARED);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_SHARED, JSON.stringify(INITIAL_SEEDED_GMAILS));
-      return INITIAL_SEEDED_GMAILS;
-    }
+    if (!raw) return INITIAL_SEEDED_GMAILS;
     const parsed = JSON.parse(raw);
     const cleaned = (Array.isArray(parsed) ? parsed : []).filter(item => item.email !== 'giaovien@gmail.com');
     if (cleaned.length !== (Array.isArray(parsed) ? parsed.length : 0)) {
       localStorage.setItem(STORAGE_KEY_SHARED, JSON.stringify(cleaned));
     }
     return cleaned;
-  } catch { return INITIAL_SEEDED_GMAILS; }
+  } catch {
+    return INITIAL_SEEDED_GMAILS;
+  }
 }
 
 export function saveLocalSharedGmails(list) {
   if (typeof window === 'undefined') return;
-  try { localStorage.setItem(STORAGE_KEY_SHARED, JSON.stringify(list)); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY_SHARED, JSON.stringify(list));
+  } catch {}
 }
 
 export function getCurrentSession() {
@@ -67,20 +64,18 @@ export function getCurrentSession() {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY_SESSION);
     return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function saveCurrentSession(session) {
   if (typeof window === 'undefined') return;
   try {
-    // Xóa cờ logout cũ
     localStorage.removeItem('conhi_explicit_logout');
     sessionStorage.removeItem('conhi_explicit_logout');
-    // Chỉ lưu vào sessionStorage — session sẽ hết khi đóng tab (không auto-login lần sau)
     if (session) {
-      const serialized = JSON.stringify(session);
-      sessionStorage.setItem(STORAGE_KEY_SESSION, serialized);
-      // Xóa bản cũ trong localStorage nếu còn
+      sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(session));
       localStorage.removeItem(STORAGE_KEY_SESSION);
     } else {
       sessionStorage.removeItem(STORAGE_KEY_SESSION);
@@ -89,4 +84,23 @@ export function saveCurrentSession(session) {
   } catch {}
 }
 
-export { ADMIN_1_EMAIL, ADMIN_1_PASSWORD };
+export function getCurrentAuthToken() {
+  if (typeof window === 'undefined') return '';
+  if (sessionStorage.getItem('conhi_explicit_logout') === 'true') return '';
+  try {
+    return sessionStorage.getItem(STORAGE_KEY_AUTH_TOKEN) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveCurrentAuthToken(token) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (typeof token === 'string' && token.trim()) {
+      sessionStorage.setItem(STORAGE_KEY_AUTH_TOKEN, token.trim());
+    } else {
+      sessionStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
+    }
+  } catch {}
+}

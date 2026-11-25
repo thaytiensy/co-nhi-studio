@@ -9,9 +9,6 @@ export const AUTH_ROLES = Object.freeze({
   TEACHER: 'teacher',
 });
 
-export const ADMIN_1_EMAIL = 'dotiensy.8785@gmail.com';
-export const ADMIN_1_PASSWORD = 'Tiensy2026@';
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**

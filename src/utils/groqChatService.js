@@ -1,6 +1,24 @@
+import { getCurrentAuthToken } from './localAuthStore.js';
+import { auth } from './firebaseClient.js';
+
 const MAX_HISTORY_MESSAGES = 10;
 const MAX_HISTORY_CHARS = 1800;
 const MAX_USER_MESSAGE_CHARS = 4000;
+
+async function resolveBearerToken(explicitToken = '') {
+  if (typeof explicitToken === 'string' && explicitToken.trim()) {
+    return explicitToken.trim();
+  }
+  const sessionToken = getCurrentAuthToken();
+  if (sessionToken) return sessionToken;
+  try {
+    if (auth?.currentUser && typeof auth.currentUser.getIdToken === 'function') {
+      const firebaseToken = await auth.currentUser.getIdToken();
+      if (firebaseToken) return firebaseToken;
+    }
+  } catch {}
+  return '';
+}
 
 async function readGroqEventStream(response, onDelta) {
   let output = '';
@@ -53,7 +71,7 @@ async function readGroqEventStream(response, onDelta) {
   return output.trim();
 }
 
-export async function requestGroqChat({ grade, theme = '', persona = '', messages }, fetchImpl = globalThis.fetch, onDelta) {
+export async function requestGroqChat({ grade, theme = '', persona = '', messages, authToken = '' }, fetchImpl = globalThis.fetch, onDelta) {
   if (typeof fetchImpl !== 'function') throw new Error('Trình duyệt hiện không hỗ trợ kết nối chat.');
   if (!Array.isArray(messages) || messages.length === 0) throw new Error('Hãy nhập tin nhắn trước.');
 
@@ -72,12 +90,18 @@ export async function requestGroqChat({ grade, theme = '', persona = '', message
   }).filter((message) => ['user', 'assistant'].includes(message.role) && message.content);
   if (!safeMessages.length) throw new Error('Hãy nhập tin nhắn trước.');
 
+  const bearerToken = await resolveBearerToken(authToken);
+  const headers = { 'Content-Type': 'application/json' };
+  if (bearerToken) {
+    headers.Authorization = `Bearer ${bearerToken}`;
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 35000);
   try {
     const response = await fetchImpl('/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ grade, theme, persona, messages: safeMessages, stream: true }),
       signal: controller.signal,
     });

@@ -2,8 +2,9 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts'
 import https from 'https'
+import authHandler from './api/auth.js'
 import chatHandler from './api/chat.js'
-import { detectInstalledOffice, openOfficeDocument } from './api/officeHandler.js'
+import { detectInstalledOffice, openOfficeDocument } from './server/officeHandler.js'
 
 const ttsCache = new Map();
 let ttsQueue = Promise.resolve();
@@ -189,26 +190,36 @@ const ttsPlugin = () => ({
   }
 });
 
-const groqChatPlugin = () => ({
-  name: 'co-nhi-groq-chat-middleware',
+const apiDevPlugin = () => ({
+  name: 'co-nhi-api-dev-middleware',
   config(_, { mode }) {
-    const localEnv = loadEnv(mode, process.cwd(), 'GROQ_');
-    if (!process.env.GROQ_API_KEY && localEnv.GROQ_API_KEY) process.env.GROQ_API_KEY = localEnv.GROQ_API_KEY;
+    const localEnv = loadEnv(mode, process.cwd(), '');
+    for (const [key, value] of Object.entries(localEnv)) {
+      if ((key.startsWith('GROQ_') || key.startsWith('CONHI_') || key.startsWith('VITE_FIREBASE_') || key.startsWith('FIREBASE_')) && !process.env[key]) {
+        process.env[key] = value;
+      }
+    }
   },
   configureServer(server) {
     server.middlewares.use(async (req, res, next) => {
-      if (!req.url || new URL(req.url, 'http://localhost').pathname !== '/api/chat') return next();
+      if (!req.url) return next();
+      const pathname = new URL(req.url, 'http://localhost').pathname;
+      if (pathname !== '/api/chat' && pathname !== '/api/auth') return next();
       if (req.method === 'OPTIONS') {
         res.statusCode = 204;
         res.end();
         return;
       }
       try {
+        if (pathname === '/api/auth') {
+          await authHandler(req, res);
+          return;
+        }
         await chatHandler(req, res);
       } catch {
         res.statusCode = 500;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.end(JSON.stringify({ error: 'Lỗi máy chủ chat. Chưa có câu trả lời được tạo.' }));
+        res.end(JSON.stringify({ error: 'Lỗi máy chủ nội bộ. Vui lòng thử lại sau.' }));
       }
     });
   },
@@ -285,7 +296,7 @@ const officePlugin = () => ({
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), ttsPlugin(), groqChatPlugin(), officePlugin()],
+  plugins: [react(), ttsPlugin(), apiDevPlugin(), officePlugin()],
   server: {
     port: 3100,
     host: '127.0.0.1'

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import chatHandler from '../api/chat.js';
+import chatHandler, { resetChatRateLimits } from '../api/chat.js';
+import { signSessionToken } from '../server/sessionToken.js';
 import { requestGroqChat } from '../src/utils/groqChatService.js';
+
+const TEST_SESSION_SECRET = 'test-session-secret-for-unit-tests-only-32bytes';
 
 function createResponse() {
   return {
@@ -17,21 +20,38 @@ function createResponse() {
   };
 }
 
-async function invokeChat(body, method = 'POST') {
+function makeAuthHeader(email = 'teacher@example.com', role = 'teacher') {
+  const token = signSessionToken({ uid: 'u-test', email, role }, TEST_SESSION_SECRET);
+  return `Bearer ${token}`;
+}
+
+async function invokeChat(body, { method = 'POST', headers = {}, ip = '10.0.0.1' } = {}) {
   const response = createResponse();
-  await chatHandler({ method, body }, response);
+  const finalHeaders = {
+    authorization: makeAuthHeader(),
+    'x-forwarded-for': ip,
+    ...headers,
+  };
+  await chatHandler({ method, body, headers: finalHeaders }, response);
   return { status: response.statusCode, headers: response.headers, body: JSON.parse(response.body) };
 }
 
-async function withGroqKey(value, operation) {
-  const previous = process.env.GROQ_API_KEY;
-  if (value === undefined) delete process.env.GROQ_API_KEY;
-  else process.env.GROQ_API_KEY = value;
+async function withEnv(overrides, operation) {
+  const previous = {};
+  for (const [key, value] of Object.entries(overrides)) {
+    previous[key] = process.env[key];
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  resetChatRateLimits();
   try {
     await operation();
   } finally {
-    if (previous === undefined) delete process.env.GROQ_API_KEY;
-    else process.env.GROQ_API_KEY = previous;
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    resetChatRateLimits();
   }
 }
 
@@ -45,8 +65,50 @@ async function withMockFetch(fetchImpl, operation) {
   }
 }
 
+test('Groq chat rejects unauthenticated or forged Bearer requests with 401', async () => {
+  await withEnv({ GROQ_API_KEY: 'test-key-never-used', CONHI_SESSION_SECRET: TEST_SESSION_SECRET }, async () => {
+    let providerCalls = 0;
+    await withMockFetch(async () => {
+      providerCalls += 1;
+      throw new Error('Provider should not be called for unauthorized requests');
+    }, async () => {
+      const noHeader = await invokeChat(
+        { messages: [{ role: 'user', content: 'Xin chào.' }] },
+        { headers: { authorization: '' } }
+      );
+      assert.equal(noHeader.status, 401);
+
+      const forged = await invokeChat(
+        { messages: [{ role: 'user', content: 'Xin chào.' }] },
+        { headers: { authorization: 'Bearer invalid.token.signature' } }
+      );
+      assert.equal(forged.status, 401);
+      assert.equal(providerCalls, 0);
+    });
+  });
+});
+
+test('Groq chat enforces sliding-window rate limit (20 req/min) with 429', async () => {
+  await withEnv({ GROQ_API_KEY: 'test-key-never-used', CONHI_SESSION_SECRET: TEST_SESSION_SECRET }, async () => {
+    await withMockFetch(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: 'Gợi ý ngắn.' } }] }),
+    }), async () => {
+      for (let i = 0; i < 20; i += 1) {
+        const res = await invokeChat({ messages: [{ role: 'user', content: `Câu ${i}` }] }, { ip: '198.51.100.20' });
+        assert.equal(res.status, 200);
+      }
+      const blocked = await invokeChat({ messages: [{ role: 'user', content: 'Câu 21' }] }, { ip: '198.51.100.20' });
+      assert.equal(blocked.status, 429);
+      assert.ok(Number(blocked.headers['retry-after']) >= 1);
+      assert.match(blocked.body.error, /20 lượt\/phút/);
+    });
+  });
+});
+
 test('Groq chat keeps Vietnamese ART context and conversation history using a server-side key', async () => {
-  await withGroqKey('test-key-never-used-outside-this-mock', async () => {
+  await withEnv({ GROQ_API_KEY: 'test-key-never-used-outside-this-mock', CONHI_SESSION_SECRET: TEST_SESSION_SECRET }, async () => {
     let capturedUrl;
     let capturedOptions;
     await withMockFetch(async (url, options) => {
@@ -85,7 +147,7 @@ test('Groq chat keeps Vietnamese ART context and conversation history using a se
 });
 
 test('Groq chat streams deltas to the client without changing the Free model or exposing the key', async () => {
-  await withGroqKey('test-key-never-used-outside-this-mock', async () => {
+  await withEnv({ GROQ_API_KEY: 'test-key-never-used-outside-this-mock', CONHI_SESSION_SECRET: TEST_SESSION_SECRET }, async () => {
     let capturedOptions;
     const encoder = new TextEncoder();
     const upstreamChunks = [
@@ -112,6 +174,7 @@ test('Groq chat streams deltas to the client without changing the Free model or 
       response.end = function end(chunk = '') { this.body += chunk; };
       await chatHandler({
         method: 'POST',
+        headers: { authorization: makeAuthHeader(), 'x-forwarded-for': '10.0.0.2' },
         body: { grade: 1, messages: [{ role: 'user', content: 'Gợi ý hoạt động về màu sắc.' }], stream: true },
       }, response);
 
@@ -128,7 +191,7 @@ test('Groq chat streams deltas to the client without changing the Free model or 
   });
 });
 
-test('Groq chat client forwards streamed Vietnamese deltas to the UI', async () => {
+test('Groq chat client forwards Bearer token and streamed Vietnamese deltas to the UI', async () => {
   const encoder = new TextEncoder();
   const chunks = [
     'data: {"delta":"Hãy cho các em"}\n\n',
@@ -136,12 +199,15 @@ test('Groq chat client forwards streamed Vietnamese deltas to the UI', async () 
     'data: [DONE]\n\n',
   ];
   let requestPayload;
+  let capturedHeaders;
   const receivedDeltas = [];
   const result = await requestGroqChat({
     grade: 2,
     messages: [{ role: 'user', content: 'Gợi ý cách dạy vẽ.' }],
+    authToken: 'signed-session-token-demo',
   }, async (_url, options) => {
     requestPayload = JSON.parse(options.body);
+    capturedHeaders = options.headers;
     return {
       ok: true,
       status: 200,
@@ -155,13 +221,14 @@ test('Groq chat client forwards streamed Vietnamese deltas to the UI', async () 
     };
   }, (delta) => receivedDeltas.push(delta));
 
+  assert.equal(capturedHeaders.Authorization, 'Bearer signed-session-token-demo');
   assert.equal(requestPayload.stream, true);
   assert.deepEqual(receivedDeltas, ['Hãy cho các em', ' quan sát trước.']);
   assert.equal(result, 'Hãy cho các em quan sát trước.');
 });
 
 test('Groq chat explains Free quota limits without enabling billing', async () => {
-  await withGroqKey('test-key-never-used-outside-this-mock', async () => {
+  await withEnv({ GROQ_API_KEY: 'test-key-never-used-outside-this-mock', CONHI_SESSION_SECRET: TEST_SESSION_SECRET }, async () => {
     await withMockFetch(async () => ({
       ok: false,
       status: 429,
@@ -178,7 +245,7 @@ test('Groq chat explains Free quota limits without enabling billing', async () =
 });
 
 test('Groq chat returns a clear setup message when the server has no key', async () => {
-  await withGroqKey(undefined, async () => {
+  await withEnv({ GROQ_API_KEY: undefined, CONHI_SESSION_SECRET: TEST_SESSION_SECRET }, async () => {
     await withMockFetch(async () => {
       throw new Error('A real provider request must not run in this test.');
     }, async () => {
@@ -191,7 +258,7 @@ test('Groq chat returns a clear setup message when the server has no key', async
 });
 
 test('Groq chat rejects oversized messages before calling the provider', async () => {
-  await withGroqKey('test-key-never-used-outside-this-mock', async () => {
+  await withEnv({ GROQ_API_KEY: 'test-key-never-used-outside-this-mock', CONHI_SESSION_SECRET: TEST_SESSION_SECRET }, async () => {
     let requestCount = 0;
     await withMockFetch(async () => {
       requestCount += 1;

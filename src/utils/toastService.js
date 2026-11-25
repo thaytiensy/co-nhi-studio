@@ -1,4 +1,4 @@
-// Global Toast Notification Service for ART AI Studio
+// Global Toast Notification Service for Cọ Nhí Studio
 // Works in both Vite React client and Node.js test runners
 
 class ToastEmitter {
@@ -8,7 +8,9 @@ class ToastEmitter {
 
   subscribe(listener) {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   show(message, type = 'info', duration = 3500) {
@@ -17,7 +19,7 @@ class ToastEmitter {
       id: `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       message: message.trim(),
       type,
-      duration
+      duration,
     };
     this.listeners.forEach((fn) => {
       try {
