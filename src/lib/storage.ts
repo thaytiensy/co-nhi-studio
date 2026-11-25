@@ -65,6 +65,7 @@ export interface StudioStorageState {
 }
 
 export const STORAGE_KEY = 'conhi_studio_vip_storage_v1';
+export const CURRENT_STORAGE_VERSION = '2.3-chuan-5-khoi-tuan-1';
 
 export const DEFAULT_SETTINGS: StudioSettings = {
   teacherName: 'Giáo viên',
@@ -76,7 +77,7 @@ export const DEFAULT_SETTINGS: StudioSettings = {
 };
 
 export const DEFAULT_PLANS: TeachingPlanItem[] = [
-  // --- LỚP 1: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG ---
+  // --- LỚP 1: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (9 CHỦ ĐỀ, TUẦN 1-9) ---
   {
     id: 'plan-g1-1',
     week: 1,
@@ -186,11 +187,11 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     notes: 'Khích lệ tinh thần tự tin, gắn bó với trường lớp.'
   },
 
-  // --- LỚP 2: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG ---
+  // --- LỚP 2: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (8 CHỦ ĐỀ, TUẦN 1-8) ---
   {
     id: 'plan-g2-1',
-    week: 10,
-    period: 10,
+    week: 1,
+    period: 1,
     title: 'Chủ đề 1: Mĩ thuật trong cuộc sống (Đồ vật quanh em)',
     grade: 2,
     className: '2A',
@@ -201,8 +202,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g2-2',
-    week: 11,
-    period: 11,
+    week: 2,
+    period: 2,
     title: 'Chủ đề 2: Sự thú vị của nét (Nét thanh, nét đậm, nét lượn sóng)',
     grade: 2,
     className: '2A',
@@ -213,8 +214,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g2-3',
-    week: 12,
-    period: 12,
+    week: 3,
+    period: 3,
     title: 'Chủ đề 3: Sự kết hợp của các hình cơ bản (Ngôi nhà và khu phố)',
     grade: 2,
     className: '2B',
@@ -225,8 +226,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g2-4',
-    week: 13,
-    period: 13,
+    week: 4,
+    period: 4,
     title: 'Chủ đề 4: Những mảng màu yêu thích (Gam màu Nóng - Lạnh)',
     grade: 2,
     className: '2B',
@@ -237,8 +238,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g2-5',
-    week: 14,
-    period: 14,
+    week: 5,
+    period: 5,
     title: 'Chủ đề 5: Sự kết hợp thú vị của khối (Mô hình phương tiện giao thông)',
     grade: 2,
     className: '2A',
@@ -249,8 +250,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g2-6',
-    week: 15,
-    period: 15,
+    week: 6,
+    period: 6,
     title: 'Chủ đề 6: Sắc màu thiên nhiên (Cây cối, hoa lá và côn trùng)',
     grade: 2,
     className: '2A',
@@ -261,8 +262,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g2-7',
-    week: 16,
-    period: 16,
+    week: 7,
+    period: 7,
     title: 'Chủ đề 7: Gương mặt thân quen (Chân dung biểu cảm)',
     grade: 2,
     className: '2B',
@@ -273,8 +274,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g2-8',
-    week: 17,
-    period: 17,
+    week: 8,
+    period: 8,
     title: 'Chủ đề 8: Bữa cơm gia đình (Ấm áp sum vầy)',
     grade: 2,
     className: '2B',
@@ -284,11 +285,11 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     notes: 'Giáo dục lòng hiếu thảo và tình yêu thương gia đình.'
   },
 
-  // --- LỚP 3: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG ---
+  // --- LỚP 3: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (TRỌN BỘ 10 CHỦ ĐỀ, TUẦN 1-10) ---
   {
     id: 'plan-g3-1',
-    week: 18,
-    period: 18,
+    week: 1,
+    period: 1,
     title: 'Chủ đề 1: Em yêu Mĩ thuật (Khám phá bảo tàng & Dụng cụ vẽ)',
     grade: 3,
     className: '3A',
@@ -299,8 +300,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g3-2',
-    week: 19,
-    period: 19,
+    week: 2,
+    period: 2,
     title: 'Chủ đề 2: Hoa văn trên trang phục của một số dân tộc',
     grade: 3,
     className: '3A',
@@ -311,8 +312,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g3-3',
-    week: 20,
-    period: 20,
+    week: 3,
+    period: 3,
     title: 'Chủ đề 3: Màu sắc em yêu (Sắc độ Đậm - Nhạt)',
     grade: 3,
     className: '3B',
@@ -323,8 +324,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g3-4',
-    week: 21,
-    period: 21,
+    week: 4,
+    period: 4,
     title: 'Chủ đề 4: Vẻ đẹp của khối (Khối cầu, khối trụ, khối hộp)',
     grade: 3,
     className: '3B',
@@ -335,8 +336,68 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g3-5',
-    week: 22,
-    period: 22,
+    week: 5,
+    period: 5,
+    title: 'Chủ đề 5: Khu rừng nhiệt đới (Sáng tạo với giấy màu và vật liệu tái chế)',
+    grade: 3,
+    className: '3A',
+    objectives: 'Phối hợp kỹ thuật cắt, xé dán giấy màu và vật liệu tái chế an toàn để tạo bức tranh rừng cây và muông thú.',
+    materials: 'Giấy màu thủ công, kéo đầu tròn, hồ dán nguội, lá khô.',
+    status: 'Sắp dạy',
+    notes: 'Khuyến khích tái sử dụng vật liệu thân thiện với môi trường.'
+  },
+  {
+    id: 'plan-g3-6',
+    week: 6,
+    period: 6,
+    title: 'Chủ đề 6: Gia đình thân yêu (Tạo hình nhân vật và hoạt động sum vầy)',
+    grade: 3,
+    className: '3A',
+    objectives: 'Thể hiện dáng người và biểu cảm các thành viên gia đình qua tranh vẽ hoặc tượng nặn.',
+    materials: 'Đất nặn sinh học, giấy vẽ A4, bút sáp màu.',
+    status: 'Sắp dạy',
+    notes: 'Bồi dưỡng tình cảm gia đình ấm áp, biết quan tâm chia sẻ.'
+  },
+  {
+    id: 'plan-g3-7',
+    week: 7,
+    period: 7,
+    title: 'Chủ đề 7: Ngày hội ở trường em (Tranh sinh hoạt tập thể)',
+    grade: 3,
+    className: '3B',
+    objectives: 'Sắp xếp bố cục nhiều nhân vật trong cảnh vui chơi, văn nghệ hoặc lễ hội tại sân trường.',
+    materials: 'Giấy vẽ A3, bút chì, sáp màu dầu.',
+    status: 'Sắp dạy',
+    notes: 'Rèn kỹ năng vẽ dáng người đang vận động tự nhiên.'
+  },
+  {
+    id: 'plan-g3-8',
+    week: 8,
+    period: 8,
+    title: 'Chủ đề 8: Đồ dùng thân quen (Thiết kế và trang trí đồ vật)',
+    grade: 3,
+    className: '3B',
+    objectives: 'Vận dụng họa tiết lặp lại và đối xứng để trang trí chiếc cốc, hộp bút hoặc túi giấy hữu ích.',
+    materials: 'Bìa cứng, giấy màu, màu dạ, kéo đầu tròn, hồ dán.',
+    status: 'Sắp dạy',
+    notes: 'Gắn mĩ thuật tạo hình với mĩ thuật ứng dụng trong đời sống.'
+  },
+  {
+    id: 'plan-g3-9',
+    week: 9,
+    period: 9,
+    title: 'Chủ đề 9: Vẻ đẹp thiên nhiên quê hương (Tranh phong cảnh)',
+    grade: 3,
+    className: '3A',
+    objectives: 'Vẽ phong cảnh cánh đồng, dòng sông, mái nhà quê hương với không gian gần xa rõ ràng.',
+    materials: 'Màu nước hoặc màu sáp dầu, giấy Canson A4.',
+    status: 'Sắp dạy',
+    notes: 'Hướng dẫn học sinh chọn góc nhìn đẹp và hòa sắc tươi sáng.'
+  },
+  {
+    id: 'plan-g3-10',
+    week: 10,
+    period: 10,
     title: 'Chủ đề 10: An toàn giao thông (Em đi bộ an toàn, Đèn tín hiệu)',
     grade: 3,
     className: '3A',
@@ -346,11 +407,11 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     notes: 'Nâng cao ý thức văn hóa giao thông cho học sinh.'
   },
 
-  // --- LỚP 4: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG ---
+  // --- LỚP 4: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (TRỌN BỘ 8 CHỦ ĐỀ, TUẦN 1-8) ---
   {
     id: 'plan-g4-1',
-    week: 23,
-    period: 23,
+    week: 1,
+    period: 1,
     title: 'Chủ đề 1: Vẻ đẹp trong điêu khắc đình làng Việt Nam',
     grade: 4,
     className: '4A',
@@ -361,8 +422,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g4-2',
-    week: 24,
-    period: 24,
+    week: 2,
+    period: 2,
     title: 'Chủ đề 2: Một số dạng không gian trong tranh dân gian Việt Nam',
     grade: 4,
     className: '4A',
@@ -373,8 +434,8 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
   },
   {
     id: 'plan-g4-3',
-    week: 25,
-    period: 25,
+    week: 3,
+    period: 3,
     title: 'Chủ đề 3: Cảnh đẹp quê hương (Đồng bằng, miền núi, miền biển)',
     grade: 4,
     className: '4B',
@@ -383,8 +444,68 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     status: 'Sắp dạy',
     notes: 'Phân lớp tiền cảnh, trung cảnh và hậu cảnh rõ ràng.'
   },
+  {
+    id: 'plan-g4-4',
+    week: 4,
+    period: 4,
+    title: 'Chủ đề 4: Nét đẹp trang phục dân tộc và thiết kế thời trang',
+    grade: 4,
+    className: '4B',
+    objectives: 'Tìm hiểu màu sắc, hoa văn trang phục các vùng miền; thực hành thiết kế mẫu trang phục sáng tạo bằng giấy màu.',
+    materials: 'Giấy thủ công màu, giấy báo cũ, hồ dán, kéo đầu tròn, sáp màu.',
+    status: 'Sắp dạy',
+    notes: 'Khơi gợi khả năng thiết kế ứng dụng và trân trọng bản sắc dân tộc.'
+  },
+  {
+    id: 'plan-g4-5',
+    week: 5,
+    period: 5,
+    title: 'Chủ đề 5: Sắc màu thiên nhiên và thế giới động vật',
+    grade: 4,
+    className: '4A',
+    objectives: 'Vận dụng cặp màu bổ túc và độ đậm nhạt để vẽ hoặc in hình các loài động vật sống động trong tự nhiên.',
+    materials: 'Màu nước, sáp dầu, lá cây in họa tiết, giấy Canson.',
+    status: 'Sắp dạy',
+    notes: 'Giáo dục ý thức bảo vệ thiên nhiên và động vật hoang dã.'
+  },
+  {
+    id: 'plan-g4-6',
+    week: 6,
+    period: 6,
+    title: 'Chủ đề 6: Đồ chơi dân gian truyền thống (Đèn ông sao, tò he, mặt nạ)',
+    grade: 4,
+    className: '4A',
+    objectives: 'Khám phá hình khối và màu sắc rực rỡ của đồ chơi dân gian; tự tạo mặt nạ giấy bồi hoặc con rối ngộ nghĩnh.',
+    materials: 'Đất nặn, bìa carton, giấy màu, dây chun an toàn, màu vẽ.',
+    status: 'Sắp dạy',
+    notes: 'Tổ chức trưng bày và biểu diễn sản phẩm đồ chơi dân gian tại lớp.'
+  },
+  {
+    id: 'plan-g4-7',
+    week: 7,
+    period: 7,
+    title: 'Chủ đề 7: Cuộc sống quanh em (Hoạt động lao động và sinh hoạt)',
+    grade: 4,
+    className: '4B',
+    objectives: 'Quan sát và thể hiện cảnh lao động, phiên chợ, thu hoạch mùa màng với tỉ lệ nhân vật cân đối.',
+    materials: 'Giấy A3, bút chì, màu sáp dầu hoặc màu nước.',
+    status: 'Sắp dạy',
+    notes: 'Chú ý thể hiện nhịp điệu chuyển động và không khí sinh hoạt tươi vui.'
+  },
+  {
+    id: 'plan-g4-8',
+    week: 8,
+    period: 8,
+    title: 'Chủ đề 8: Ước mơ của em và thế giới tương lai',
+    grade: 4,
+    className: '4B',
+    objectives: 'Phát huy trí tưởng tượng sáng tạo vẽ tranh về nghề nghiệp mơ ước hoặc thành phố xanh thông minh.',
+    materials: 'Giấy vẽ A3, màu dạ, sáp màu nhũ, vật liệu tạo hình tổng hợp.',
+    status: 'Sắp dạy',
+    notes: 'Khích lệ học sinh tự tin thuyết trình ý tưởng ước mơ trước lớp.'
+  },
 
-  // --- LỚP 5: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (TRỌN BỘ 8 CHỦ ĐỀ CHUẨN SGK) ---
+  // --- LỚP 5: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (TRỌN BỘ 8 CHỦ ĐỀ CHUẨN SGK, TUẦN 1-8) ---
   {
     id: 'plan-g5-1',
     week: 1,
@@ -503,7 +624,7 @@ export const DEFAULT_EVALUATIONS: StudentEvaluationItem[] = [
 ];
 
 export const DEFAULT_STUDIO_DATA: StudioStorageState = {
-  version: '2.2-chuan-chu-de-khoi-5',
+  version: CURRENT_STORAGE_VERSION,
   project: {
     title: 'Kế Hoạch & Bài Giảng Mĩ Thuật GDPT 2018',
     slides: [
@@ -542,6 +663,60 @@ function cloneDefaultData(): StudioStorageState {
 }
 
 /**
+ * Xác định mức đánh giá hiện tại (T/H/C) của một học sinh từ dữ liệu SMAS hoặc đánh giá chuẩn.
+ */
+export function resolveStudentLevel(student: any): 'T' | 'H' | 'C' | '' {
+  if (!student || typeof student !== 'object') return '';
+  const candidates = [
+    student.level,
+    student.ck2Level,
+    student.gk2Level,
+    student.ck1Level,
+    student.ckLevel,
+    student.gk1Level,
+    student.gkLevel,
+  ];
+  for (const val of candidates) {
+    const norm = String(val || '').trim().toUpperCase();
+    if (norm === 'T' || norm === 'H' || norm === 'C') return norm;
+  }
+  if (student.weeklyLevels && typeof student.weeklyLevels === 'object') {
+    const weeks = Object.keys(student.weeklyLevels)
+      .map((w) => Number(w))
+      .filter((w) => Number.isFinite(w))
+      .sort((a, b) => b - a);
+    for (const w of weeks) {
+      const norm = String(student.weeklyLevels[w] ?? student.weeklyLevels[String(w)] ?? '').trim().toUpperCase();
+      if (norm === 'T' || norm === 'H' || norm === 'C') return norm;
+    }
+  }
+  return '';
+}
+
+/**
+ * Chuyển đổi danh sách học sinh SMAS thật sang định dạng StudentEvaluationItem để xuất báo cáo đồng nhất.
+ */
+export function mapSmasStudentsToEvaluations(smasStudents: any[]): StudentEvaluationItem[] {
+  if (!Array.isArray(smasStudents)) return [];
+  return smasStudents.map((s, idx) => {
+    const level = resolveStudentLevel(s) || 'H';
+    const weeks = s?.weeklyLevels && typeof s.weeklyLevels === 'object'
+      ? Object.keys(s.weeklyLevels).map(Number).filter(Number.isFinite)
+      : [];
+    const latestWeek = weeks.length ? Math.max(...weeks) : 1;
+    return {
+      id: String(s?.id || `smas-${idx + 1}`),
+      studentCode: String(s?.studentCode || s?.code || s?.id || `HS${String(idx + 1).padStart(3, '0')}`),
+      name: String(s?.name || 'Học sinh'),
+      className: String(s?.className || '').replace(/^Lớp\s+/i, '') || '1A',
+      week: latestWeek,
+      level,
+      comment: String(s?.comment || s?.ckComment || s?.gkComment || ''),
+    };
+  });
+}
+
+/**
  * Đọc toàn bộ dữ liệu Studio từ LocalStorage theo từng không gian người dùng.
  */
 export function getStoredData(userScope?: string): StudioStorageState {
@@ -560,20 +735,24 @@ export function getStoredData(userScope?: string): StudioStorageState {
       saveStoredData(initial, userScope);
       return initial;
     }
-    // Tự động nâng cấp nếu phát hiện tiêu đề cũ hoặc thiếu chủ đề Khối 5
+    // Tự động nâng cấp nếu phát hiện tiêu đề cũ, nhảy số tuần hoặc thiếu chủ đề ở các khối 1-5
     const hasLegacyTitles = Array.isArray(parsed.plans) && parsed.plans.some((p: { title?: string }) =>
       p?.title?.includes('Mỹ thuật và Cuộc sống - Sắc màu thiên nhiên') ||
       p?.title?.includes('Nét vẽ kỳ diệu') ||
       p?.title?.includes('Ngôi nhà thân yêu - Tạo hình từ hình học cơ bản') ||
       p?.title?.includes('Khu vườn tuổi thơ')
     );
-    const hasBrokenGrade5 = Array.isArray(parsed.plans) && (
+    const hasBrokenCurriculum = Array.isArray(parsed.plans) && (
+      parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 3).length < 10 ||
+      parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 4).length < 8 ||
       parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 5).length < 8 ||
-      parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 5 && p?.week === 26)
+      parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 2 && Number(p?.week) >= 10) ||
+      parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 4 && Number(p?.week) >= 20) ||
+      parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 5 && Number(p?.week) === 26)
     );
-    if (hasLegacyTitles || hasBrokenGrade5 || parsed.version !== '2.2-chuan-chu-de-khoi-5') {
+    if (hasLegacyTitles || hasBrokenCurriculum || parsed.version !== CURRENT_STORAGE_VERSION) {
       parsed.plans = DEFAULT_PLANS;
-      parsed.version = '2.2-chuan-chu-de-khoi-5';
+      parsed.version = CURRENT_STORAGE_VERSION;
       saveStoredData(parsed, userScope);
     }
     return parsed as StudioStorageState;
@@ -672,7 +851,7 @@ export function importRestoreJson(file: File): Promise<StudioStorageState> {
           throw new Error('Định dạng tệp sao lưu không hợp lệ');
         }
         const restored: StudioStorageState = {
-          version: parsed.version || '2.0-vip-pro',
+          version: parsed.version || CURRENT_STORAGE_VERSION,
           project: parsed.project || DEFAULT_STUDIO_DATA.project,
           plans: Array.isArray(parsed.plans) ? parsed.plans : DEFAULT_PLANS,
           evaluations: Array.isArray(parsed.evaluations) ? parsed.evaluations : DEFAULT_EVALUATIONS,
@@ -701,18 +880,27 @@ export function restoreDefaultData(userScope?: string): StudioStorageState {
 
 /**
  * Tính toán thống kê KPI thời gian thực.
+ * Khi truyền smasStudents (mảng từ Sổ Điểm SMAS thật), KPI học sinh và mức T/H/C đọc trực tiếp từ SMAS.
  */
-export function computeKPI(state?: StudioStorageState): StudioKPIData {
+export function computeKPI(state?: StudioStorageState, smasStudents?: any[]): StudioKPIData {
   const plans = state?.plans || [];
-  const evaluations = state?.evaluations || [];
   const slides = state?.project?.slides || [];
+  const sourceStudents = Array.isArray(smasStudents) ? smasStudents : (state?.evaluations || []);
 
   const totalPlans = plans.length;
   const taughtPlans = plans.filter(p => p.status === 'Đã dạy').length;
-  const totalStudents = evaluations.length;
-  const levelTCount = evaluations.filter(e => e.level === 'T').length;
-  const levelHCount = evaluations.filter(e => e.level === 'H').length;
-  const levelCCount = evaluations.filter(e => e.level === 'C').length;
+  const totalStudents = sourceStudents.length;
+
+  let levelTCount = 0;
+  let levelHCount = 0;
+  let levelCCount = 0;
+  for (const item of sourceStudents) {
+    const lv = resolveStudentLevel(item);
+    if (lv === 'T') levelTCount += 1;
+    else if (lv === 'H') levelHCount += 1;
+    else if (lv === 'C') levelCCount += 1;
+  }
+
   const completionRate = totalPlans > 0 ? Math.round((taughtPlans / totalPlans) * 100) : 100;
 
   return {

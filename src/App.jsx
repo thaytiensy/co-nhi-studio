@@ -320,6 +320,22 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Cập nhật ngay trang slide trên trình soạn thảo khi tải dữ liệu mới từ Firebase Cloud
+  useEffect(() => {
+    const handleProjectSynced = (ev) => {
+      const syncedProject = ev?.detail;
+      if (syncedProject && Array.isArray(syncedProject.slides) && syncedProject.slides.length > 0) {
+        setSlides(syncedProject.slides);
+        if (syncedProject.title) setProjectTitle(syncedProject.title);
+        setCurrentSlideIndex(0);
+        setSlideEditorResetKey((k) => k + 1);
+        setIsSaved(true);
+      }
+    };
+    window.addEventListener('conhi-project-synced', handleProjectSynced);
+    return () => window.removeEventListener('conhi-project-synced', handleProjectSynced);
+  }, []);
+
   // Unified Assistant Open State across all screens
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isAssistantMaximized, setIsAssistantMaximized] = useState(false);

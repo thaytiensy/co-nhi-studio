@@ -46,6 +46,7 @@ import {
   subscribeToFirebaseStatus
 } from '../../utils/firebaseDatabaseService';
 import { savePlanSlidesToStorage, deletePlanSlidesFromStorage, getStoredPlansSummary } from '../../utils/storageService';
+import { readSmasData, readSmasDataAsync } from '../../utils/smasEvaluationBridge';
 import PlanPPTXImportModal from './PlanPPTXImportModal';
 
 export default function BentoDashboardView({
@@ -56,6 +57,7 @@ export default function BentoDashboardView({
   slides = []
 }) {
   const [data, setData] = useState(() => getStoredData());
+  const [smasData, setSmasData] = useState(() => readSmasData());
   const [selectedPlanForImport, setSelectedPlanForImport] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -143,8 +145,24 @@ export default function BentoDashboardView({
     window.addEventListener('conhi_storage_updated', handleStorageUpdate);
     window.addEventListener('conhi-storage-updated', handleStorageUpdate);
     window.addEventListener('conhi-workspace-changed', handleStorageUpdate);
+    const handleSmasUpdate = (ev) => {
+      if (ev?.detail && Array.isArray(ev.detail.students)) {
+        setSmasData(ev.detail);
+      } else {
+        readSmasDataAsync().then((loaded) => {
+          if (loaded) setSmasData(loaded);
+        }).catch(() => setSmasData(readSmasData()));
+      }
+    };
+    readSmasDataAsync().then((loaded) => {
+      if (loaded) setSmasData(loaded);
+    }).catch(() => {});
+    window.addEventListener('conhi-smas-updated', handleSmasUpdate);
+    window.addEventListener('conhi-workspace-changed', handleSmasUpdate);
     window.addEventListener('storage', handleStorageUpdate);
     return () => {
+      window.removeEventListener('conhi-smas-updated', handleSmasUpdate);
+      window.removeEventListener('conhi-workspace-changed', handleSmasUpdate);
       window.removeEventListener('conhi_storage_updated', handleStorageUpdate);
       window.removeEventListener('conhi-storage-updated', handleStorageUpdate);
       window.removeEventListener('conhi-workspace-changed', handleStorageUpdate);
@@ -162,8 +180,12 @@ export default function BentoDashboardView({
 
   // Tính toán chỉ số KPI thời gian thực
   const kpi = useMemo(() => {
-    return computeKPI(data);
-  }, [data]);
+    const activeSlides = Array.isArray(slides) && slides.length > 0 ? slides : (data?.project?.slides || []);
+    return computeKPI(
+      { ...data, project: { ...(data?.project || {}), slides: activeSlides } },
+      Array.isArray(smasData?.students) ? smasData.students : []
+    );
+  }, [data, slides, smasData?.students]);
 
   // Lọc danh sách bài dạy theo khối lớp và trạng thái
   const filteredPlans = useMemo(() => {
@@ -304,7 +326,10 @@ export default function BentoDashboardView({
   // Đồng bộ lên Firebase Cloud Firestore
   const handleSyncToFirebase = async () => {
     setIsLoading(true);
-    const result = await syncStorageToFirebase(data);
+    const activeProject = Array.isArray(slides) && slides.length > 0
+      ? { ...(data?.project || {}), slides, updatedAt: new Date().toISOString() }
+      : data?.project;
+    const result = await syncStorageToFirebase({ ...data, project: activeProject, smas: smasData });
     setIsLoading(false);
     if (result.success) {
       showToast(result.message || 'Đồng bộ đám mây thành công!', 'success');
@@ -320,6 +345,11 @@ export default function BentoDashboardView({
     setIsLoading(false);
     if (result.success) {
       setData(result.data);
+      if (result.smas && Array.isArray(result.smas.students)) {
+        setSmasData(result.smas);
+      } else {
+        setSmasData(readSmasData());
+      }
       showToast(result.message || 'Đã cập nhật dữ liệu từ đám mây!', 'success');
     } else {
       showToast(result.message || result.error || 'Không thể tải từ đám mây.', 'error');
@@ -408,6 +438,18 @@ export default function BentoDashboardView({
               <RefreshCw className="w-3.5 h-3.5 text-amber-700" />
               <span>Đồng Bộ</span>
             </button>
+
+            {firebaseStatus.isConfigured && (
+              <button
+                onClick={handleFetchFromFirebase}
+                disabled={isLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 text-emerald-900 border border-emerald-200 text-xs font-bold cursor-pointer transition-colors"
+                title="Tải dữ liệu bài dạy, slide và sổ điểm SMAS mới nhất từ đám mây"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Tải Cloud</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -483,6 +525,13 @@ export default function BentoDashboardView({
                 C: {kpi.levelCCount}
               </span>
             </div>
+            <button
+              onClick={() => onNavigateTab && onNavigateTab('evaluation')}
+              className="mt-2.5 w-full flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-[11px] font-bold transition-colors cursor-pointer"
+            >
+              <span>{kpi.totalStudents > 0 ? 'Mở Sổ Điểm SMAS' : 'Nhập DS học sinh SMAS'}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* KPI 4: Trạng Thái Lưu Trữ */}

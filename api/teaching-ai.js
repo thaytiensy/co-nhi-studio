@@ -1,3 +1,5 @@
+import { verifySessionToken } from '../server/sessionToken.js';
+
 const AUTH_LOOKUP_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup';
 const FIRESTORE_BASE_URL = 'https://firestore.googleapis.com/v1';
 const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-latest'];
@@ -139,6 +141,11 @@ async function readRole(projectId, collection, email, idToken) {
 }
 
 async function authorize(idToken, firebaseApiKey, projectId) {
+  const sessionSecret = (process.env.CONHI_SESSION_SECRET || '').trim();
+  if (sessionSecret) {
+    const verifiedSession = verifySessionToken(idToken, sessionSecret);
+    if (verifiedSession?.email) return { email: verifiedSession.email };
+  }
   let authResponse;
   try {
     authResponse = await fetchJson(`${AUTH_LOOKUP_URL}?key=${encodeURIComponent(firebaseApiKey)}`, {
@@ -345,10 +352,12 @@ async function generateImage({ grade, prompt, style, visualPrompt }, apiKey) {
     ? visualPrompt.trim().slice(0, 1000)
     : `authentic child naive art, ${styleDetails.material || 'crayon drawing'}, ${topic}, colorful cheerful primary school artwork, no realistic photography, no 3D computer render, no cars, no modern vehicles, no adult style, no text, no watermark`;
 
-  // 1. Thử gọi Pollinations.ai API chất lượng cao (100% Free, bám sát nội dung đã nhập)
+  // 1. Pollinations.ai API (Free) co gioi han timeout 20 giay de tranh treo serverless
+  const pollController = new AbortController();
+  const pollTimer = setTimeout(() => pollController.abort(), 20000);
   try {
     const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=1024&height=576&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
-    const pollResp = await fetch(pollinationsUrl);
+    const pollResp = await fetch(pollinationsUrl, { signal: pollController.signal });
     if (pollResp && pollResp.ok) {
       const buffer = Buffer.from(await pollResp.arrayBuffer());
       if (buffer && buffer.length > 2000) {
@@ -356,23 +365,28 @@ async function generateImage({ grade, prompt, style, visualPrompt }, apiKey) {
       }
     }
   } catch (e) {
-    console.warn('Pollinations fetch failed in backend:', e);
+    console.warn('Pollinations fetch failed in backend:', e?.message || e);
+  } finally {
+    clearTimeout(pollTimer);
   }
 
-  // 2. Thử gọi qua Gemini nếu có apiKey
+  // 2. Du phong qua model tao anh chuyen dung GEMINI_IMAGE_MODEL
   if (apiKey) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Math.min(IMAGE_NETWORK_TIMEOUT_MS, 25000));
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 20000);
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: finalPrompt }] }]
+          contents: [{ role: 'user', parts: [{ text: finalPrompt }] }],
+          generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
         }),
-        signal: controller.signal
+        signal: controller.signal,
       });
-      clearTimeout(timer);
+      if (response.status === 429) {
+        throw new Error('image_quota_exhausted');
+      }
       if (response && response.ok) {
         const result = await response.json().catch(() => ({}));
         const imagePart = result?.candidates?.[0]?.content?.parts?.find(part =>
@@ -383,7 +397,11 @@ async function generateImage({ grade, prompt, style, visualPrompt }, apiKey) {
           return { buffer, mimeType: imagePart.inlineData.mimeType };
         }
       }
-    } catch (_) {}
+    } catch (err) {
+      if (err?.message === 'image_quota_exhausted') throw err;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   throw new Error('image_upstream');
