@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, FileSpreadsheet, Download, Sparkles, CheckCircle2, Filter } from 'lucide-react';
+import { Camera, FileSpreadsheet, Sparkles, Filter } from 'lucide-react';
 
 export function DemoScreenPart5() {
   return (

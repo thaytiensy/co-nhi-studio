@@ -1,4 +1,10 @@
-import * as XLSX from 'xlsx';
+import {
+  createWorkbookFromSheets,
+  readExcelToSheets,
+  saveWorkbook,
+  workbookToNormalizedSheets,
+  writeWorkbookToUint8Array,
+} from './excelService.js';
 
 export const TT27_COMMENTS_BANK = {
   T: [
@@ -37,8 +43,6 @@ export function isNonStudentName(name) {
 
   return nonStudentKeywords.some(kw => norm.startsWith(kw) || norm === kw);
 }
-
-const NON_STUDENT_REGEX = /^(lớp|khối|trường|phòng|sở|bảng|năm học|học kỳ|học kì|môn|giáo viên|danh sách|tổng cộng|người lập|chữ ký|ngày sinh|stt|mã|họ và tên|studentid)/i;
 
 /**
  * Chuẩn hóa tên lớp bỏ tiền tố "Lớp" dư thừa (ví dụ: "Lớp 1A" -> "1A", "  2B " -> "2B")
@@ -194,13 +198,19 @@ function parseSheetRows(rawRows, defaultClass = '', options = {}) {
 }
 
 export function parseSmasWorkbook(workbook, options = {}) {
-  if (!workbook || !Array.isArray(workbook.SheetNames) || workbook.SheetNames.length === 0) throw new Error('Tệp Excel rỗng hoặc không có trang tính.');
+  const normalized = Array.isArray(workbook?.worksheets)
+    ? workbookToNormalizedSheets(workbook)
+    : workbook;
+
+  if (!normalized || !Array.isArray(normalized.SheetNames) || normalized.SheetNames.length === 0) {
+    throw new Error('Tệp Excel rỗng hoặc không có trang tính.');
+  }
+
   const allStudents = [], detectedClasses = new Set();
-  for (const sheetName of workbook.SheetNames) {
+  for (const sheetName of normalized.SheetNames) {
     if (/^(hướng dẫn|huong_dan|bìa|cover|info|thong_tin)/i.test(sheetName)) continue;
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) continue;
-    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    const rawRows = normalized.Sheets?.[sheetName];
+    if (!Array.isArray(rawRows)) continue;
     const studentsInSheet = parseSheetRows(rawRows, sheetName, options);
     for (const st of studentsInSheet) {
       allStudents.push(st);
@@ -208,6 +218,11 @@ export function parseSmasWorkbook(workbook, options = {}) {
     }
   }
   return { students: allStudents, detectedClasses: Array.from(detectedClasses) };
+}
+
+export async function readSmasExcelFile(input, options = {}) {
+  const normalized = await readExcelToSheets(input, options.fileName || '');
+  return parseSmasWorkbook(normalized, options);
 }
 
 export function shuffleClassComments(students = [], targetClass = '') {
@@ -220,21 +235,20 @@ export function shuffleClassComments(students = [], targetClass = '') {
   });
 }
 
-export function buildSmasWorkbook({ students = [], className = '1A', semester = 'Học kì I', multiSheet = false, exportMode = 'standard' }) {
+export function buildSmasSheetsSpec({ students = [], className = '1A', semester = 'Học kì I', multiSheet = false, exportMode = 'standard' }) {
   if (!Array.isArray(students) || students.length === 0) throw new Error('Danh sách học sinh rỗng.');
-  const workbook = XLSX.utils.book_new(), safeSem = String(semester || 'HK1').replace(/\s+/g, '_');
-  
-  // Kiểm tra chế độ xuất: Đầy đủ (comprehensive), 35 Tuần thường xuyên (weekly), hoặc chuẩn kỳ hiện tại
+  const safeSem = String(semester || 'HK1').replace(/\s+/g, '_');
+
   const isWeeklyMode = /weekly|thuong_xuyen|35tuan/i.test(exportMode);
   const isComprehensive = exportMode === 'comprehensive' || /toan_dien|tat_ca/i.test(exportMode);
   const isMidTermMode = /giua|gk|ghk/i.test(exportMode) || /giua|gk|ghk/i.test(semester);
   const isFinalTermMode = /cuoi|ck|chk/i.test(exportMode) || /cuoi|ck|chk/i.test(semester);
 
-  const cols = isWeeklyMode
-    ? [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, ...Array.from({ length: 35 }, () => ({ wch: 6 }))]
-    : isComprehensive 
-    ? [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 12 }, { wch: 45 }, { wch: 12 }, { wch: 45 }, { wch: 12 }, { wch: 55 }]
-    : [{ wch: 6 }, { wch: 14 }, { wch: 25 }, { wch: 10 }, { wch: 14 }, { wch: 70 }];
+  const colWidths = isWeeklyMode
+    ? [6, 14, 25, 10, ...Array.from({ length: 35 }, () => 8)]
+    : isComprehensive
+      ? [6, 14, 25, 10, 14, 45, 14, 45, 14, 55]
+      : [6, 14, 25, 10, 16, 70];
 
   const toRow = (st, idx, cls) => {
     if (isWeeklyMode) {
@@ -299,45 +313,63 @@ export function buildSmasWorkbook({ students = [], className = '1A', semester = 
     };
   };
 
+  const sheetsConfig = [];
   let fileName = '';
+
   if (multiSheet) {
     const classMap = new Map();
-    students.forEach(st => { const c = st.className?.trim() || className || 'Chung'; if (!classMap.has(c)) classMap.set(c, []); classMap.get(c).push(st); });
+    students.forEach(st => {
+      const c = st.className?.trim() || className || 'Chung';
+      if (!classMap.has(c)) classMap.set(c, []);
+      classMap.get(c).push(st);
+    });
     for (const [cls, list] of classMap.entries()) {
-      const ws = XLSX.utils.json_to_sheet(list.map((st, i) => toRow(st, i, cls)));
-      ws['!cols'] = cols;
-      XLSX.utils.book_append_sheet(workbook, ws, cls.replace(/[:\\/?*[\]]/g, '_').slice(0, 31) || 'Lop');
+      sheetsConfig.push({
+        name: cls.replace(/[:\\/?*[\]]/g, '_').slice(0, 31) || 'Lop',
+        rows: list.map((st, i) => toRow(st, i, cls)),
+        colWidths,
+      });
     }
     fileName = isWeeklyMode
       ? `So_Theo_Doi_Thuong_Xuyen_Mi_Thuat_Tat_Ca_Cac_Lop.xlsx`
       : isComprehensive
-      ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_Toan_Dien_${safeSem}.xlsx`
-      : `Bang_Nhan_Xet_Mi_Thuat_Tat_Ca_Cac_Lop_${safeSem}.xlsx`;
+        ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_Toan_Dien_${safeSem}.xlsx`
+        : `Bang_Nhan_Xet_Mi_Thuat_Tat_Ca_Cac_Lop_${safeSem}.xlsx`;
   } else {
-    const filtered = (className && className !== 'all') ? students.filter(st => (st.className || '').trim() === className.trim()) : students;
+    const filtered = (className && className !== 'all')
+      ? students.filter(st => (st.className || '').trim() === className.trim())
+      : students;
     const list = filtered.length > 0 ? filtered : students;
-    const ws = XLSX.utils.json_to_sheet(list.map((st, i) => toRow(st, i, st.className || className || '1A')));
-    ws['!cols'] = cols;
-    XLSX.utils.book_append_sheet(workbook, ws, isWeeklyMode ? 'Theo_Doi_Thuong_Xuyen' : 'Bang_Nhan_Xet_Mi_Thuat');
+    sheetsConfig.push({
+      name: isWeeklyMode ? 'Theo_Doi_Thuong_Xuyen' : 'Bang_Nhan_Xet_Mi_Thuat',
+      rows: list.map((st, i) => toRow(st, i, st.className || className || '1A')),
+      colWidths,
+    });
     fileName = isWeeklyMode
       ? `So_Theo_Doi_Thuong_Xuyen_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}.xlsx`
       : isComprehensive
-      ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`
-      : `Bang_Nhan_Xet_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`;
+        ? `Bang_Tong_Hop_Danh_Gia_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`
+        : `Bang_Nhan_Xet_Mi_Thuat_${String(className || 'Lop').replace(/\s+/g, '_')}_${safeSem}.xlsx`;
   }
 
+  return { sheetsConfig, fileName };
+}
+
+export async function buildSmasWorkbook(params) {
+  const { sheetsConfig, fileName } = buildSmasSheetsSpec(params);
+  const workbook = await createWorkbookFromSheets(sheetsConfig);
   return { workbook, fileName };
 }
 
-export function exportSmasExcel(params) {
-  const { workbook, fileName } = buildSmasWorkbook(params);
-  XLSX.writeFile(workbook, fileName);
+export async function exportSmasExcel(params) {
+  const { workbook, fileName } = await buildSmasWorkbook(params);
+  await saveWorkbook(workbook, fileName);
   return fileName;
 }
 
-export function generateSmasExcelBlob(params) {
-  const { workbook, fileName } = buildSmasWorkbook(params);
-  const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+export async function generateSmasExcelBlob(params) {
+  const { workbook, fileName } = await buildSmasWorkbook(params);
+  const wbout = await writeWorkbookToUint8Array(workbook);
   const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   return { blob, fileName };
 }

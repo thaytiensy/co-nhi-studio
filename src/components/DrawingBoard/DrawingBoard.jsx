@@ -1,25 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { STEP_DRAWING_TOPICS } from '../../data/stepDrawingBank';
-import { 
-  Brush, 
-  Eraser, 
-  Trash2, 
-  Undo, 
-  Download, 
-  Plus, 
-  Square, 
-  Circle, 
-  Minus, 
-  Triangle, 
-  Star,
-  Heart,
-  ArrowRight,
+import {
+  Brush,
+  Eraser,
+  Trash2,
+  Undo,
+  Download,
   ArrowLeft,
-  Box,
-  Cylinder,
-  Presentation,
-  CheckCircle,
-  Palette
+  Presentation
 } from 'lucide-react';
 
 const SHAPE_LIST = [

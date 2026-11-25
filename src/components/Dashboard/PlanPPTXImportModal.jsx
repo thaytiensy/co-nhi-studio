@@ -174,7 +174,7 @@ export default function PlanPPTXImportModal({
                   title="Lưu bài giảng và mở thẳng chế độ Trình Chiếu toàn màn hình để dạy học ngay"
                 >
                   <Presentation className="w-4 h-4 shrink-0" />
-                  <span>▶ Trình Chiếu Ngay (F5)</span>
+                  <span>▶ Trình Chiếu Ngay</span>
                 </button>
 
                 <button

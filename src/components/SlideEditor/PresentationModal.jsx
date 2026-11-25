@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
-  Volume2, 
-  Clock, 
-  FileText,
+import {
+  Volume2,
   Play,
   Pause,
   RotateCcw,
@@ -14,11 +9,6 @@ import {
   Music,
   Edit3,
   Trash2,
-  HelpCircle,
-  EyeOff,
-  Maximize2,
-  Download,
-  Printer,
   Highlighter
 } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
@@ -125,7 +115,7 @@ export default function PresentationModal({
         slideSet.delete(shapeId);
       } else {
         slideSet.add(shapeId);
-        try { classroomAudio.playSuccessSound(); } catch (_) {}
+        try { classroomAudio.playSuccessSound(); } catch {}
       }
       return { ...prev, [currentIndex]: slideSet };
     });
@@ -221,7 +211,7 @@ export default function PresentationModal({
       mediaElements.forEach(media => {
         try {
           if (!media.paused) media.pause();
-        } catch (_) {}
+        } catch {}
       });
     }
   }, [currentIndex]);

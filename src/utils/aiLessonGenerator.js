@@ -91,7 +91,7 @@ async function getAuthToken(tokenProvider) {
       return auth.currentUser.getIdToken();
     });
     return await getToken();
-  } catch (_) {
+  } catch {
     return null;
   }
 }

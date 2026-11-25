@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Volume2, VolumeX, Play, Pause, Square, Sparkles, AlertCircle, Info, Check } from 'lucide-react';
+import { Volume2, Pause, Square, Sparkles, AlertCircle } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 import { requestTeachingAi, externalAiEnabled } from '../../utils/aiLessonGenerator.js';
 
@@ -7,7 +7,7 @@ import { requestTeachingAi, externalAiEnabled } from '../../utils/aiLessonGenera
  * Động cơ Sư Phạm GDPT 2018 - Tự động xây dựng lời giảng truyền cảm hứng theo từng slide
  * SGK Kết Nối Tri Thức Với Cuộc Sống, bám sát phương pháp sư phạm
  */
-export function buildSlideTeacherSpeech({ slideTitle = '', slideContent = '', slide = null, grade = 1 }) {
+export function buildSlideTeacherSpeech({ slideTitle = '', slideContent = '', slide: _slide = null, grade: _grade = 1 }) {
   const cleanTitle = (slideTitle || '').trim();
   const cleanContent = (slideContent || '').trim();
   const fullText = `${cleanTitle} ${cleanContent}`.toLowerCase();
@@ -231,7 +231,7 @@ export default function SpeakerNotes({
         try {
           const prompt = `Hãy tự viết lời giảng mới, riêng cho trang trình chiếu dưới đây; không dùng lời mẫu chung. Lời giảng cần tự nhiên để giáo viên có thể nói trực tiếp, phù hợp học sinh tiểu học lớp ${grade}, giải thích đúng nội dung nhìn thấy, có câu hỏi gợi mở cụ thể và một câu chuyển tiếp/khích lệ vừa phải. Không tự thêm kiến thức, hoạt động hay vật liệu không có căn cứ trong trang. Nếu nội dung trang quá ngắn, chỉ đặt câu hỏi quan sát phù hợp với phần có thật. Viết thành 2–4 đoạn ngắn, không thêm tiêu đề, ghi chú hay nhãn vai người nói. Đây là bản nháp để giáo viên xem lại.\n\nTiêu đề trang: ${slideTitle || '(không có)'}\nNội dung chữ trên trang: ${slideContent || '(không có chữ ngoài tiêu đề)'}`;
           targetSpeech = await requestTeachingAi({ mode: 'text', grade, prompt });
-        } catch (_) {
+        } catch {
           // Bỏ qua lỗi và chuyển sang động cơ Sư phạm Cọ Nhí Cục bộ
         }
       }

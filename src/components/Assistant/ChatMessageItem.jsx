@@ -74,7 +74,7 @@ export default function ChatMessageItem({
                   type="button"
                   onClick={handleSpeak}
                   className="px-2 py-1 font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
-                  title="Nghe Cô Trợ Giảng đọc câu này"
+                  title="Nghe Trợ Giảng AI đọc câu này"
                 >
                   <Volume2 className="w-3 h-3 text-emerald-600" />
                   <span>Nghe đọc</span>

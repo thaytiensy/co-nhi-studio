@@ -13,7 +13,7 @@ export async function checkDesktopOfficeStatus() {
       cachedOfficeStatus = data;
       return data;
     }
-  } catch (_) {}
+  } catch {}
 
   // 2. Thử cầu nối máy chủ cục bộ (khi người dùng đang mở trang web Vercel trên máy tính cá nhân)
   const candidateUrls = ['http://localhost:3000/api/office-status', 'http://127.0.0.1:3000/api/office-status', 'http://localhost:3100/api/office-status'];
@@ -25,7 +25,7 @@ export async function checkDesktopOfficeStatus() {
         cachedOfficeStatus = data;
         return data;
       }
-    } catch (_) {}
+    } catch {}
   }
 
   return { hasOffice: false, suites: [] };
@@ -67,7 +67,7 @@ export async function openSlideInDesktopOffice(projectTitle, slides, options = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-    } catch (_) {}
+    } catch {}
 
     // 2. Thử cầu nối máy chủ nội bộ nếu đang duyệt trên web Vercel
     if (!res || !res.ok) {
@@ -83,7 +83,7 @@ export async function openSlideInDesktopOffice(projectTitle, slides, options = {
             res = bridgeRes;
             break;
           }
-        } catch (_) {}
+        } catch {}
       }
     }
 
@@ -96,7 +96,7 @@ export async function openSlideInDesktopOffice(projectTitle, slides, options = {
         return { success: true, appName: result.appName };
       }
     }
-  } catch (_) {}
+  } catch {}
 
   // Chế độ Web / Không có server cục bộ (chỉ tải tệp khi người dùng thực hiện thao tác rõ ràng, không tải khi đồng bộ ngầm)
   if (!silent) {
@@ -154,7 +154,7 @@ async function sendFileToDesktopOffice(type, title, fileData, label) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payloadObj)
       });
-    } catch (_) {}
+    } catch {}
 
     if (!res || !res.ok) {
       const candidateUrls = ['http://localhost:3000/api/open-office', 'http://127.0.0.1:3000/api/open-office', 'http://localhost:3100/api/open-office'];
@@ -169,7 +169,7 @@ async function sendFileToDesktopOffice(type, title, fileData, label) {
             res = bridgeRes;
             break;
           }
-        } catch (_) {}
+        } catch {}
       }
     }
 
@@ -180,7 +180,7 @@ async function sendFileToDesktopOffice(type, title, fileData, label) {
         return { success: true, appName: result.appName };
       }
     }
-  } catch (_) {}
+  } catch {}
   return { success: true };
 }
 
@@ -194,7 +194,7 @@ function arrayBufferToBase64(buffer) {
       binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
     }
     return typeof btoa !== 'undefined' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64');
-  } catch (_) {
+  } catch {
     return '';
   }
 }

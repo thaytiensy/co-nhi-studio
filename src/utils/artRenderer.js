@@ -912,7 +912,7 @@ export function generateProceduralArtwork(topicText = '', seed = 100, styleKey =
     // Thân xe ô tô đỏ
     ctx.fillStyle = '#ef4444';
     ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(vx - 140, vy, 280, 75, [12, 12, 4, 4]) : ctx.rect(vx - 140, vy, 280, 75);
+    if (ctx.roundRect) { ctx.roundRect(vx - 140, vy, 280, 75, [12, 12, 4, 4]); } else { ctx.rect(vx - 140, vy, 280, 75); }
     ctx.fill();
     ctx.strokeStyle = '#b91c1c';
     ctx.lineWidth = 4;
@@ -1055,7 +1055,7 @@ export function generateProceduralArtwork(topicText = '', seed = 100, styleKey =
 
   try {
     return canvas.toDataURL('image/jpeg', 0.92);
-  } catch (_) {
+  } catch {
     return '';
   }
 }

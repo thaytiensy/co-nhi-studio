@@ -45,7 +45,7 @@ export default function SlideGameWidget({ element }) {
       setScore(prev => prev + 10);
       try {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-      } catch (err) {}
+      } catch {}
     }
   };
 
@@ -59,7 +59,7 @@ export default function SlideGameWidget({ element }) {
       setShowResult(true);
       try {
         confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
-      } catch (err) {}
+      } catch {}
     }
   };
 

@@ -9,8 +9,7 @@ import {
   getProjectDraftFromLocal,
   hasUnsavedDraft,
   clearProjectDraft,
-  saveProjectToLocal,
-  loadProjectFromLocal
+  saveProjectToLocal
 } from '../src/utils/storageService.js';
 import {
   exportSlideToStandaloneHtml,

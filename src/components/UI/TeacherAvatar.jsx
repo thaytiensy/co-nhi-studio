@@ -1,5 +1,4 @@
 import React from 'react';
-import { Sparkles, Palette } from 'lucide-react';
 
 /**
  * TeacherAvatar - Biểu tượng Trợ Giảng Mĩ Thuật Cọ Nhí
@@ -33,7 +32,7 @@ export default function TeacherAvatar({
           ? 'bg-gradient-to-tr from-pink-600 via-rose-500 to-amber-300 border-rose-300/80 shadow-rose-900/30'
           : 'bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-300 border-amber-300/80 shadow-amber-900/30'
       } ${isSpeaking ? 'ring-4 ring-amber-400/60 scale-105 animate-pulse' : ''} ${className}`}
-      title={isFemale ? 'Cô Trợ Giảng Mĩ Thuật Cọ Nhí' : 'Trợ Giảng Mĩ Thuật Cọ Nhí'}
+      title={isFemale ? 'Cô Trợ Giảng Mĩ Thuật Cọ Nhí' : 'Thầy Trợ Giảng Mĩ Thuật Cọ Nhí'}
     >
       {/* Biểu tượng Bảng Màu Nghệ Thuật & Cọ Vẽ Vector */}
       <div className="flex items-center justify-center text-white drop-shadow-sm select-none">

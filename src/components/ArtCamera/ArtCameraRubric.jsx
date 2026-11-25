@@ -1,15 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, 
-  Upload, 
-  Check, 
-  RotateCcw, 
-  Sparkles, 
-  Eye, 
-  AlertCircle, 
-  Copy, 
-  Presentation, 
-  Award,
+import {
+  Camera,
+  Upload,
+  Check,
+  RotateCcw,
+  Sparkles,
+  AlertCircle,
+  Copy,
+  Presentation,
   Video,
   VideoOff,
   Info,
@@ -17,10 +15,8 @@ import {
   Save,
   ClipboardCheck,
   ChevronRight,
-  ExternalLink,
-  Users
+  ExternalLink
 } from 'lucide-react';
-import { PEDAGOGY_BANK } from '../../data/pedagogyBank';
 import { speechService } from '../../utils/speechService';
 import { 
   calculateRubricLevel, 
@@ -383,13 +379,13 @@ export default function ArtCameraRubric({
             facingMode: 'environment'
           }
         });
-      } catch (e1) {
+      } catch {
         // 2. Thử độ phân giải chuẩn không giới hạn facingMode
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: { width: { ideal: 1280 }, height: { ideal: 720 } }
           });
-        } catch (e2) {
+        } catch {
           // 3. Chế độ cơ bản nhất nếu webcam hạn chế constraint
           stream = await navigator.mediaDevices.getUserMedia({ video: true });
         }

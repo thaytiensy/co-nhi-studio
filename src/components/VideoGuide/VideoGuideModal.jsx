@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { X, FileText, Download, Presentation, BookOpen } from 'lucide-react';
+import { X, Download, Presentation } from 'lucide-react';
 import { VIDEO_CHAPTERS } from './videoGuideData';
 import VideoPlayerStage from './VideoPlayerStage';
 import VideoChapterList from './VideoChapterList';
-import { downloadAppDescriptionWordDoc } from '../../utils/appDescriptionWordService';
 
 export default function VideoGuideModal({ isOpen, onClose, onNavigateTab }) {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);

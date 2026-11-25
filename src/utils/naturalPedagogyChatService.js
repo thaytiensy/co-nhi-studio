@@ -45,7 +45,7 @@ export function getSpokenDialogueResponse(userText, currentGrade = 1, currentThe
 export function getNaturalPedagogyResponse(userText, currentGrade = 1, currentThemeTitle = '', currentGender = 'female', currentSlide = null) {
   const query = (userText || '').trim();
   const qLower = query.toLowerCase();
-  const roleTitle = currentGender === 'male' ? 'Trợ Giảng AI Cọ Nhí' : 'Cô Trợ Giảng AI';
+  const roleTitle = currentGender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
   const effectiveTheme = (currentSlide?.title || currentThemeTitle || '').replace(/^trang\s*\d+:\s*/i, '').trim();
 
   // 1. Chào hỏi xã giao & Nhận diện danh tính

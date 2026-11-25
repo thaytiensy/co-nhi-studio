@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   Play,
-  Save, 
-  Download, 
-  Upload, 
+  Save,
+  Download,
+  Upload,
   Presentation,
   Check,
   FileCode2,
@@ -14,7 +14,6 @@ import {
   LogOut,
   FolderOpen,
   ChevronDown,
-  Settings,
   User,
   Smartphone
 } from 'lucide-react';
@@ -23,8 +22,8 @@ import { exportProjectFile } from '../utils/storageService';
 export default function Header({ 
   projectTitle, 
   setProjectTitle, 
-  activeTab, 
-  setActiveTab, 
+  activeTab: _activeTab, 
+  setActiveTab: _setActiveTab, 
   onSave, 
   isSaved,
   onStartPresentation,
@@ -34,12 +33,12 @@ export default function Header({
   onUploadPPTX,
   onNewProject,
   onOpenVideoGuide,
-  onOpenAdminModal,
+  onOpenAdminModal: _onOpenAdminModal,
   onOpenInstallModal,
   userSession,
   onLogout,
-  onOpenDesktopOffice,
-  desktopOfficeInfo,
+  onOpenDesktopOffice: _onOpenDesktopOffice,
+  desktopOfficeInfo: _desktopOfficeInfo,
   onToggleAssistant
 }) {
   const [showFileMenu, setShowFileMenu] = useState(false);
@@ -381,10 +380,10 @@ export default function Header({
           <button
             onClick={onStartPresentation}
             className="px-3.5 sm:px-4 py-1.5 text-xs font-black text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 rounded-xl shadow-sm hover:shadow flex items-center gap-1.5 sm:gap-2 transition-all transform active:scale-95 cursor-pointer ring-2 ring-amber-400/30"
-            title="Bắt đầu trình chiếu bài giảng toàn màn hình lớp học (Phím F5)"
+            title="Bắt đầu trình chiếu bài giảng toàn màn hình lớp học (Phím tắt F5 / F11)"
           >
             <Play className="w-3.5 h-3.5 fill-white shrink-0" />
-            <span className="whitespace-nowrap">Trình Chiếu (F5)</span>
+            <span className="whitespace-nowrap">Trình Chiếu</span>
           </button>
         </div>
       </div>

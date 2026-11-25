@@ -331,7 +331,7 @@ export const parseLegacyPPTFile = async (file) => {
       let currentChunk = [];
 
       for (const line of extractedLines) {
-        const isActivityHeader = /^(BÀI|CHỦ ĐỀ|HOẠT ĐỘNG|KHỞI ĐỘNG|KHÁM PHÁ|LUYỆN TẬP|THỰC HÀNH|TRƯNG BÀY|ĐÁNH GIÁ|MỤC TIÊU|CHUẨN BỊ|TIẾT|\d+[\.\:])/i.test(line);
+        const isActivityHeader = /^(BÀI|CHỦ ĐỀ|HOẠT ĐỘNG|KHỞI ĐỘNG|KHÁM PHÁ|LUYỆN TẬP|THỰC HÀNH|TRƯNG BÀY|ĐÁNH GIÁ|MỤC TIÊU|CHUẨN BỊ|TIẾT|\d+[.:])/i.test(line);
         if (isActivityHeader && currentChunk.length >= 2) {
           slideChunks.push(currentChunk);
           currentChunk = [line];
@@ -841,7 +841,7 @@ export const parsePPTXFile = async (file) => {
             }
 
             layoutMasterCache[slideLayoutPath] = { bgUrl: masterBgUrl, bgClr: masterBgClr };
-          } catch (e) {
+          } catch {
             layoutMasterCache[slideLayoutPath] = { bgUrl: null, bgClr: null };
           }
         }

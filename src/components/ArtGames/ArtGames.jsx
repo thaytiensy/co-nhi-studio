@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
-import { 
-  Gamepad2, 
-  RotateCcw, 
-  Edit3, 
-  CheckCircle2, 
-  XCircle, 
-  Trophy, 
-  HelpCircle, 
+import {
+  Gamepad2,
+  RotateCcw,
+  Edit3,
+  CheckCircle2,
+  XCircle,
+  Trophy,
   Sparkles,
-  Layers,
-  Palette,
-  Eye,
-  Settings,
   Plus,
-  Trash2,
-  BookOpen,
-  Check,
-  X
+  Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ART_CURRICULUM_THEMES, generateGameQuestionsByTheme } from '../../data/artGamesCurriculumBank';
-import { generateNaturalArtGame, parseNaturalGamePrompt } from '../../utils/aiNaturalLanguageService';
+import { generateNaturalArtGame } from '../../utils/aiNaturalLanguageService';
 import { buildAnswerFeedback } from '../../utils/gameFeedbackService';
 import { classroomAudio } from '../../utils/classroomAudioService';
 import { showToast } from '../../utils/toastService';
@@ -174,16 +166,16 @@ export default function ArtGames({
 
     if (idx === currentQ.correctAnswer) {
       setScore(prev => prev + 10);
-      try { classroomAudio.playSuccessSound(); } catch (_) {}
+      try { classroomAudio.playSuccessSound(); } catch {}
       try {
         confetti({
           particleCount: 60,
           spread: 70,
           origin: { y: 0.7 }
         });
-      } catch (_) {}
+      } catch {}
     } else {
-      try { classroomAudio.playFailureSound(); } catch (_) {}
+      try { classroomAudio.playFailureSound(); } catch {}
     }
   };
 
@@ -200,7 +192,7 @@ export default function ArtGames({
           spread: 100,
           origin: { y: 0.6 }
         });
-      } catch (_) {}
+      } catch {}
     }
   };
 
@@ -262,7 +254,7 @@ export default function ArtGames({
       }
     }
     if (!extracted && projectTitle) {
-      extracted = projectTitle.replace(/^(bài|chủ đề)\s*\d*[:\-]?\s*/i, '').trim();
+      extracted = projectTitle.replace(/^(bài|chủ đề)\s*\d*[:-]?\s*/i, '').trim();
     }
     if (extracted) {
       setCustomThemeInput(extracted);

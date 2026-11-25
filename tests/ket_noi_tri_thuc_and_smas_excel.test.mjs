@@ -1,10 +1,26 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import * as XLSX from 'xlsx';
-import { exportSmasExcel, parseLevel } from '../src/utils/smasExcelService.js';
+import { readExcelToSheets } from '../src/utils/excelService.js';
+import { exportSmasExcel } from '../src/utils/smasExcelService.js';
 import { exportExcelReport, exportCsvReport } from '../src/lib/export-engine.ts';
 import { PEDAGOGY_BANK } from '../src/data/pedagogyBank.js';
+
+async function readExcelRowsAsObjects(filePath, targetSheetName) {
+  const wb = await readExcelToSheets(fs.readFileSync(filePath), filePath);
+  const name = targetSheetName || wb.SheetNames[0];
+  const aoa = wb.Sheets[name];
+  if (!aoa || aoa.length === 0) return { wb, rows: [] };
+  const headers = aoa[0];
+  const rows = aoa.slice(1).map((r) => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      if (h !== undefined && h !== '') obj[String(h)] = r[i];
+    });
+    return obj;
+  });
+  return { wb, rows };
+}
 
 describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sống & Quy Chuẩn File Excel SMAS', () => {
   it('1. Đảm bảo Bộ sách Kết Nối Tri Thức Với Cuộc Sống đầy đủ từ Lớp 1 đến Lớp 5', () => {
@@ -28,13 +44,13 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
     assert.ok(speakerNotesSource.includes('gia đình|bữa cơm|mẹ|bố'), 'Phải hỗ trợ chủ đề gia đình');
   });
 
-  it('3. Quy chuẩn xuất file Excel SMAS (.xlsx): Cột chuẩn STT, Mã học sinh, Họ và tên, Lớp, Mức đánh giá, Nội dung nhận xét', () => {
+  it('3. Quy chuẩn xuất file Excel SMAS (.xlsx): Cột chuẩn STT, Mã học sinh, Họ và tên, Lớp, Mức đánh giá, Nội dung nhận xét', async () => {
     const sampleStudents = [
       { id: 'HS001', name: 'Nguyễn Văn An', className: '1A', level: 'T', comment: 'Phối màu sáng tạo, đường nét tự tin.' },
       { id: 'HS002', name: 'Trần Thị Bình', className: '1A', level: 'H', comment: 'Hoàn thành bài vẽ đúng tiến độ.' }
     ];
 
-    const fileName = exportSmasExcel({
+    const fileName = await exportSmasExcel({
       students: sampleStudents,
       className: '1A',
       semester: 'Học kì I',
@@ -44,9 +60,7 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
     assert.ok(fileName.endsWith('.xlsx'), 'Tệp xuất ra phải là định dạng chuẩn .xlsx');
     assert.ok(fs.existsSync(fileName), 'Tệp Excel SMAS phải được tạo trên đĩa');
 
-    const workbook = XLSX.read(fs.readFileSync(fileName));
-    const sheetName = workbook.SheetNames[0];
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    const { rows } = await readExcelRowsAsObjects(fileName);
 
     assert.equal(rows.length, 2);
     const firstRow = rows[0];
@@ -61,7 +75,7 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
     fs.unlinkSync(fileName);
   });
 
-  it('4. Quy chuẩn xuất file Excel SMAS Giữa kì (GK) và Cuối kì (CK)', () => {
+  it('4. Quy chuẩn xuất file Excel SMAS Giữa kì (GK) và Cuối kì (CK)', async () => {
     const sampleStudents = [
       { 
         id: 'HS001', 
@@ -75,28 +89,28 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
       }
     ];
 
-    const gkFileName = exportSmasExcel({
+    const gkFileName = await exportSmasExcel({
       students: sampleStudents,
       className: '1A',
       semester: 'Giữa kì I',
       exportMode: 'gk'
     });
     assert.ok(gkFileName.endsWith('.xlsx'));
-    const gkWb = XLSX.read(fs.readFileSync(gkFileName));
-    const gkRow = XLSX.utils.sheet_to_json(gkWb.Sheets[gkWb.SheetNames[0]])[0];
+    const { rows: gkRows } = await readExcelRowsAsObjects(gkFileName);
+    const gkRow = gkRows[0];
     assert.equal(gkRow['Mức đánh giá giữa kì'], 'T');
     assert.equal(gkRow['Nội dung nhận xét giữa kì'], 'Giữa kì tiến bộ vượt bậc.');
     fs.unlinkSync(gkFileName);
 
-    const ckFileName = exportSmasExcel({
+    const ckFileName = await exportSmasExcel({
       students: sampleStudents,
       className: '1A',
       semester: 'Cuối kì I',
       exportMode: 'ck'
     });
     assert.ok(ckFileName.endsWith('.xlsx'));
-    const ckWb = XLSX.read(fs.readFileSync(ckFileName));
-    const ckRow = XLSX.utils.sheet_to_json(ckWb.Sheets[ckWb.SheetNames[0]])[0];
+    const { rows: ckRows } = await readExcelRowsAsObjects(ckFileName);
+    const ckRow = ckRows[0];
     assert.equal(ckRow['Mức đánh giá cuối kì'], 'T');
     assert.equal(ckRow['Nội dung nhận xét cuối kì'], 'Cuối kì hoàn thành xuất sắc.');
     fs.unlinkSync(ckFileName);
@@ -171,7 +185,7 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
       }
     ];
 
-    const fileName = exportSmasExcel({
+    const fileName = await exportSmasExcel({
       students: mockStudents,
       className: '1A',
       exportMode: 'weekly'
@@ -182,11 +196,8 @@ describe('Giai đoạn 7 - Chuẩn SGK Kết Nối Tri Thức Với Cuộc Sốn
       assert.ok(fileName.includes('So_Theo_Doi_Thuong_Xuyen'), 'Tên file phải là So_Theo_Doi_Thuong_Xuyen');
       assert.ok(fs.existsSync(fileName), 'Tệp Excel SMAS thường xuyên phải tồn tại trên đĩa');
 
-      const workbook = XLSX.read(fs.readFileSync(fileName));
-      const sheet = workbook.Sheets['Theo_Doi_Thuong_Xuyen'];
-      assert.ok(sheet, 'Trang tính phải tên là Theo_Doi_Thuong_Xuyen');
-
-      const jsonRows = XLSX.utils.sheet_to_json(sheet);
+      const { wb: workbook, rows: jsonRows } = await readExcelRowsAsObjects(fileName, 'Theo_Doi_Thuong_Xuyen');
+      assert.ok(workbook.Sheets['Theo_Doi_Thuong_Xuyen'], 'Trang tính phải tên là Theo_Doi_Thuong_Xuyen');
       assert.equal(jsonRows.length, 1);
       const row = jsonRows[0];
 

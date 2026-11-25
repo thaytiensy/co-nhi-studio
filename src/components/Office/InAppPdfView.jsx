@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Upload, Download, ExternalLink } from 'lucide-react';
+import { Upload, ExternalLink } from 'lucide-react';
 
 export default function InAppPdfView({ docData, onUploadPdf }) {
   const pdfUrl = docData?.type === 'pdf' ? docData.url : null;

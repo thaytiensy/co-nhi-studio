@@ -5,7 +5,7 @@
  * bảng biểu kẻ khung sắc nét và chữ ký người lập biểu.
  */
 
-import * as XLSX from 'xlsx';
+import { createWorkbookFromSheets, writeWorkbookToUint8Array } from '../utils/excelService.js';
 import { getStoredData } from './storage.ts';
 import type { TeachingPlanItem, StudentEvaluationItem, StudioSettings } from './storage.ts';
 
@@ -499,10 +499,9 @@ export function buildWordReportBlob(options: ExportReportOptions = {}): { blob: 
 }
 
 /**
- * Xuất bảng báo cáo ra file Excel (.xlsx) chuẩn Microsoft Excel
- * Gồm 2 Sheet: Kế Hoạch Dạy Học & Bảng Đánh Giá Học Sinh TT27
+ * Tạo cấu hình 2 trang tính cho báo cáo Excel (.xlsx) chuẩn Microsoft Excel
  */
-export function exportExcelReport(options: ExportReportOptions = {}): string {
+function buildReportSheetsSpec(options: ExportReportOptions = {}) {
   const currentData = getStoredData();
   const settings: StudioSettings = {
     ...currentData.settings,
@@ -521,9 +520,6 @@ export function exportExcelReport(options: ExportReportOptions = {}): string {
     evaluations = evaluations.filter(e => (e.className || '').toLowerCase() === options.filterClass?.toLowerCase());
   }
 
-  const wb = XLSX.utils.book_new();
-
-  // Sheet 1: Kế Hoạch Dạy Học GDPT 2018 (SGK Kết Nối Tri Thức)
   const planRows = plans.map((p, idx) => ({
     'STT': idx + 1,
     'Tuần': `Tuần ${p.week}`,
@@ -536,22 +532,7 @@ export function exportExcelReport(options: ExportReportOptions = {}): string {
     'Trạng thái': p.status,
     'Ghi chú': p.notes
   }));
-  const wsPlans = XLSX.utils.json_to_sheet(planRows);
-  wsPlans['!cols'] = [
-    { wch: 6 },
-    { wch: 10 },
-    { wch: 8 },
-    { wch: 10 },
-    { wch: 10 },
-    { wch: 38 },
-    { wch: 45 },
-    { wch: 32 },
-    { wch: 14 },
-    { wch: 25 }
-  ];
-  XLSX.utils.book_append_sheet(wb, wsPlans, 'Ke_Hoach_Day_Hoc');
 
-  // Sheet 2: Đánh Giá Học Sinh Chuẩn Thông Tư 27
   const evalRows = evaluations.map((e, idx) => ({
     'STT': idx + 1,
     'Mã học sinh': e.studentCode || `HS${String(idx + 1).padStart(3, '0')}`,
@@ -561,106 +542,54 @@ export function exportExcelReport(options: ExportReportOptions = {}): string {
     'Mức đánh giá': e.level || 'H',
     'Nội dung nhận xét': e.comment || ''
   }));
-  const wsEvals = XLSX.utils.json_to_sheet(evalRows);
-  wsEvals['!cols'] = [
-    { wch: 6 },
-    { wch: 14 },
-    { wch: 26 },
-    { wch: 10 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 75 }
-  ];
-  XLSX.utils.book_append_sheet(wb, wsEvals, 'Danh_Gia_Hoc_Sinh_TT27');
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const safeSchool = (settings.schoolName || 'Tieu_Hoc').replace(/[^a-zA-Z0-9]/g, '_');
   const filename = `Bang_Bao_Cao_Mi_Thuat_${safeSchool}_${todayStr}.xlsx`;
 
-  if (typeof window !== 'undefined') {
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    triggerFileDownload(blob, filename);
-  }
+  const sheetsConfig = [
+    {
+      name: 'Ke_Hoach_Day_Hoc',
+      rows: planRows,
+      headers: ['STT', 'Tuần', 'Tiết', 'Khối', 'Lớp', 'Tên bài học (Kết Nối Tri Thức)', 'Yêu cầu cần đạt', 'Đồ dùng dạy học', 'Trạng thái', 'Ghi chú'],
+      colWidths: [6, 10, 8, 10, 10, 38, 45, 32, 14, 25],
+    },
+    {
+      name: 'Danh_Gia_Hoc_Sinh_TT27',
+      rows: evalRows,
+      headers: ['STT', 'Mã học sinh', 'Họ và tên', 'Lớp', 'Tuần', 'Mức đánh giá', 'Nội dung nhận xét'],
+      colWidths: [6, 14, 26, 10, 14, 14, 75],
+    },
+  ];
 
-  return filename;
+  return { sheetsConfig, filename };
 }
 
 /**
- * Sinh Blob Báo cáo Excel (.xlsx) phục vụ mở bằng Office trên máy tính
+ * Sinh Blob Báo cáo Excel (.xlsx) qua ExcelJS phục vụ tải về hoặc mở bằng Office
  */
-export function buildExcelReportBlob(options: ExportReportOptions = {}): { blob: Blob; filename: string } {
-  const currentData = getStoredData();
-  const settings: StudioSettings = {
-    ...currentData.settings,
-    agencyName: options.agencyName || currentData.settings?.agencyName || 'PHÒNG GIÁO DỤC VÀ ĐÀO TẠO',
-    schoolName: options.schoolName || currentData.settings?.schoolName || 'TRƯỜNG TIỂU HỌC',
-    teacherName: options.teacherName || currentData.settings?.teacherName || 'Giáo viên',
-    academicYear: options.academicYear || currentData.settings?.academicYear || '2026 - 2027',
-    currentSemester: options.semester || currentData.settings?.currentSemester || 'Học kì I'
-  };
+export async function buildExcelReportBlob(options: ExportReportOptions = {}): Promise<{ blob: Blob; filename: string }> {
+  const { sheetsConfig, filename } = buildReportSheetsSpec(options);
+  const wb = await createWorkbookFromSheets(sheetsConfig);
+  const wbout = await writeWorkbookToUint8Array(wb);
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  return { blob, filename };
+}
 
-  let plans = options.plans || currentData.plans || [];
-  let evaluations = options.evaluations || currentData.evaluations || [];
+/**
+ * Xuất bảng báo cáo ra file Excel (.xlsx) chuẩn Microsoft Excel
+ * Gồm 2 Sheet: Kế Hoạch Dạy Học & Bảng Đánh Giá Học Sinh TT27
+ */
+export function exportExcelReport(options: ExportReportOptions = {}): string {
+  const { filename } = buildReportSheetsSpec(options);
 
-  if (options.filterClass && options.filterClass !== 'all') {
-    plans = plans.filter(p => (p.className || '').toLowerCase() === options.filterClass?.toLowerCase());
-    evaluations = evaluations.filter(e => (e.className || '').toLowerCase() === options.filterClass?.toLowerCase());
+  if (typeof window !== 'undefined') {
+    void buildExcelReportBlob(options).then(({ blob, filename: outName }) => {
+      triggerFileDownload(blob, outName);
+    });
   }
 
-  const wb = XLSX.utils.book_new();
-
-  const planRows = plans.map((p, idx) => ({
-    'STT': idx + 1,
-    'Tuần': `Tuần ${p.week}`,
-    'Tiết': p.period,
-    'Khối': `Khối ${p.grade}`,
-    'Lớp': p.className,
-    'Tên Bài Dạy': p.title,
-    'Thời Lượng': p.duration || '35 phút',
-    'Trạng Thái': p.status
-  }));
-  const wsPlan = XLSX.utils.json_to_sheet(planRows);
-  wsPlan['!cols'] = [
-    { wch: 6 },
-    { wch: 10 },
-    { wch: 8 },
-    { wch: 10 },
-    { wch: 10 },
-    { wch: 45 },
-    { wch: 14 },
-    { wch: 14 }
-  ];
-  XLSX.utils.book_append_sheet(wb, wsPlan, 'Ke_Hoach_Day_Hoc');
-
-  const evalRows = evaluations.map((e, idx) => ({
-    'STT': idx + 1,
-    'Mã học sinh': e.studentCode || `HS${String(idx + 1).padStart(3, '0')}`,
-    'Họ và tên': e.name,
-    'Lớp': e.className,
-    'Tuần': e.week ? `Tuần ${e.week}` : 'Thường xuyên',
-    'Mức đánh giá': e.level || 'H',
-    'Nội dung nhận xét': e.comment || ''
-  }));
-  const wsEvals = XLSX.utils.json_to_sheet(evalRows);
-  wsEvals['!cols'] = [
-    { wch: 6 },
-    { wch: 14 },
-    { wch: 26 },
-    { wch: 10 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 75 }
-  ];
-  XLSX.utils.book_append_sheet(wb, wsEvals, 'Danh_Gia_Hoc_Sinh_TT27');
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const safeSchool = (settings.schoolName || 'Tieu_Hoc').replace(/[^a-zA-Z0-9]/g, '_');
-  const filename = `Bang_Bao_Cao_Mi_Thuat_${safeSchool}_${todayStr}.xlsx`;
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-  return { blob, filename };
+  return filename;
 }
 
 /**

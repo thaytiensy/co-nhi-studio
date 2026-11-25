@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, CheckCircle2, Sparkles, Clock } from 'lucide-react';
+import { Sparkles, Clock } from 'lucide-react';
 
 export default function VideoChapterList({
   chapters,

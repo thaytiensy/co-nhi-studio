@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, CheckCircle2, Presentation, Trash2, Upload, FileUp, Sparkles, Check, MousePointer, FolderOpen, Database, Eye } from 'lucide-react';
+import { Presentation, Upload, Check, FolderOpen, Database } from 'lucide-react';
 
 export function DemoScreenPart1() {
   return (

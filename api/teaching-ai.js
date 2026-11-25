@@ -343,7 +343,7 @@ async function generateVectorArtwork({ grade, prompt, style }, apiKey) {
   return renderVectorScene(scene);
 }
 
-async function generateImage({ grade, prompt, style, visualPrompt }, apiKey) {
+async function generateImage({ _grade, prompt, style, visualPrompt }, apiKey) {
   const topic = prompt.trim();
   const styleDetails = IMAGE_STYLES[style];
   if (!styleDetails || containsUnsafe(topic)) throw new Error('invalid_image_request');
@@ -474,5 +474,5 @@ export default async function handler(req, res) {
   try {
     const text = await generate(input.mode, input.grade, input.prompt.trim(), effectiveApiKey);
     return json(res, 200, { text });
-  } catch (err) { return json(res, 502, { error: UPSTREAM_ERROR }); }
+  } catch { return json(res, 502, { error: UPSTREAM_ERROR }); }
 }

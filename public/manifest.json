@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Cọ Nhí Studio - Phần Mềm Soạn Giảng Mĩ Thuật Chuẩn VIP PRO",
+  "name": "Cọ Nhí Studio - Phần Mềm Soạn Giảng Mĩ Thuật Tiểu Học GDPT 2018",
   "short_name": "Cọ Nhí Studio",
-  "description": "Phần mềm soạn giảng, trình chiếu mĩ thuật và quản lý sổ điểm TT27 chuyên biệt cho Thầy/Cô tiểu học",
+  "description": "Phần mềm soạn giảng, trình chiếu mĩ thuật và quản lý sổ điểm TT27 SMAS chuyên biệt cho Thầy/Cô tiểu học",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,17 +11,26 @@
   "theme_color": "#f59e0b",
   "lang": "vi-VN",
   "dir": "ltr",
-  "categories": ["education", "productivity"],
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons.svg",
-      "sizes": "192x192 512x512",
+      "src": "/favicon.svg",
+      "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     }
@@ -32,21 +41,39 @@
       "short_name": "Dashboard",
       "description": "Xem tổng quan KPI và lịch báo giảng",
       "url": "/?tab=dashboard",
-      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Soạn Slide Bài Giảng",
       "short_name": "Soạn Slide",
       "description": "Mở không gian thiết kế bài giảng",
       "url": "/?tab=editor",
-      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Sổ Đánh Giá TT27 SMAS",
       "short_name": "Sổ Điểm",
       "description": "Đánh giá học sinh và xuất file SMAS",
       "url": "/?tab=evaluation",
-      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

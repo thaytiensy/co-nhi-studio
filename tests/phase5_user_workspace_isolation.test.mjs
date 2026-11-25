@@ -13,11 +13,7 @@ import {
   saveProjectToLocal,
   loadProjectFromLocal,
   saveProjectDraftToLocal,
-  getProjectDraftFromLocal,
-  clearProjectDraft,
-  hasUnsavedDraft,
-  STORAGE_KEY,
-  STORAGE_DRAFT_KEY
+  getProjectDraftFromLocal
 } from '../src/utils/storageService.js';
 
 import {

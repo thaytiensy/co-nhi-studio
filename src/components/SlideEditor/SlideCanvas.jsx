@@ -1,14 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { 
-  Trash2, 
-  ArrowUp, 
-  ArrowDown, 
-  Edit3, 
-  Image as ImageIcon, 
-  Maximize2, 
-  Minimize2,
-  Layers,
-  Sparkles 
+import {
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Edit3,
+  Image as ImageIcon
 } from 'lucide-react';
 import SlideGameWidget from '../ArtGames/SlideGameWidget';
 

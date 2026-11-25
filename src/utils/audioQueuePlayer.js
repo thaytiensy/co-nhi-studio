@@ -16,7 +16,7 @@ export class AudioQueuePlayer {
       try {
         this.currentAudio.pause();
         this.currentAudio.src = '';
-      } catch (_) {}
+      } catch {}
       this.currentAudio = null;
     }
   }
@@ -89,6 +89,6 @@ export class AudioQueuePlayer {
       const nextUrl = `/api/tts?text=${encodeURIComponent(nextChunkText)}&voice=${voiceParam}`;
       const prefetch = new Audio(nextUrl);
       prefetch.preload = 'auto';
-    } catch (_) {}
+    } catch {}
   }
 }

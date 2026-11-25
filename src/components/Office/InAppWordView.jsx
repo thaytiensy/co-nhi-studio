@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Volume2, VolumeX, Download, Upload, Copy, Check } from 'lucide-react';
+import { Volume2, VolumeX, Download, Upload, Copy, Check } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 import { showToast } from '../../utils/toastService';
 
@@ -79,7 +79,7 @@ export default function InAppWordView({ docData, onUploadDocx }) {
       setCopied(true);
       showToast('Đã sao chép toàn bộ văn bản vào bộ nhớ tạm!', 'success');
       setTimeout(() => setCopied(false), 2000);
-    } catch (_) {}
+    } catch {}
   };
 
   const handleDownloadWordDoc = () => {

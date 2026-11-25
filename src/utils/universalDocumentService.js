@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import * as XLSX from 'xlsx';
+import { readExcelToSheets } from './excelService';
 import { parsePPTXFile } from './pptxImportService.js';
 
 /**
@@ -93,7 +93,7 @@ export async function parseWordDocx(file) {
     let zip;
     try {
       zip = await JSZip.loadAsync(arrayBuffer);
-    } catch (_) {
+    } catch {
       // Fallback sang parse legacy nếu tệp có đuôi .docx nhưng nội dung thực tế là .doc cũ
       return await parseLegacyWordDoc(file);
     }
@@ -214,18 +214,11 @@ export async function parseWordDocx(file) {
 export async function parseExcelSpreadsheet(file) {
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const workbook = await readExcelToSheets(arrayBuffer, file.name);
     const sheetNames = workbook.SheetNames || [];
-    
+
     if (sheetNames.length === 0) {
       return { success: false, error: 'Tệp Excel không chứa sheet dữ liệu nào.' };
-    }
-
-    const sheets = {};
-    for (const name of sheetNames) {
-      const worksheet = workbook.Sheets[name];
-      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-      sheets[name] = rows;
     }
 
     return {
@@ -234,7 +227,7 @@ export async function parseExcelSpreadsheet(file) {
       fileName: file.name,
       fileSize: file.size,
       sheetNames,
-      sheets
+      sheets: workbook.Sheets || {}
     };
   } catch (err) {
     return {
@@ -289,7 +282,7 @@ export async function parseUniversalDocument(file) {
         binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
       }
       base64 = typeof btoa !== 'undefined' ? btoa(binary) : '';
-    } catch (_) {}
+    } catch {}
 
     return {
       success: true,
@@ -312,7 +305,7 @@ export async function parseUniversalDocument(file) {
         fileSize: file.size,
         text
       };
-    } catch (e) {
+    } catch {
       return { success: false, error: 'Không thể đọc tệp văn bản' };
     }
   }

@@ -9,14 +9,13 @@ import {
   loadProjectFromStorage,
   saveOfficeDocToStorage,
   loadOfficeDocFromStorage,
-  clearOfficeDocFromStorage,
   importProjectFile,
   saveProjectDraftToLocal,
   getProjectDraftFromLocal,
   clearProjectDraft,
   loadPlanSlidesFromStorage
 } from './utils/storageService';
-import { setActiveUserScope, clearActiveUserScope, getActiveUserScope } from './utils/userWorkspaceService';
+import { setActiveUserScope, clearActiveUserScope } from './utils/userWorkspaceService';
 
 // Lazy loading cho các module nặng nhằm tối ưu thời gian tải và giảm kích thước bundle
 const DrawingBoard = React.lazy(() => import('./components/DrawingBoard/DrawingBoard'));
@@ -32,9 +31,8 @@ const InstallAppModal = React.lazy(() => import('./components/Install/InstallApp
 const BentoDashboardView = React.lazy(() => import('./components/Dashboard/BentoDashboardView'));
 import SmartSidebar from './components/Navigation/SmartSidebar';
 import BottomNavBar from './components/Navigation/BottomNavBar';
-import { getCurrentSession, getAccessErrorMessage, logoutAdmin, ROLES } from './utils/adminAuthService';
+import { getCurrentSession, logoutAdmin, ROLES } from './utils/adminAuthService';
 import { auth } from './utils/firebaseClient';
-import { Sparkles } from 'lucide-react';
 import DraggableAssistantButton from './components/UI/DraggableAssistantButton';
 import ToastContainer from './components/UI/ToastContainer';
 import { showToast } from './utils/toastService';
@@ -105,7 +103,7 @@ class SafeTabErrorBoundary extends React.Component {
           }
         }
       }
-    } catch (_) {}
+    } catch {}
   }
 
   componentDidUpdate(prevProps) {
@@ -270,7 +268,7 @@ export default function App() {
       } else {
         setRecoveredDraft(null);
       }
-    } catch (_) {
+    } catch {
       setRecoveredDraft(null);
     }
   };
@@ -284,7 +282,7 @@ export default function App() {
         sessionStorage.setItem('conhi_explicit_logout', 'true');
       }
       await logoutAdmin();
-    } catch (_) {
+    } catch {
       setAuthError('Không thể hoàn tất đăng xuất. Vui lòng thử lại.');
     }
     clearActiveUserScope();
@@ -904,7 +902,7 @@ export default function App() {
                         if (savedPlanData && Array.isArray(savedPlanData.slides) && savedPlanData.slides.length > 0) {
                           targetSlides = savedPlanData.slides;
                         }
-                      } catch (_) {}
+                      } catch {}
                     }
                     if (!targetSlides && plan) {
                       targetSlides = buildStandardSlidesForPlan(plan);
@@ -1017,7 +1015,7 @@ export default function App() {
               : 'bottom-4 right-4 sm:bottom-6 sm:right-6 w-[430px] max-w-[calc(100vw-2rem)] h-[640px] max-h-[88vh] rounded-3xl shadow-2xl border-2 border-amber-400/80 bg-white ring-4 ring-amber-400/20 overflow-hidden animate-in zoom-in-95'
           }`}>
             <SafeTabErrorBoundary>
-              <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải Cô Trợ Giảng AI...</div>}>
+              <React.Suspense fallback={<div className="flex-1 flex items-center justify-center p-8 text-slate-500 font-semibold text-sm">Đang tải Trợ Giảng AI...</div>}>
                 <OfflinePedagogyAssistant
                   currentSlide={slides[currentSlideIndex] || slides[0]}
                   currentGrade={activeSlideGrade}
@@ -1053,7 +1051,7 @@ export default function App() {
             setIsAssistantPillDismissed(true);
             try {
               localStorage.setItem('conhi_assistant_pill_hidden', 'true');
-            } catch (_) {}
+            } catch {}
           }}
         />
       )}

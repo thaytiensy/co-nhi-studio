@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normalizeClassLabel, parseSmasWorkbook, shuffleClassComments } from '../src/utils/smasExcelService.js';
+import { normalizeClassLabel, shuffleClassComments } from '../src/utils/smasExcelService.js';
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url));
 

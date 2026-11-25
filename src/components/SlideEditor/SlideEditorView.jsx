@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Upload, ChevronLeft, ChevronRight, FileText, Table, FileSpreadsheet, Presentation } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Table, FileSpreadsheet, Presentation } from 'lucide-react';
 import SlideThumbnailList from './SlideThumbnailList';
 import Toolbar from './Toolbar';
 import SlideCanvas from './SlideCanvas';
@@ -10,7 +10,6 @@ import InAppExcelView from '../Office/InAppExcelView';
 import InAppPdfView from '../Office/InAppPdfView';
 const OfflinePedagogyAssistant = React.lazy(() => import('../Assistant/OfflinePedagogyAssistant'));
 const MediaYouTubeModal = React.lazy(() => import('../Media/MediaYouTubeModal'));
-import { SLIDE_TEMPLATES } from '../../data/slideTemplates';
 
 export default function SlideEditorView({
   slides,
@@ -20,7 +19,7 @@ export default function SlideEditorView({
   onSave,
   isPresentationOpen,
   setIsPresentationOpen,
-  showAssistant,
+  showAssistant: _showAssistant,
   setShowAssistant,
   onUploadDocument,
   officeSubTab = 'pptx',
@@ -55,7 +54,7 @@ export default function SlideEditorView({
       if (newHistory.length > maxSteps) newHistory.shift();
       setHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
-    } catch (_) {
+    } catch {
       // Bỏ qua nếu bộ nhớ hạn hẹp khi tệp bài giảng có hàng chục trang
     }
   };

@@ -12,7 +12,7 @@ export interface SlideSpeechParams {
 export function buildSlideTeacherSpeech({
   slideTitle = '',
   slideContent = '',
-  grade = 1,
+  grade: _grade = 1,
 }: SlideSpeechParams): string {
   const cleanTitle = (slideTitle || '').trim();
   const cleanContent = (slideContent || '').trim();

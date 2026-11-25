@@ -1,6 +1,5 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import * as XLSX from 'xlsx';
 import { generateGameQuestionsByTheme, detectTopicMatch } from '../src/data/artGamesCurriculumBank.js';
 import { ROLES, getAccessErrorMessage, loginAccess } from '../src/utils/adminAuthService.js';
 import { validateEmail, isValidAccessGrant, isValidUserSession, AUTH_ROLES } from '../src/contracts/authContract.js';
@@ -183,7 +182,6 @@ describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements
 
   it('5b. Bóc tách toàn bộ bảng điểm SMAS đa trang tính, lọc biểu ngữ trường (smasExcelService)', () => {
     // 1. Tạo workbook mẫu có 2 trang tính với biểu ngữ và cột họ đệm + tên tách biệt
-    const wb = XLSX.utils.book_new();
     const sheet1Data = [
       ['PHÒNG GD&ĐT HUYỆN ĐÔNG ANH', ''],
       ['TRƯỜNG TIỂU HỌC TÂY SƠN', ''],
@@ -192,14 +190,12 @@ describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements
       [1, '0012345678', 'Nguyễn Văn', 'An', 'T', 'Năng khiếu phối màu rất tốt.'],
       [2, '0012345679', 'Trần Thị', 'Bình', 'H', '']
     ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet1Data), 'Lop_1A');
-
     const sheet2Data = [
       ['STT', 'Mã HS', 'Họ và Tên', 'Lớp', 'Mức'],
       [1, 'HS101', 'Lê Hoàng Cường', '1B', 'T'],
       [2, 'HS102', 'Phạm Minh Đức', '1B', 'C']
     ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet2Data), 'Lop_1B');
+    const wb = { SheetNames: ['Lop_1A', 'Lop_1B'], Sheets: { Lop_1A: sheet1Data, Lop_1B: sheet2Data } };
 
     // 2. Phân tích qua parseSmasWorkbook
     const result = parseSmasWorkbook(wb);
@@ -230,7 +226,6 @@ describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements
   });
 
   it('5d. Nhận diện chính xác cột Mức và Nhận xét từ mẫu bảng điểm SMAS thực tế (Giữa kỳ, Cuối kỳ)', () => {
-    const wb = XLSX.utils.book_new();
     const smasSheetData = [
       ['BẢNG KẾT QUẢ ĐÁNH GIÁ MÔN MĨ THUẬT - LỚP 2A'],
       ['Học kỳ I - Năm học 2026-2027'],
@@ -241,7 +236,7 @@ describe('Giai đoạn 2 - Kiểm thử chức năng cốt lõi (Slide, Elements
       [3, 'ID003', '64631313-00-3333', 'Lê Cần Cố Gắng', 'C', ''],
       [4, 'ID004', '64631313-00-4444', 'Phạm Có Lời Khen', 'T', 'Vẽ nét rất sắc sảo và phối màu đẹp.']
     ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(smasSheetData), 'Mĩ thuật 2A');
+    const wb = { SheetNames: ['Mĩ thuật 2A'], Sheets: { 'Mĩ thuật 2A': smasSheetData } };
 
     const result = parseSmasWorkbook(wb, { semester: 'Giữa kì I' });
     assert.equal(result.students.length, 4);

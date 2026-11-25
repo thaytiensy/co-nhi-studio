@@ -220,7 +220,7 @@ export async function readSmasDataAsync() {
     if (idbData && Array.isArray(idbData.students)) {
       return idbData;
     }
-  } catch (_) {}
+  } catch {}
   return readSmasData();
 }
 

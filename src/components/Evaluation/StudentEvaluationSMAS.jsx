@@ -16,12 +16,10 @@ import {
   Award,
   ChevronDown,
   Calendar,
-  Eye,
   Search,
   Image as ImageIcon
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { parseSmasWorkbook, exportSmasExcel, generateSmasExcelBlob, shuffleClassComments, parseLevel, normalizeClassLabel, isNonStudentName } from '../../utils/smasExcelService';
+import { readSmasExcelFile, exportSmasExcel, shuffleClassComments, parseLevel, normalizeClassLabel, isNonStudentName } from '../../utils/smasExcelService';
 import { getScopedStorageKey } from '../../utils/userWorkspaceService';
 import { 
   batchSynthesizeClassEvaluations, 
@@ -81,7 +79,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         const parsed = JSON.parse(raw);
         return Boolean(parsed.hasUploadedOrSelected && (parsed.students?.length > 0 || parsed.className));
       }
-    } catch (_) {}
+    } catch {}
     return false;
   });
 
@@ -92,7 +90,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         const parsed = JSON.parse(raw);
         return parsed.className || '';
       }
-    } catch (_) {}
+    } catch {}
     return '';
   });
 
@@ -103,7 +101,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed.classOptions) ? parsed.classOptions : [];
       }
-    } catch (_) {}
+    } catch {}
     return [];
   });
 
@@ -114,7 +112,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         const parsed = JSON.parse(raw);
         return parsed.selectedClassFilter || 'all';
       }
-    } catch (_) {}
+    } catch {}
     return 'all';
   });
 
@@ -125,7 +123,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         const parsed = JSON.parse(raw);
         return parsed.semester || 'Học kì I';
       }
-    } catch (_) {}
+    } catch {}
     return 'Học kì I';
   });
 
@@ -138,7 +136,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
           return parsed.students.filter(s => s && s.name && !isNonStudentName(s.name));
         }
       }
-    } catch (_) {}
+    } catch {}
     return [];
   });
 
@@ -150,7 +148,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (_) {}
+    } catch {}
     return DEFAULT_TEACHING_CLASSES;
   });
 
@@ -161,7 +159,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem(getTeachingClassesKey(), JSON.stringify(cleaned));
       }
-    } catch (_) {}
+    } catch {}
   };
 
   // Chế độ xem sổ điểm thống nhất (không tách tab riêng biệt):
@@ -249,7 +247,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
           semester,
           students
         }));
-      } catch (_) {}
+      } catch {}
     }, 300);
     return () => clearTimeout(timer);
   }, [hasUploadedOrSelected, className, classOptions, selectedClassFilter, semester, students]);
@@ -514,7 +512,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem(getSmasStorageKey());
-      } catch (_) {}
+      } catch {}
     }
     writeSmasData({
       hasUploadedOrSelected: false,
@@ -697,8 +695,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
       // TRƯỜNG HỢP 2: Tệp bảng tính Excel (.xlsx, .xls, .csv)
       const arrayBuffer = await file.arrayBuffer();
       const data = new Uint8Array(arrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const { students: parsedStudents, detectedClasses } = parseSmasWorkbook(workbook, { semester });
+      const { students: parsedStudents, detectedClasses } = await readSmasExcelFile(data, { semester, fileName: file.name });
 
       if (!parsedStudents || parsedStudents.length === 0) {
         showToast('Không tìm thấy danh sách học sinh hợp lệ trong tệp Excel. Thầy/Cô có thể bấm "Dán Danh Sách" để copy-paste trực tiếp cực nhanh nhé!', 'warning');
@@ -975,7 +972,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
   };
 
   // Xuất bảng nhận xét ra tệp Excel chuẩn SMAS (Hỗ trợ Thường xuyên, Giữa kỳ, Cuối kỳ & Toàn diện)
-  const handleExportExcel = (multiSheet = false, exportMode = 'standard') => {
+  const handleExportExcel = async (multiSheet = false, exportMode = 'standard') => {
     if (students.length === 0) {
       showToast('Chưa có học sinh nào để xuất tệp Excel.', 'warning');
       return;
@@ -987,7 +984,7 @@ export default function StudentEvaluationSMAS({ onNavigateToCamera }) {
 
     try {
       const targetClass = selectedClassFilter === 'all' ? (className || '1A') : selectedClassFilter;
-      const fileName = exportSmasExcel({ 
+      const fileName = await exportSmasExcel({ 
         students, 
         className: targetClass, 
         semester, 

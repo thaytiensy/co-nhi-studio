@@ -51,7 +51,7 @@ export default function DraggableAssistantButton({ onClick, onDismiss }) {
     if (el) {
       try {
         el.setPointerCapture(e.pointerId);
-      } catch (_) {}
+      } catch {}
     }
 
     dragStartRef.current = {
@@ -84,14 +84,14 @@ export default function DraggableAssistantButton({ onClick, onDismiss }) {
     if (el) {
       try {
         el.releasePointerCapture(e.pointerId);
-      } catch (_) {}
+      } catch {}
     }
 
     setPos((current) => {
       try {
         localStorage.setItem(STORAGE_X, String(Math.round(current.x)));
         localStorage.setItem(STORAGE_Y, String(Math.round(current.y)));
-      } catch (_) {}
+      } catch {}
       return current;
     });
 
@@ -108,7 +108,7 @@ export default function DraggableAssistantButton({ onClick, onDismiss }) {
     if (el) {
       try {
         el.releasePointerCapture(e.pointerId);
-      } catch (_) {}
+      } catch {}
     }
   };
 

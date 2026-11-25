@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, Box, Check, Gamepad2 } from 'lucide-react';
+import { Monitor, Box, Gamepad2 } from 'lucide-react';
 
 export function DemoScreenPart3() {
   return (

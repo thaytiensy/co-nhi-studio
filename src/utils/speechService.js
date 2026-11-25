@@ -48,7 +48,7 @@ class SpeechService {
       try {
         localStorage.setItem(getScopedStorageKey('conhi_voice_gender'), gender);
         window.dispatchEvent(new CustomEvent('conhi-voice-gender-changed', { detail: { gender } }));
-      } catch (_) {}
+      } catch {}
     }
 
     this.initVoices();
@@ -181,7 +181,7 @@ class SpeechService {
         this.notify();
       }).catch(() => {
         if (this.synth) {
-          try { this.synth.resume(); this.isPaused = false; this.notify(); } catch (_) {
+          try { this.synth.resume(); this.isPaused = false; this.notify(); } catch {
             this.playNextChunk();
           }
         } else {

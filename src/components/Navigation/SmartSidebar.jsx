@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Presentation,
   Share2,
@@ -12,9 +12,6 @@ import {
   Wifi,
   WifiOff,
   LogOut,
-  ShieldCheck,
-  Unlock,
-  Sparkles,
   LayoutDashboard
 } from 'lucide-react';
 

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, SkipForward, SkipBack, ExternalLink } from 'lucide-react';
+import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, SkipForward, SkipBack } from 'lucide-react';
 import VideoVisualDemoStage from './VideoVisualDemoStage';
 
 export default function VideoPlayerStage({

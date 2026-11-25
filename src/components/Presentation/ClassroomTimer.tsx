@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Clock, Volume2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Play, Pause, RotateCcw, Clock, ChevronUp, ChevronDown } from 'lucide-react';
 
 export interface ClassroomTimerProps {
   onTimeUp?: () => void;

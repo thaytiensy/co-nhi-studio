@@ -93,7 +93,7 @@ class ClassroomAudioService {
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 2.3);
-      } catch (_) {}
+      } catch {}
     };
 
     playGentleNote();

@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Download, 
-  Monitor, 
-  Smartphone, 
-  Check, 
-  X, 
-  Sparkles, 
-  Laptop, 
-  HelpCircle,
-  ExternalLink,
-  ShieldCheck,
-  Zap
+import {
+  Download,
+  Check,
+  X,
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
 
 export default function InstallAppModal({ isOpen, onClose, installPrompt, isInstalled }) {

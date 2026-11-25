@@ -8,13 +8,16 @@ import RobotTeacherStage from './RobotTeacherStage';
 import { getNaturalPedagogyResponse, getSpokenDialogueResponse } from '../../utils/naturalPedagogyChatService';
 import { speechService } from '../../utils/speechService';
 
-const WELCOME_MESSAGE = {
-  id: 'welcome',
-  sender: 'assistant',
-  time: 'Vừa xong',
-  title: 'Chào Thầy/Cô Mĩ Thuật! 🎨',
-  content: 'Dạ em chào Thầy/Cô ạ! Em là Cô Trợ Giảng AI của Cọ Nhí Studio, bám sát SGK Mĩ thuật Kết nối tri thức với cuộc sống (Lớp 1 - 5) & Thông tư 27.\n\nThầy/Cô cứ nhắn tin hoặc nói chuyện tự nhiên như với người thật nhé. Em sẵn sàng đàm thoại giọng nói tức thì với Thầy/Cô ạ! ❤️',
-};
+function buildWelcomeMessage(gender = 'female') {
+  const roleLabel = gender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
+  return {
+    id: 'welcome',
+    sender: 'assistant',
+    time: 'Vừa xong',
+    title: 'Chào Thầy/Cô Mĩ Thuật! 🎨',
+    content: `Dạ em chào Thầy/Cô ạ! Em là ${roleLabel} của Cọ Nhí Studio, bám sát SGK Mĩ thuật Kết nối tri thức với cuộc sống (Lớp 1 - 5) & Thông tư 27.\n\nThầy/Cô cứ nhắn tin hoặc nói chuyện tự nhiên như với người thật nhé. Em sẵn sàng đàm thoại giọng nói tức thì với Thầy/Cô ạ! ❤️`,
+  };
+}
 
 export default function OfflinePedagogyAssistant({
   currentSlide = null,
@@ -24,7 +27,7 @@ export default function OfflinePedagogyAssistant({
   isMaximized = false,
   onToggleMaximize,
 }) {
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState(() => [buildWelcomeMessage(speechService.gender || 'female')]);
   const [isLoading, setIsLoading] = useState(false);
   const [userQuery, setUserQuery] = useState('');
   const [isAutoSpeak, setIsAutoSpeak] = useState(true);
@@ -33,9 +36,10 @@ export default function OfflinePedagogyAssistant({
   const [viewMode, setViewMode] = useState('stage'); // 'stage' (default Robot Teacher) | 'chat' (Text List)
   const [isSpeaking, setIsSpeaking] = useState(() => speechService.isSpeaking);
   const [isListening, setIsListening] = useState(false);
-  const [currentSpokenText, setCurrentSpokenText] = useState(
-    'Dạ em chào Thầy Cô ạ! Em là Cô Trợ Giảng AI của Cọ Nhí Studio. Thầy Cô cần em hỗ trợ gì cứ nói với em nhé!'
-  );
+  const [currentSpokenText, setCurrentSpokenText] = useState(() => {
+    const roleLabel = (speechService.gender || 'female') === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
+    return `Dạ em chào Thầy/Cô ạ! Em là ${roleLabel} của Cọ Nhí Studio. Thầy/Cô cần em hỗ trợ gì cứ nói với em nhé!`;
+  });
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -55,12 +59,15 @@ export default function OfflinePedagogyAssistant({
   const handleGenderChange = (gender) => {
     speechService.setGender(gender);
     setCurrentGender(gender);
+    const roleLabel = gender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
+    setMessages(prev => prev.map(m => m.id === 'welcome' ? buildWelcomeMessage(gender) : m));
+    setCurrentSpokenText(`Dạ em chào Thầy/Cô ạ! Em là ${roleLabel} của Cọ Nhí Studio. Thầy/Cô cần em hỗ trợ gì cứ nói với em nhé!`);
   };
 
   const handleResetChat = () => {
     speechService.stop();
-    setMessages([{ ...WELCOME_MESSAGE, id: Date.now().toString(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    setCurrentSpokenText('Dạ em chào Thầy Cô ạ! Em đã sẵn sàng đồng hành cùng Thầy Cô.');
+    setMessages([{ ...buildWelcomeMessage(currentGender), id: Date.now().toString(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    setCurrentSpokenText('Dạ em chào Thầy/Cô ạ! Em đã sẵn sàng đồng hành cùng Thầy/Cô.');
   };
 
   const handleReadCurrentSlide = () => {
@@ -76,8 +83,8 @@ export default function OfflinePedagogyAssistant({
   };
 
   const handleCharacterClick = () => {
-    const roleTitle = currentGender === 'male' ? 'Trợ Giảng AI Cọ Nhí' : 'Cô Trợ Giảng AI';
-    const prompt = `Dạ em chào Thầy Cô ạ! Em là ${roleTitle} của Cọ Nhí Studio. Thầy Cô cần em tư vấn mẹo xử lý học sinh sợ vẽ sai, hay trò chơi khởi động năm phút không ạ?`;
+    const roleTitle = currentGender === 'male' ? 'Thầy Trợ Giảng AI' : 'Cô Trợ Giảng AI';
+    const prompt = `Dạ em chào Thầy/Cô ạ! Em là ${roleTitle} của Cọ Nhí Studio. Thầy/Cô cần em tư vấn mẹo xử lý học sinh sợ vẽ sai, hay trò chơi khởi động năm phút không ạ?`;
     setCurrentSpokenText(prompt);
     speechService.speak(prompt);
   };
@@ -158,6 +165,7 @@ export default function OfflinePedagogyAssistant({
       )}
 
       <ChatInputBar
+        currentGender={currentGender}
         userQuery={userQuery}
         onQueryChange={setUserQuery}
         onSubmit={(e, transcriptText) => { e?.preventDefault?.(); handleSendMessage(transcriptText || userQuery); }}

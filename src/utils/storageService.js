@@ -131,7 +131,7 @@ export const saveProjectToLocal = (projectData, userScope) => {
         } else {
           localStorage.setItem(key, JSON.stringify(payload));
         }
-      } catch (err) {
+      } catch {
         console.warn('[storageService] LocalStorage vượt quá giới hạn 5MB, bài giảng đã được lưu an toàn trong IndexedDB.');
       }
     }
@@ -173,7 +173,7 @@ export const loadProjectFromStorage = async (userScope) => {
       validateProjectData(idbData);
       return idbData;
     }
-  } catch (_) {}
+  } catch {}
 
   // Fallback sang LocalStorage
   return loadProjectFromLocal(userScope);
@@ -198,7 +198,7 @@ export const saveOfficeDocToStorage = (docData, subTab = 'docx', userScope) => {
   if (typeof localStorage !== 'undefined') {
     try {
       localStorage.setItem(key, JSON.stringify(payload));
-    } catch (_) {}
+    } catch {}
   }
 };
 
@@ -212,7 +212,7 @@ export const loadOfficeDocFromStorage = async (userScope) => {
     if (idbData && idbData.docData) {
       return restoreOfficeDocUrls(idbData);
     }
-  } catch (_) {}
+  } catch {}
 
   if (typeof localStorage !== 'undefined') {
     try {
@@ -223,7 +223,7 @@ export const loadOfficeDocFromStorage = async (userScope) => {
           return restoreOfficeDocUrls(parsed);
         }
       }
-    } catch (_) {}
+    } catch {}
   }
   return null;
 };
@@ -237,7 +237,7 @@ export const clearOfficeDocFromStorage = (userScope) => {
   if (typeof localStorage !== 'undefined') {
     try {
       localStorage.removeItem(key);
-    } catch (_) {}
+    } catch {}
   }
 };
 
@@ -297,7 +297,7 @@ export const deletePlanSlidesFromStorage = async (planId, userScope) => {
   const key = getPlanSlidesKey(planId, userScope);
   try {
     await idbDelete('projects', key);
-  } catch (_) {}
+  } catch {}
 };
 
 /**
@@ -327,7 +327,7 @@ export const getStoredPlansSummary = async (userScope) => {
               updatedAt: data.updatedAt || new Date().toISOString()
             };
           }
-        } catch (_) {}
+        } catch {}
       })
     );
   } catch (err) {
@@ -440,7 +440,7 @@ export const saveProjectDraftToLocal = (projectData, userScope) => {
         } else {
           localStorage.setItem(key, JSON.stringify(payload));
         }
-      } catch (_) {}
+      } catch {}
     }
     return { success: true };
   } catch (err) {

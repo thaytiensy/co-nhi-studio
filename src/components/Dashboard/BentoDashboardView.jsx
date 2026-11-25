@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  LayoutDashboard,
   Sparkles,
   BookOpen,
   Presentation,
@@ -13,19 +12,13 @@ import {
   Upload,
   RotateCcw,
   CheckCircle2,
-  Clock,
   ArrowRight,
-  Filter,
   Check,
   AlertCircle,
   School,
-  User,
-  Calendar,
   Cloud,
-  CloudOff,
   RefreshCw,
   Trash2,
-  ExternalLink,
   ChevronRight
 } from 'lucide-react';
 import {
@@ -34,11 +27,10 @@ import {
   restoreDefaultData,
   computeKPI,
   exportBackupJson,
-  importRestoreJson,
-  DEFAULT_STUDIO_DATA
+  importRestoreJson
 } from '../../lib/storage';
-import { exportWordReport, exportExcelReport, exportCsvReport, buildWordReportBlob, buildExcelReportBlob } from '../../lib/export-engine';
-import { downloadAppDescriptionWordDoc, generateAppDescriptionWordBlob } from '../../utils/appDescriptionWordService';
+import { exportWordReport, exportExcelReport } from '../../lib/export-engine';
+import { downloadAppDescriptionWordDoc } from '../../utils/appDescriptionWordService';
 import {
   getFirebaseDatabaseStatus,
   syncStorageToFirebase,
@@ -53,7 +45,7 @@ export default function BentoDashboardView({
   onNavigateTab,
   onOpenSlideWithTitle,
   onImportPlanSlides,
-  onOpenVideoGuide,
+  onOpenVideoGuide: _onOpenVideoGuide,
   slides = []
 }) {
   const [data, setData] = useState(() => getStoredData());
@@ -129,7 +121,7 @@ export default function BentoDashboardView({
         }
         return prevData;
       });
-    } catch (_) {}
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -825,10 +817,10 @@ export default function BentoDashboardView({
                             ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white border-emerald-500 shadow-sm'
                             : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'
                         }`}
-                        title={`Trình Chiếu F5 bài học: "${plan.title}"${plan.hasCustomSlides ? ` (${plan.slideCount || 0} slide đã lưu)` : ''}`}
+                        title={`Trình chiếu bài học: "${plan.title}"${plan.hasCustomSlides ? ` (${plan.slideCount || 0} slide đã lưu)` : ''} (Phím tắt F5)`}
                       >
                         <Presentation className="w-4 h-4 shrink-0" />
-                        <span className="whitespace-nowrap">{plan.hasCustomSlides ? 'Trình Chiếu F5' : 'Trình Chiếu'}</span>
+                        <span className="whitespace-nowrap">{plan.hasCustomSlides ? 'Chiếu Bài Dạy' : 'Trình Chiếu'}</span>
                       </button>
 
                       <button

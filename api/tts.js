@@ -95,7 +95,7 @@ async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
         await new Promise(r => setTimeout(r, 200));
       } finally {
         if (tts) {
-          try { tts.close(); } catch (_) {}
+          try { tts.close(); } catch {}
           tts = null;
         }
       }

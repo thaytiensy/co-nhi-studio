@@ -45,7 +45,7 @@ async function synthesizeEdgeTtsWithRetry(cleanText, voiceName) {
         await new Promise(resolve => setTimeout(resolve, 200));
       } finally {
         if (tts) {
-          try { tts.close(); } catch (_) {}
+          try { tts.close(); } catch {}
           tts = null;
         }
       }
@@ -307,8 +307,8 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('xlsx')) {
-              return 'vendor-xlsx';
+            if (id.includes('exceljs')) {
+              return 'vendor-exceljs';
             }
             if (id.includes('firebase')) {
               return 'vendor-firebase';

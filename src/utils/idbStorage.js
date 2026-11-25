@@ -69,11 +69,11 @@ export async function idbSet(storeName, key, value) {
         const req = store.put(value, key);
         req.onsuccess = () => resolve(true);
         req.onerror = () => resolve(false);
-      } catch (_) {
+      } catch {
         resolve(false);
       }
     });
-  } catch (_) {
+  } catch {
     return false;
   }
 }
@@ -96,11 +96,11 @@ export async function idbGet(storeName, key) {
         const req = store.get(key);
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => resolve(null);
-      } catch (_) {
+      } catch {
         resolve(null);
       }
     });
-  } catch (_) {
+  } catch {
     return null;
   }
 }
@@ -123,11 +123,11 @@ export async function idbDelete(storeName, key) {
         const req = store.delete(key);
         req.onsuccess = () => resolve(true);
         req.onerror = () => resolve(false);
-      } catch (_) {
+      } catch {
         resolve(false);
       }
     });
-  } catch (_) {
+  } catch {
     return false;
   }
 }
@@ -149,11 +149,11 @@ export async function idbGetAllKeys(storeName) {
         const req = store.getAllKeys();
         req.onsuccess = () => resolve(req.result || []);
         req.onerror = () => resolve([]);
-      } catch (_) {
+      } catch {
         resolve([]);
       }
     });
-  } catch (_) {
+  } catch {
     return [];
   }
 }

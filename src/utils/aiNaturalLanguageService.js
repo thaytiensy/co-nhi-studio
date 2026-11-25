@@ -54,7 +54,7 @@ export function extractCleanArtTopic(prompt) {
     .replace(/(?:và|có)?\s*(?:hoạt động|góc)?\s*trưng bày(?:\s+sản phẩm)?/gi, '')
     .replace(/(?:gồm|với)\s*\d+\s*bước\s*(?:thực hành)?/gi, '')
     .replace(/(?:dùng\s+)?(?:dao rọc giấy|dao lam|lưỡi dao|súng bắn keo(?: nến)?|keo nến(?: nóng)?|keo 502|a[- ]?x[ií]t|hóa chất tẩy|hoá chất tẩy|dung môi|bật lửa|xăng cồn|vật liệu nguy hiểm)/gi, '')
-    .replace(/[,\.\-–—;:]+/g, ' ')
+    .replace(/[,–—;:.-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -108,7 +108,7 @@ export function resolveCurriculumTopic(prompt, grade = 1) {
   // 2. Nhận diện theo từ khóa đặc thù trong tên chủ đề SGK
   for (const theme of gradeThemes) {
     const cleanTitle = theme.title.replace(/^Chủ đề \d+:\s*/i, '').replace(/\([^)]*\)/g, '').toLowerCase();
-    const coreKeywords = cleanTitle.split(/[\(\),&]/).map(k => k.trim()).filter(k => k.length >= 3);
+    const coreKeywords = cleanTitle.split(/[(),&]/).map(k => k.trim()).filter(k => k.length >= 3);
     for (const kw of coreKeywords) {
       if (lower.includes(kw)) {
         return {
@@ -327,7 +327,7 @@ export function parseNaturalGamePrompt(rawPrompt) {
     .replace(/(?:trong vòng|thời lượng)?\s*\d+\s*(?:phút|p)/gi, '')
     .replace(/(?:gồm|với)?\s*\d+\s*(?:câu|câu hỏi)/gi, '')
     .replace(/(?:nhóm|thi đua|cá nhân|đơn giản|chữ ít|hình ảnh nhiều|không cần đăng nhập)/gi, '')
-    .replace(/[,\.\-–—;:]+/g, ' ')
+    .replace(/[,–—;:.-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -716,7 +716,7 @@ Chỉ trả về JSON theo đúng định dạng sau:
 /**
  * 6. Bộ sinh Trò chơi Mĩ thuật Tự nhiên (Hỗ trợ Online AI & Fallback Cục bộ)
  */
-export async function generateNaturalArtGame(params, options = {}) {
+export async function generateNaturalArtGame(params, _options = {}) {
   const parsed = parseNaturalGamePrompt(params.prompt);
 
   // Sinh bộ câu hỏi từ ngân hàng tri thức cục bộ theo chủ đề đã bóc tách chính xác
@@ -821,7 +821,7 @@ Hãy trả về JSON gồm:
           };
         }
       }
-    } catch (_) {
+    } catch {
       // Fallback cục bộ mượt mà
     }
   }

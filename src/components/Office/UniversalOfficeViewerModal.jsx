@@ -1,19 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  Presentation, 
-  Table, 
-  FileCode, 
-  Download, 
-  Volume2, 
-  VolumeX, 
-  X, 
-  ChevronLeft, 
-  ChevronRight,
-  Maximize2,
-  Share2,
-  Sparkles,
-  Check
+import {
+  Presentation,
+  Volume2,
+  VolumeX,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { speechService } from '../../utils/speechService';
 
@@ -110,7 +101,7 @@ export default function UniversalOfficeViewerModal({
                 className="px-3.5 py-1.5 text-xs font-black text-indigo-950 bg-gradient-to-r from-amber-300 to-yellow-300 hover:from-amber-200 hover:to-yellow-200 rounded-xl shadow-md flex items-center gap-1.5 transition-all transform active:scale-95 cursor-pointer ring-2 ring-amber-400"
               >
                 <Presentation className="w-4 h-4 text-indigo-900" />
-                <span>Nạp Vào Trình Chiếu F5</span>
+                <span>Nạp Vào Trình Chiếu</span>
               </button>
             )}
 

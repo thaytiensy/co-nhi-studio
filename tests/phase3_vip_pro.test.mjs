@@ -1,13 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { 
-  getStoredData, 
-  saveStoredData, 
-  restoreDefaultData, 
-  computeKPI, 
-  DEFAULT_STUDIO_DATA 
+import {
+  restoreDefaultData,
+  computeKPI
 } from '../src/lib/storage.ts';
-import { exportWordReport, exportCsvReport } from '../src/lib/export-engine.ts';
 import { parseSmartCommand, QUICK_ACTION_CHIPS } from '../src/lib/smart-command.ts';
 
 describe('SIÊU VIP PRO - Kiểm Thử Bộ 3 Thư Viện Lõi & Tính Năng Mới', () => {

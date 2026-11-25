@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Table, Download, Upload, Search, FileSpreadsheet } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Download, Upload, Search, FileSpreadsheet } from 'lucide-react';
+import { createWorkbookFromSheets, saveWorkbook } from '../../utils/excelService';
 import { showToast } from '../../utils/toastService';
 
 export default function InAppExcelView({ docData, onUploadExcel }) {
@@ -48,27 +48,27 @@ export default function InAppExcelView({ docData, onUploadExcel }) {
   const [activeSheet, setActiveSheet] = useState(() => activeDoc.sheetNames?.[0] || 'Sheet1');
 
   // Lọc dữ liệu theo từ khóa tìm kiếm
-  const currentSheetData = activeDoc.sheets?.[activeSheet] || [];
+  const currentSheetData = useMemo(() => activeDoc.sheets?.[activeSheet] || [], [activeDoc, activeSheet]);
   const filteredData = useMemo(() => {
     if (!searchTerm.trim()) return currentSheetData;
     const term = searchTerm.toLowerCase();
     const [header, ...rows] = currentSheetData;
-    const matchedRows = rows.filter(row => 
+    const matchedRows = rows.filter(row =>
       Array.isArray(row) && row.some(cell => String(cell || '').toLowerCase().includes(term))
     );
     return [header || [], ...matchedRows];
   }, [currentSheetData, searchTerm]);
 
-  // Xuất file Excel (.xlsx) chuẩn
-  const handleExportXLSX = () => {
+  // Xuất file Excel (.xlsx) chuẩn qua ExcelJS
+  const handleExportXLSX = async () => {
     try {
-      const wb = XLSX.utils.book_new();
-      for (const name of activeDoc.sheetNames || ['Sheet1']) {
-        const data = activeDoc.sheets?.[name] || [];
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
-      }
-      XLSX.writeFile(wb, `${(activeDoc.title || 'So_Theo_Doi_Mi_Thuat').replace(/\s+/g, '_')}.xlsx`);
+      const sheetsConfig = (activeDoc.sheetNames || ['Sheet1']).map((name) => ({
+        name: name.slice(0, 31),
+        rows: activeDoc.sheets?.[name] || [],
+        isAoa: true,
+      }));
+      const wb = await createWorkbookFromSheets(sheetsConfig);
+      await saveWorkbook(wb, `${(activeDoc.title || 'So_Theo_Doi_Mi_Thuat').replace(/\s+/g, '_')}.xlsx`);
       showToast('Đã xuất tệp Excel (.xlsx) chuẩn thành công!', 'success');
     } catch (err) {
       showToast('Lỗi xuất Excel: ' + err.message, 'error');
@@ -139,8 +139,8 @@ export default function InAppExcelView({ docData, onUploadExcel }) {
               setSearchTerm('');
             }}
             className={`px-4 py-2 rounded-t-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
-              activeSheet === name 
-                ? 'bg-white text-emerald-900 border-t-2 border-emerald-600 shadow-xs' 
+              activeSheet === name
+                ? 'bg-white text-emerald-900 border-t-2 border-emerald-600 shadow-xs'
                 : 'bg-slate-300/70 hover:bg-slate-300 text-slate-700'
             }`}
           >

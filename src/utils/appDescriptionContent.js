@@ -89,6 +89,6 @@ export const TEACHING_STEPS = [
   { step: 'Bước 1: Chuẩn bị', desc: 'Chọn khối lớp và bài dạy trong Lịch Báo Giảng, xem gợi ý mục tiêu năng lực từ Trợ Giảng AI.' },
   { step: 'Bước 2: Soạn Slide', desc: 'Tận dụng mẫu slide 16:9 hoặc tải giáo án PowerPoint cũ lên để chỉnh sửa bổ sung.' },
   { step: 'Bước 3: Vẽ thị phạm', desc: 'Sử dụng Bảng vẽ 11 khối 3D để phác thảo các bước vẽ mẫu, chèn trực tiếp vào bài giảng.' },
-  { step: 'Bước 4: Đứng lớp', desc: 'Bấm F5 trình chiếu, cho học sinh chơi mini-game khởi động và nghe Cô Trợ Giảng AI đàm thoại.' },
+  { step: 'Bước 4: Đứng lớp', desc: 'Bấm F5 trình chiếu, cho học sinh chơi mini-game khởi động và nghe Thầy/Cô Trợ Giảng AI đàm thoại.' },
   { step: 'Bước 5: Đánh giá & Xuất SMAS', desc: 'Dùng Cam Chấm Tranh nhận xét sản phẩm của học sinh, lưu sổ điểm 35 tuần và xuất Excel nộp nhà trường.' }
 ];

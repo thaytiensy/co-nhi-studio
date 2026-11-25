@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, MicOff, Sparkles } from 'lucide-react';
+import { Send, Mic, Sparkles } from 'lucide-react';
 import { showToast } from '../../utils/toastService';
 
 const SUGGESTION_CHIPS = [
@@ -14,6 +14,7 @@ const SUGGESTION_CHIPS = [
 ];
 
 export default function ChatInputBar({
+  currentGender = 'female',
   userQuery,
   onQueryChange,
   onSubmit,
@@ -62,7 +63,7 @@ export default function ChatInputBar({
             if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             silenceTimerRef.current = setTimeout(() => {
               if (latestSpeechRef.current) {
-                try { recognition.stop(); } catch (_) {}
+                try { recognition.stop(); } catch {}
                 updateListening(false);
                 const textToSend = latestSpeechRef.current;
                 latestSpeechRef.current = '';
@@ -97,7 +98,7 @@ export default function ChatInputBar({
     }
     if (isListening) {
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      try { recognitionRef.current.stop(); } catch (_) {}
+      try { recognitionRef.current.stop(); } catch {}
       updateListening(false);
       const textToSend = latestSpeechRef.current || userQuery;
       latestSpeechRef.current = '';
@@ -154,7 +155,7 @@ export default function ChatInputBar({
             disabled={isLoading}
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "Đang lắng nghe Thầy/Cô nói bằng tiếng Việt..." : "Nhắn tin với Cô Trợ Giảng (Enter để gửi)..."}
+            placeholder={isListening ? "Đang lắng nghe Thầy/Cô nói bằng tiếng Việt..." : (currentGender === 'male' ? "Nhắn tin với Thầy Trợ Giảng (Enter để gửi)..." : "Nhắn tin với Cô Trợ Giảng (Enter để gửi)...")}
             className="flex-1 px-2 py-1 text-xs sm:text-[13px] text-slate-800 bg-transparent resize-none focus:outline-none placeholder:text-slate-400 max-h-24 leading-relaxed font-sans"
           />
 

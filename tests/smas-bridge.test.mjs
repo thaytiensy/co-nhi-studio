@@ -1,12 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { 
-  calculateRubricLevel, 
-  saveCameraEvaluationToSmas, 
-  synthesizePeriodicEvaluation, 
-  batchSynthesizeClassEvaluations, 
-  readSmasData, 
-  writeSmasData,
+import {
+  calculateRubricLevel,
+  saveCameraEvaluationToSmas,
+  synthesizePeriodicEvaluation,
+  batchSynthesizeClassEvaluations,
   PERIODIC_COMMENTS_BANK
 } from '../src/utils/smasEvaluationBridge.js';
 import { exportSmasExcel } from '../src/utils/smasExcelService.js';
@@ -177,14 +175,14 @@ describe('Giai đoạn 6 - Cam Chấm Tranh Liên Kết Sổ Điểm SMAS & Tổ
     assert.equal(updated1A[3].gkLevel, undefined, 'Lớp 1B không bị ảnh hưởng');
   });
 
-  it('5. Xuất bảng điểm Excel SMAS hỗ trợ các chế độ GK, CK và Toàn diện', () => {
+  it('5. Xuất bảng điểm Excel SMAS hỗ trợ các chế độ GK, CK và Toàn diện', async () => {
     const mockStudents = [
       { id: 'HS001', name: 'Nguyễn Văn An', className: '1A', level: 'T', comment: 'Nhận xét TX', gkLevel: 'T', gkComment: 'Nhận xét GK Tốt', ckLevel: 'T', ckComment: 'Nhận xét CK Tốt' },
       { id: 'HS002', name: 'Trần Thị Bình', className: '1A', level: 'H', comment: 'Nhận xét TX', gkLevel: 'H', gkComment: 'Nhận xét GK Đạt', ckLevel: 'H', ckComment: 'Nhận xét CK Đạt' }
     ];
 
     // 5a. Xuất bảng Giữa kỳ (GK)
-    const fileGK = exportSmasExcel({
+    const fileGK = await exportSmasExcel({
       students: mockStudents,
       className: '1A',
       semester: 'Giữa kì I',
@@ -193,7 +191,7 @@ describe('Giai đoạn 6 - Cam Chấm Tranh Liên Kết Sổ Điểm SMAS & Tổ
     assert.ok(fileGK.includes('.xlsx'), 'Phải tạo thành công tệp Excel GK');
 
     // 5b. Xuất bảng Cuối kỳ (CK)
-    const fileCK = exportSmasExcel({
+    const fileCK = await exportSmasExcel({
       students: mockStudents,
       className: '1A',
       semester: 'Học kì I',
@@ -202,12 +200,16 @@ describe('Giai đoạn 6 - Cam Chấm Tranh Liên Kết Sổ Điểm SMAS & Tổ
     assert.ok(fileCK.includes('.xlsx'), 'Phải tạo thành công tệp Excel CK');
 
     // 5c. Xuất bảng Toàn diện (GK & CK)
-    const fileComp = exportSmasExcel({
+    const fileComp = await exportSmasExcel({
       students: mockStudents,
       className: '1A',
       semester: 'Học kì I',
       exportMode: 'comprehensive'
     });
     assert.ok(fileComp.includes('Toan_Dien') || fileComp.includes('.xlsx'), 'Phải tạo thành công tệp Excel toàn diện');
+    const fs = await import('node:fs');
+    for (const f of [fileGK, fileCK, fileComp]) {
+      if (fs.existsSync(f)) fs.unlinkSync(f);
+    }
   });
 });

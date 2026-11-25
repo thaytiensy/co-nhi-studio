@@ -1,14 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { 
-  Music, 
-  Video, 
-  Upload, 
-  Search, 
-  ExternalLink, 
-  Plus, 
-  Check, 
-  Info, 
-  Play 
+import {
+  Music,
+  Video,
+  Upload,
+  Search,
+  ExternalLink,
+  Plus
 } from 'lucide-react';
 
 const YouTubeIcon = ({ className = "w-5 h-5" }) => (
