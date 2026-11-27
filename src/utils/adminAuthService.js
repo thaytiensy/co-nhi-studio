@@ -35,7 +35,7 @@ function makeSession(email, role, uid, title = '', isAnon = false, authMethod = 
     email,
     name: email,
     role,
-    adminTitle: title || (isOwner ? 'Admin 1' : isSubAdmin ? 'Admin Phụ' : ''),
+    adminTitle: title || (isOwner ? 'Quản trị hệ thống' : isSubAdmin ? 'Quản trị viên' : ''),
     isAnonymous: isAnon,
     authMethod,
     canShareGmail: isOwner || isSubAdmin,
@@ -112,7 +112,7 @@ export async function loginAccess(credentialEmail = '', password = '', fetchImpl
     if (!password || !String(password).trim()) {
       return {
         success: false,
-        message: 'Giáo viên và Admin Phụ vui lòng bấm "Đăng Nhập Bằng Google" để xác thực an toàn. Đăng nhập bằng mật khẩu chỉ dành cho Quản trị viên.',
+        message: 'Giáo viên và Quản trị viên vui lòng bấm "Đăng Nhập Bằng Google" để xác thực an toàn. Đăng nhập bằng mật khẩu chỉ dành cho Quản trị hệ thống.',
       };
     }
     return exchangeServerAuth({
@@ -171,7 +171,9 @@ export async function addSharedGmail(email) {
   if (!val.valid) return { success: false, message: val.error || 'Gmail không đúng định dạng!' };
   const cleanEmail = val.email;
   const currentSession = getCurrentSession();
-  const addedBy = currentSession?.email || 'Quản trị hệ thống';
+  const isAnonAdmin = Boolean(currentSession?.isAnonymous || currentSession?.role === ROLES.SUPER_ADMIN);
+  const firestoreAddedBy = auth?.currentUser?.email?.trim().toLowerCase() || currentSession?.email || 'Quản trị hệ thống';
+  const localAddedBy = isAnonAdmin ? 'Quản trị hệ thống' : firestoreAddedBy;
 
   if (firebaseConfigured && db) {
     try {
@@ -179,7 +181,7 @@ export async function addSharedGmail(email) {
         email: cleanEmail,
         role: ROLES.TEACHER,
         active: true,
-        addedBy,
+        addedBy: firestoreAddedBy,
         addedAt: serverTimestamp(),
       });
     } catch {}
@@ -189,7 +191,7 @@ export async function addSharedGmail(email) {
   if (currentList.some((item) => item.email === cleanEmail)) {
     return { success: false, message: 'Địa chỉ Gmail này đã được cấp quyền trước đó.' };
   }
-  const updated = [...currentList, { id: `local-${Date.now()}`, email: cleanEmail, role: ROLES.TEACHER, active: true, addedBy }];
+  const updated = [...currentList, { id: `local-${Date.now()}`, email: cleanEmail, role: ROLES.TEACHER, active: true, addedBy: localAddedBy }];
   saveLocalSharedGmails(updated);
   return { success: true, message: `Đã cấp quyền sử dụng cho ${cleanEmail}.` };
 }
@@ -220,10 +222,10 @@ export async function getAdminRoles() {
   const mergedMap = new Map();
   if (currentSession?.role === ROLES.SUPER_ADMIN && currentSession.email) {
     mergedMap.set(currentSession.email.toLowerCase(), {
-      id: 'admin-1',
-      email: currentSession.email.toLowerCase(),
+      id: 'system-admin',
+      email: 'Quản trị hệ thống (Ẩn danh)',
       role: ROLES.SUPER_ADMIN,
-      title: 'Admin 1 (Chủ quản trị • Ẩn danh)',
+      title: 'Quản trị hệ thống (Ẩn danh)',
       active: true,
     });
   }
@@ -231,7 +233,10 @@ export async function getAdminRoles() {
     const key = (item.email || '').trim().toLowerCase();
     if (!key) continue;
     if (!mergedMap.has(key)) {
-      mergedMap.set(key, item);
+      const normalized = item.role === ROLES.SUPER_ADMIN
+        ? { ...item, email: 'Quản trị hệ thống (Ẩn danh)', title: 'Quản trị hệ thống (Ẩn danh)' }
+        : item;
+      mergedMap.set(key, normalized);
     }
   }
   return Array.from(mergedMap.values());
@@ -253,12 +258,14 @@ export async function updateAdminRoleStatus(idOrEmail, active) {
   return { success: true };
 }
 
-export async function addSubAdmin(email, title = 'Admin 2') {
+export async function addSubAdmin(email, title = 'Quản trị viên') {
   const val = validateEmail(email);
   if (!val.valid) return { success: false, message: val.error || 'Gmail không đúng định dạng!' };
   const cleanEmail = val.email;
   const currentSession = getCurrentSession();
-  const addedBy = currentSession?.email || 'Quản trị hệ thống';
+  const isAnonAdmin = Boolean(currentSession?.isAnonymous || currentSession?.role === ROLES.SUPER_ADMIN);
+  const firestoreAddedBy = auth?.currentUser?.email?.trim().toLowerCase() || currentSession?.email || 'Quản trị hệ thống';
+  const localAddedBy = isAnonAdmin ? 'Quản trị hệ thống' : firestoreAddedBy;
   const subAdmins = getLocalSubAdmins();
   if (currentSession?.email?.toLowerCase() === cleanEmail || subAdmins.some(s => (s.email || '').toLowerCase() === cleanEmail)) {
     return { success: false, message: 'Tài khoản này đã có quyền quản trị.' };
@@ -268,16 +275,16 @@ export async function addSubAdmin(email, title = 'Admin 2') {
       await setDoc(doc(db, ADMIN_COLLECTION, cleanEmail), {
         email: cleanEmail,
         role: ROLES.SUB_ADMIN,
-        title: title || 'Admin 2',
+        title: title || 'Quản trị viên',
         active: true,
-        addedBy,
+        addedBy: firestoreAddedBy,
         addedAt: serverTimestamp(),
       });
     } catch {}
   }
-  const updated = [...subAdmins, { id: `sub-${Date.now()}`, email: cleanEmail, role: ROLES.SUB_ADMIN, title: title || 'Admin 2', active: true, addedBy }];
+  const updated = [...subAdmins, { id: `sub-${Date.now()}`, email: cleanEmail, role: ROLES.SUB_ADMIN, title: title || 'Quản trị viên', active: true, addedBy: localAddedBy }];
   saveLocalSubAdmins(updated);
-  return { success: true, message: `Đã cấp quyền ${title || 'Admin'} cho ${cleanEmail}.` };
+  return { success: true, message: `Đã cấp quyền ${title || 'Quản trị viên'} cho ${cleanEmail}.` };
 }
 
 export async function removeSubAdmin(idOrEmail) {

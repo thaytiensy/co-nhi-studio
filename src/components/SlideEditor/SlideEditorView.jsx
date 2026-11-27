@@ -10,6 +10,9 @@ import InAppExcelView from '../Office/InAppExcelView';
 import InAppPdfView from '../Office/InAppPdfView';
 const OfflinePedagogyAssistant = React.lazy(() => import('../Assistant/OfflinePedagogyAssistant'));
 const MediaYouTubeModal = React.lazy(() => import('../Media/MediaYouTubeModal'));
+const CANVAS_WIDTH = 960;
+const CANVAS_HEIGHT = 540;
+
 
 export default function SlideEditorView({
   slides,

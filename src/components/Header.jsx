@@ -86,9 +86,12 @@ export default function Header({
     }
   };
 
-  const maskedEmail = userSession?.email
-    ? `${userSession.email.slice(0, 2)}***@${userSession.email.split('@')[1] || 'gmail.com'}`
-    : 'Giáo viên';
+  const isAnonAdmin = Boolean(userSession?.isAnonymous || userSession?.role === 'super_admin');
+  const displayIdentity = isAnonAdmin
+    ? 'Quản trị hệ thống'
+    : userSession?.email
+      ? `${userSession.email.slice(0, 2)}***@${userSession.email.split('@')[1] || 'gmail.com'}`
+      : 'Giáo viên';
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-40 select-none shadow-xs">
@@ -322,7 +325,7 @@ export default function Header({
                 ) : (
                   <User className="w-3.5 h-3.5 text-amber-600" />
                 )}
-                <span className="hidden sm:inline font-mono text-[11px]">{maskedEmail}</span>
+                <span className="hidden sm:inline font-mono text-[11px]">{displayIdentity}</span>
                 <ChevronDown className="w-3 h-3 text-slate-400" />
               </button>
 
@@ -333,11 +336,10 @@ export default function Header({
                 >
                   <div className="px-3.5 py-1.5 border-b border-slate-100">
                     <div className="text-[10px] text-slate-400 uppercase font-black tracking-wider">
-                      {userSession?.role === 'super_admin' ? '🛡️ Super Admin' : userSession?.role === 'sub_admin' ? '🛡️ Quản trị viên' : '🏫 Không gian giáo viên'}
+                      {userSession?.role === 'super_admin' ? '🛡️ Quản trị hệ thống' : userSession?.role === 'sub_admin' ? '🛡️ Quản trị viên' : '🏫 Không gian giáo viên'}
                     </div>
-                    <div className="font-bold text-slate-800 text-[11px] truncate mt-0.5">{maskedEmail}</div>
+                    <div className="font-bold text-slate-800 text-[11px] truncate mt-0.5">{displayIdentity}</div>
                   </div>
-
                   {onOpenInstallModal && (
                     <button
                       onClick={onOpenInstallModal}

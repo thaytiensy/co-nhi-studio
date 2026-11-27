@@ -87,7 +87,7 @@ function makeSession({ uid, email, role, title = '', isAnon = false, authMethod 
     email,
     name: email,
     role,
-    adminTitle: title || (isOwner ? 'Admin 1' : isSubAdmin ? 'Admin Phụ' : ''),
+    adminTitle: title || (isOwner ? 'Quản trị hệ thống' : isSubAdmin ? 'Quản trị viên' : ''),
     isAnonymous: isAnon,
     authMethod,
     canShareGmail: isOwner || isSubAdmin,
@@ -134,12 +134,12 @@ async function lookupFirestoreDoc(projectId, collectionName, docId, idToken, fet
 async function resolveRoleForVerifiedUser({ email, uid, idToken, fetchImpl }) {
   const adminEmails = parseEmailList(process.env.CONHI_ADMIN_EMAILS);
   if (adminEmails.includes(email)) {
-    return makeSession({ uid, email, role: 'super_admin', title: 'Admin 1', isAnon: true, authMethod: 'google' });
+    return makeSession({ uid, email, role: 'super_admin', title: 'Quản trị hệ thống', isAnon: true, authMethod: 'google' });
   }
 
   const subAdminEmails = parseEmailList(process.env.CONHI_SUB_ADMIN_EMAILS);
   if (subAdminEmails.includes(email)) {
-    return makeSession({ uid, email, role: 'sub_admin', title: 'Admin Phụ', isAnon: false, authMethod: 'google' });
+    return makeSession({ uid, email, role: 'sub_admin', title: 'Quản trị viên', isAnon: false, authMethod: 'google' });
   }
 
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || '';
@@ -150,7 +150,7 @@ async function resolveRoleForVerifiedUser({ email, uid, idToken, fetchImpl }) {
         uid,
         email,
         role: adminDoc.role,
-        title: adminDoc.title || (adminDoc.role === 'super_admin' ? 'Admin 1' : 'Admin Phụ'),
+        title: adminDoc.title || (adminDoc.role === 'super_admin' ? 'Quản trị hệ thống' : 'Quản trị viên'),
         isAnon: adminDoc.role === 'super_admin',
         authMethod: 'google',
       });
@@ -259,7 +259,7 @@ export default async function handler(req, res) {
       uid: `admin-${Buffer.from(email).toString('base64url').slice(0, 16)}`,
       email,
       role: 'super_admin',
-      title: 'Admin 1',
+      title: 'Quản trị hệ thống',
       isAnon: true,
       authMethod: 'admin_password',
     });

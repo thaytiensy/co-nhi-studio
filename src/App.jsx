@@ -175,7 +175,7 @@ class SafeTabErrorBoundary extends React.Component {
               <button
                 onClick={this.handleRestoreDefaults}
                 className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
-                title="Đặt lại 10 bài dạy & sổ điểm chuẩn GDPT 2018"
+                title="Đặt lại 45 kế hoạch bài dạy (5 khối) & sổ điểm chuẩn GDPT 2018"
               >
                 ⚡ Nạp Dữ Liệu Gốc GDPT 2018
               </button>

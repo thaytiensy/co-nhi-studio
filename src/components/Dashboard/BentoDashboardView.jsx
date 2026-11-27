@@ -206,7 +206,7 @@ export default function BentoDashboardView({
       const restored = restoreDefaultData();
       setData(restored);
       setIsLoading(false);
-      showToast('Đã khôi phục 10 kế hoạch bài dạy và 10 học sinh mẫu chuẩn GDPT 2018!', 'success');
+      showToast('Đã khôi phục 45 kế hoạch bài dạy (5 khối) và dữ liệu mẫu chuẩn GDPT 2018!', 'success');
     }, 300);
   };
 

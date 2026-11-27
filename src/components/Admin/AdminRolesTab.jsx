@@ -84,7 +84,7 @@ export default function AdminRolesTab({
                 <div>
                   <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     {isMaster ? <ShieldCheck className="w-3.5 h-3.5 text-amber-600" /> : <UserCheck className="w-3.5 h-3.5 text-indigo-600" />}
-                    <span>{item.email || item.id}</span>
+                    <span>{isMaster ? 'Quản trị hệ thống (Ẩn danh)' : (item.email || item.id)}</span>
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5">
                     Admin

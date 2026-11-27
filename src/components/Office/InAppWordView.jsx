@@ -11,7 +11,7 @@ export default function InAppWordView({ docData, onUploadDocx }) {
   const defaultLessonPlan = {
     title: 'KẾ HOẠCH BÀI DẠY MÔN MĨ THUẬT LỚP 1 - 5 (CHUẨN BỘ GIÁO DỤC CV 2345)',
     school: 'TRƯỜNG TIỂU HỌC TÂN PHÚ',
-    teacher: 'GIÁO VIÊN: THẦY TIẾN SỸ - MĨ THUẬT GDPT 2018',
+    teacher: 'GIÁO VIÊN MĨ THUẬT TIỂU HỌC - GDPT 2018',
     items: [
       { type: 'heading', text: 'I. MỤC TIÊU BÀI DẠY' },
       { type: 'paragraph', text: '1. Yêu cầu cần đạt: Học sinh nhận biết được màu cơ bản (Đỏ, Vàng, Lam), các hình khối cơ bản và biết sử dụng vật liệu sẵn có (sáp màu, đất nặn, giấy màu) để tạo hình sản phẩm nghệ thuật.' },

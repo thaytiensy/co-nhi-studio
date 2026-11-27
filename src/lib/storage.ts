@@ -65,7 +65,7 @@ export interface StudioStorageState {
 }
 
 export const STORAGE_KEY = 'conhi_studio_vip_storage_v1';
-export const CURRENT_STORAGE_VERSION = '2.3-chuan-5-khoi-tuan-1';
+export const CURRENT_STORAGE_VERSION = '2.4-chuan-5-khoi-45-chu-de';
 
 export const DEFAULT_SETTINGS: StudioSettings = {
   teacherName: 'Giáo viên',
@@ -284,6 +284,30 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     status: 'Sắp dạy',
     notes: 'Giáo dục lòng hiếu thảo và tình yêu thương gia đình.'
   },
+  {
+    id: 'plan-g2-9',
+    week: 9,
+    period: 9,
+    title: 'Chủ đề 9: Thầy cô của em (Tri ân ngày Nhà giáo)',
+    grade: 2,
+    className: '2A',
+    objectives: 'Khắc họa hình ảnh thầy giáo, cô giáo dịu hiền trên bục giảng hoặc học sinh tặng hoa tri ân.',
+    materials: 'Giấy vẽ A4, bút chì, sáp màu hoặc màu dạ.',
+    status: 'Sắp dạy',
+    notes: 'Giáo dục lòng kính trọng, biết ơn sâu sắc đối với thầy cô.'
+  },
+  {
+    id: 'plan-g2-10',
+    week: 10,
+    period: 10,
+    title: 'Chủ đề 10: Đồ chơi từ tạo hình con vật (Đất nặn, Vật liệu tái chế)',
+    grade: 2,
+    className: '2B',
+    objectives: 'Khám phá thế giới động vật ngộ nghĩnh và tái sử dụng vỏ hộp, cốc giấy, đất nặn tạo đồ chơi.',
+    materials: 'Đất nặn, lõi giấy, vỏ hộp tái chế, keo dán an toàn.',
+    status: 'Sắp dạy',
+    notes: 'Ý thức tiết kiệm, yêu quý động vật và sáng tạo đồ chơi xanh.'
+  },
 
   // --- LỚP 3: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (TRỌN BỘ 10 CHỦ ĐỀ, TUẦN 1-10) ---
   {
@@ -338,61 +362,61 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     id: 'plan-g3-5',
     week: 5,
     period: 5,
-    title: 'Chủ đề 5: Khu rừng nhiệt đới (Sáng tạo với giấy màu và vật liệu tái chế)',
+    title: 'Chủ đề 5: Một số vật liệu sử dụng trong thực hành, sáng tạo mĩ thuật',
     grade: 3,
     className: '3A',
-    objectives: 'Phối hợp kỹ thuật cắt, xé dán giấy màu và vật liệu tái chế an toàn để tạo bức tranh rừng cây và muông thú.',
-    materials: 'Giấy màu thủ công, kéo đầu tròn, hồ dán nguội, lá khô.',
+    objectives: 'Khám phá chất cảm phong phú của lá cây khô, len sợi, cúc áo, vật liệu tái chế để tạo hình bức tranh nổi sinh động.',
+    materials: 'Lá cây khô, len sợi, giấy bìa cứng, keo dán nguội an toàn, bút màu.',
     status: 'Sắp dạy',
-    notes: 'Khuyến khích tái sử dụng vật liệu thân thiện với môi trường.'
+    notes: 'Khuyến khích tận dụng vật liệu tự nhiên và phế liệu sạch bảo vệ môi trường.'
   },
   {
     id: 'plan-g3-6',
     week: 6,
     period: 6,
-    title: 'Chủ đề 6: Gia đình thân yêu (Tạo hình nhân vật và hoạt động sum vầy)',
+    title: 'Chủ đề 6: Biết ơn thầy cô (Làm bưu thiếp & Tranh hoa tặng thầy cô)',
     grade: 3,
     className: '3A',
-    objectives: 'Thể hiện dáng người và biểu cảm các thành viên gia đình qua tranh vẽ hoặc tượng nặn.',
-    materials: 'Đất nặn sinh học, giấy vẽ A4, bút sáp màu.',
+    objectives: 'Hiểu ý nghĩa ngày Nhà giáo Việt Nam 20-11; cắt dán hoa nổi 3D và viết lời chúc tri ân gửi tặng thầy cô.',
+    materials: 'Giấy bìa màu, giấy thủ công, kéo đầu tròn, hồ dán, bút màu.',
     status: 'Sắp dạy',
-    notes: 'Bồi dưỡng tình cảm gia đình ấm áp, biết quan tâm chia sẻ.'
+    notes: 'Bồi dưỡng lòng tôn sư trọng đạo và tình cảm biết ơn chân thành.'
   },
   {
     id: 'plan-g3-7',
     week: 7,
     period: 7,
-    title: 'Chủ đề 7: Ngày hội ở trường em (Tranh sinh hoạt tập thể)',
+    title: 'Chủ đề 7: Cảnh vật quanh em (Phong cảnh làng quê, góc phố)',
     grade: 3,
     className: '3B',
-    objectives: 'Sắp xếp bố cục nhiều nhân vật trong cảnh vui chơi, văn nghệ hoặc lễ hội tại sân trường.',
-    materials: 'Giấy vẽ A3, bút chì, sáp màu dầu.',
+    objectives: 'Quan sát và dựng bố cục phong cảnh làng quê, con đường, dòng sông, góc phố với không gian gần xa rõ ràng.',
+    materials: 'Giấy vẽ A3/A4, bút chì, sáp màu dầu hoặc màu nước.',
     status: 'Sắp dạy',
-    notes: 'Rèn kỹ năng vẽ dáng người đang vận động tự nhiên.'
+    notes: 'Hướng dẫn chọn góc nhìn đẹp, phân biệt xa gần và hòa sắc tươi sáng.'
   },
   {
     id: 'plan-g3-8',
     week: 8,
     period: 8,
-    title: 'Chủ đề 8: Đồ dùng thân quen (Thiết kế và trang trí đồ vật)',
+    title: 'Chủ đề 8: Chân dung người thân trong gia đình',
     grade: 3,
     className: '3B',
-    objectives: 'Vận dụng họa tiết lặp lại và đối xứng để trang trí chiếc cốc, hộp bút hoặc túi giấy hữu ích.',
-    materials: 'Bìa cứng, giấy màu, màu dạ, kéo đầu tròn, hồ dán.',
+    objectives: 'Nắm tỉ lệ trục mắt, mũi, miệng và đặc điểm tuổi tác để vẽ chân dung bán thân người thân ấm áp.',
+    materials: 'Giấy vẽ A4, bút chì 2B, sáp màu hoặc màu nước.',
     status: 'Sắp dạy',
-    notes: 'Gắn mĩ thuật tạo hình với mĩ thuật ứng dụng trong đời sống.'
+    notes: 'Giáo dục lòng hiếu thảo và trân trọng khoảnh khắc bên ông bà, cha mẹ.'
   },
   {
     id: 'plan-g3-9',
     week: 9,
     period: 9,
-    title: 'Chủ đề 9: Vẻ đẹp thiên nhiên quê hương (Tranh phong cảnh)',
+    title: 'Chủ đề 9: Sinh hoạt trong gia đình (Cùng làm việc nhà, vui chơi)',
     grade: 3,
     className: '3A',
-    objectives: 'Vẽ phong cảnh cánh đồng, dòng sông, mái nhà quê hương với không gian gần xa rõ ràng.',
-    materials: 'Màu nước hoặc màu sáp dầu, giấy Canson A4.',
+    objectives: 'Vẽ dáng người đang vận động tự nhiên trong các hoạt động sinh hoạt đầm ấm của gia đình.',
+    materials: 'Giấy Canson A4, bút chì, màu sáp dầu.',
     status: 'Sắp dạy',
-    notes: 'Hướng dẫn học sinh chọn góc nhìn đẹp và hòa sắc tươi sáng.'
+    notes: 'Khích lệ học sinh chia sẻ việc nhà và vun đắp tình cảm gia đình.'
   },
   {
     id: 'plan-g3-10',
@@ -448,61 +472,61 @@ export const DEFAULT_PLANS: TeachingPlanItem[] = [
     id: 'plan-g4-4',
     week: 4,
     period: 4,
-    title: 'Chủ đề 4: Nét đẹp trang phục dân tộc và thiết kế thời trang',
+    title: 'Chủ đề 4: Vẻ đẹp trong cuộc sống (Đồ dùng quen thuộc & Góc học tập)',
     grade: 4,
     className: '4B',
-    objectives: 'Tìm hiểu màu sắc, hoa văn trang phục các vùng miền; thực hành thiết kế mẫu trang phục sáng tạo bằng giấy màu.',
-    materials: 'Giấy thủ công màu, giấy báo cũ, hồ dán, kéo đầu tròn, sáp màu.',
+    objectives: 'Khám phá sự hài hòa về công năng và thẩm mĩ của đồ gia dụng; vẽ cụm đồ vật có liên kết không gian chặt chẽ.',
+    materials: 'Giấy vẽ A4, bút chì 2B/4B, sáp màu dầu.',
     status: 'Sắp dạy',
-    notes: 'Khơi gợi khả năng thiết kế ứng dụng và trân trọng bản sắc dân tộc.'
+    notes: 'Rèn thói quen sắp xếp góc học tập ngăn nắp và trân trọng đồ dùng.'
   },
   {
     id: 'plan-g4-5',
     week: 5,
     period: 5,
-    title: 'Chủ đề 5: Sắc màu thiên nhiên và thế giới động vật',
+    title: 'Chủ đề 5: Những kỉ niệm đẹp (Kỉ niệm mùa hè, Sinh hoạt bè bạn)',
     grade: 4,
     className: '4A',
-    objectives: 'Vận dụng cặp màu bổ túc và độ đậm nhạt để vẽ hoặc in hình các loài động vật sống động trong tự nhiên.',
-    materials: 'Màu nước, sáp dầu, lá cây in họa tiết, giấy Canson.',
+    objectives: 'Khắc họa bố cục nhiều nhân vật với tư thế vận động đa dạng và cảm xúc tươi vui về kỉ niệm tuổi thơ.',
+    materials: 'Màu nước, sáp dầu, giấy Canson A3/A4.',
     status: 'Sắp dạy',
-    notes: 'Giáo dục ý thức bảo vệ thiên nhiên và động vật hoang dã.'
+    notes: 'Lưu giữ kí ức đẹp cùng thầy cô, gia đình và bạn bè.'
   },
   {
     id: 'plan-g4-6',
     week: 6,
     period: 6,
-    title: 'Chủ đề 6: Đồ chơi dân gian truyền thống (Đèn ông sao, tò he, mặt nạ)',
+    title: 'Chủ đề 6: Mái trường yêu dấu (Hoạt động giờ ra chơi, Giờ học nhóm)',
     grade: 4,
     className: '4A',
-    objectives: 'Khám phá hình khối và màu sắc rực rỡ của đồ chơi dân gian; tự tạo mặt nạ giấy bồi hoặc con rối ngộ nghĩnh.',
-    materials: 'Đất nặn, bìa carton, giấy màu, dây chun an toàn, màu vẽ.',
+    objectives: 'Quan sát không gian trường tiểu học; vẽ nhóm học sinh vui chơi, học tập dưới sân trường rợp bóng cây.',
+    materials: 'Giấy A3, bút chì, sáp màu dầu hoặc màu nước.',
     status: 'Sắp dạy',
-    notes: 'Tổ chức trưng bày và biểu diễn sản phẩm đồ chơi dân gian tại lớp.'
+    notes: 'Bồi dưỡng tình cảm gắn bó với trường lớp và bạn bè.'
   },
   {
     id: 'plan-g4-7',
     week: 7,
     period: 7,
-    title: 'Chủ đề 7: Cuộc sống quanh em (Hoạt động lao động và sinh hoạt)',
+    title: 'Chủ đề 7: Môi trường xanh – sạch – đẹp (Trồng cây, Thu gom rác thải)',
     grade: 4,
     className: '4B',
-    objectives: 'Quan sát và thể hiện cảnh lao động, phiên chợ, thu hoạch mùa màng với tỉ lệ nhân vật cân đối.',
-    materials: 'Giấy A3, bút chì, màu sáp dầu hoặc màu nước.',
+    objectives: 'Vẽ tranh cổ động hoặc sinh hoạt thể hiện hành động trồng cây, giữ gìn nguồn nước và phân loại rác thải.',
+    materials: 'Giấy A3, bút chì, màu dạ, màu sáp dầu.',
     status: 'Sắp dạy',
-    notes: 'Chú ý thể hiện nhịp điệu chuyển động và không khí sinh hoạt tươi vui.'
+    notes: 'Nâng cao ý thức bảo vệ môi trường sống xanh – sạch – đẹp.'
   },
   {
     id: 'plan-g4-8',
     week: 8,
     period: 8,
-    title: 'Chủ đề 8: Ước mơ của em và thế giới tương lai',
+    title: 'Chủ đề 8: Quê hương thanh bình (Làng quê, Đầm sen, Thuyền câu)',
     grade: 4,
     className: '4B',
-    objectives: 'Phát huy trí tưởng tượng sáng tạo vẽ tranh về nghề nghiệp mơ ước hoặc thành phố xanh thông minh.',
-    materials: 'Giấy vẽ A3, màu dạ, sáp màu nhũ, vật liệu tạo hình tổng hợp.',
+    objectives: 'Cảm nhận vẻ đẹp tĩnh lặng, êm đềm của làng quê Việt Nam; thực hành loang màu mềm mại cho cảnh thiên nhiên.',
+    materials: 'Màu nước hoặc sáp dầu, cọ vẽ, giấy Canson.',
     status: 'Sắp dạy',
-    notes: 'Khích lệ học sinh tự tin thuyết trình ý tưởng ước mơ trước lớp.'
+    notes: 'Bồi dưỡng tâm hồn yêu thiên nhiên và nét đẹp bình dị của quê hương.'
   },
 
   // --- LỚP 5: BỘ SÁCH KẾT NỐI TRI THỨC VỚI CUỘC SỐNG (TRỌN BỘ 8 CHỦ ĐỀ CHUẨN SGK, TUẦN 1-8) ---
@@ -740,13 +764,19 @@ export function getStoredData(userScope?: string): StudioStorageState {
       p?.title?.includes('Mỹ thuật và Cuộc sống - Sắc màu thiên nhiên') ||
       p?.title?.includes('Nét vẽ kỳ diệu') ||
       p?.title?.includes('Ngôi nhà thân yêu - Tạo hình từ hình học cơ bản') ||
-      p?.title?.includes('Khu vườn tuổi thơ')
+      p?.title?.includes('Khu vườn tuổi thơ') ||
+      p?.title?.includes('Khu rừng nhiệt đới') ||
+      p?.title?.includes('Ngày hội ở trường em') ||
+      p?.title?.includes('Nét đẹp trang phục dân tộc và thiết kế thời trang') ||
+      p?.title?.includes('Ước mơ của em và thế giới tương lai')
     );
     const hasBrokenCurriculum = Array.isArray(parsed.plans) && (
+      parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 1).length < 9 ||
+      parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 2).length < 10 ||
       parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 3).length < 10 ||
       parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 4).length < 8 ||
       parsed.plans.filter((p: { grade?: number | string }) => Number(p?.grade) === 5).length < 8 ||
-      parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 2 && Number(p?.week) >= 10) ||
+      parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 2 && Number(p?.week) > 10) ||
       parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 4 && Number(p?.week) >= 20) ||
       parsed.plans.some((p: { grade?: number | string; week?: number }) => Number(p?.grade) === 5 && Number(p?.week) === 26)
     );
