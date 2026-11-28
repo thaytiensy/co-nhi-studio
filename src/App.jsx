@@ -783,21 +783,25 @@ export default function App() {
   // 0. BẢO VỆ MÀN HÌNH KHÓA: HIỆN NGAY KHI MỞ APP (Chặn 100%, không hiển thị app phía sau khi chưa đăng nhập)
   if (!isAuthenticated) {
     return (
-      <LoginGateModal
-        isOpen={true}
-        authError={authError}
-        onLoginSuccess={(session) => {
-          setActiveUserScope(session.email);
-          setCurrentUserSession(session);
-          setIsAuthenticated(true);
-          setAuthError('');
-          loadUserWorkspace(session.email);
-        }}
-        onClearAuthError={() => setAuthError('')}
-      />
+      <>
+        <LoginGateModal
+          isOpen={true}
+          authError={authError}
+          onLoginSuccess={(session) => {
+            setActiveUserScope(session.email);
+            setCurrentUserSession(session);
+            setIsAuthenticated(true);
+            setAuthError('');
+            loadUserWorkspace(session.email);
+          }}
+          onClearAuthError={() => setAuthError('')}
+        />
+        <React.Suspense fallback={null}>
+          <PageAgentCopilot />
+        </React.Suspense>
+      </>
     );
   }
-
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-100 overflow-hidden font-sans relative">
       {/* Hidden input for PPTX file picker */}
