@@ -29,6 +29,7 @@ const VideoGuideModal = React.lazy(() => import('./components/VideoGuide/VideoGu
 const AdminModal = React.lazy(() => import('./components/Admin/AdminModal'));
 const InstallAppModal = React.lazy(() => import('./components/Install/InstallAppModal'));
 const BentoDashboardView = React.lazy(() => import('./components/Dashboard/BentoDashboardView'));
+const PageAgentCopilot = React.lazy(() => import('./components/page-agent/PageAgentCopilot'));
 import SmartSidebar from './components/Navigation/SmartSidebar';
 import BottomNavBar from './components/Navigation/BottomNavBar';
 import { getCurrentSession, logoutAdmin, ROLES } from './utils/adminAuthService';
@@ -1106,6 +1107,13 @@ export default function App() {
           />
         )}
       </React.Suspense>
+
+      {/* Trợ lý AI thao tác trang web (Page Agent · Google Gemini) */}
+      {!isPresentationOpen && (
+        <React.Suspense fallback={null}>
+          <PageAgentCopilot />
+        </React.Suspense>
+      )}
 
       {/* Global Toast Notification System */}
       <ToastContainer />
